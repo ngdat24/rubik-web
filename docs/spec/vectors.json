@@ -1,0 +1,31 @@
+{
+  "moves_3x3_single": [
+    {
+      "move": "R",
+      "checks": [
+        { "face": "U", "col": 2, "expectedColor": 2 },
+        { "face": "B", "col": 0, "expectedColor": 0 },
+        { "face": "D", "col": 2, "expectedColor": 5 },
+        { "face": "F", "col": 2, "expectedColor": 3 }
+      ]
+    },
+    {
+      "move": "U",
+      "checks": [
+        { "face": "F", "row": 0, "expectedColor": 1 }, 
+        { "face": "L", "row": 0, "expectedColor": 2 },
+        { "face": "B", "row": 0, "expectedColor": 4 },
+        { "face": "R", "row": 0, "expectedColor": 5 }
+      ]
+    },
+    {
+      "move": "L",
+      "checks": [
+        { "face": "F", "col": 0, "expectedColor": 0 },
+        { "face": "U", "col": 0, "expectedColor": 5 },
+        { "face": "B", "col": 2, "expectedColor": 3 },
+        { "face": "D", "col": 0, "expectedColor": 2 }
+      ]
+    }
+  ]
+}
