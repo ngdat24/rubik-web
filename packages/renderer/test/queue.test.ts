@@ -1,7 +1,7 @@
 import { afterEach, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({ render: vi.fn(), request: vi.fn(() => 7) }));
 vi.mock('three', async original => ({...await original<typeof import('three')>(), WebGLRenderer: class {
-  domElement = {remove: vi.fn(), setAttribute: vi.fn()};
+  domElement = {remove: vi.fn(), setAttribute: vi.fn(), addEventListener: vi.fn(), removeEventListener: vi.fn()};
   outputColorSpace = ''; setPixelRatio = vi.fn(); setSize = vi.fn(); render = mocks.render;
   dispose = vi.fn(); forceContextLoss = vi.fn();
 }}));

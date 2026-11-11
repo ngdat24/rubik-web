@@ -1,12 +1,26 @@
 {
-  "name": "@rubik/web", "version": "0.1.0", "private": true, "type": "module",
+  "name": "@rubik/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "preview": "vite preview",
+    "test:e2e": "playwright test",
+    "benchmark:renderer": "node tools/benchmark.mjs"
   },
-  "dependencies": { "@rubik/engine": "0.1.0", "@rubik/renderer": "0.1.0" },
-  "devDependencies": { "typescript": "^5.0.0", "vite": "8.3.8", "vitest": "5.1.0" }
+  "dependencies": {
+    "@rubik/engine": "0.1.0",
+    "@rubik/renderer": "0.1.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.0",
+    "typescript": "^5.0.0",
+    "vite": "8.3.8",
+    "vitest": "5.1.0"
+  }
 }

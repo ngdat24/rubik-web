@@ -28,8 +28,9 @@ const cameraBack = document.querySelector<HTMLButtonElement>('#camera-back')!;
 const algorithmForm = document.querySelector<HTMLFormElement>('#algorithm-form')!;
 const algorithm = document.querySelector<HTMLTextAreaElement>('#algorithm')!;
 const algorithmError = document.querySelector<HTMLElement>('#algorithm-error')!;
+const contextMessage = document.querySelector<HTMLElement>('#context-message')!;
 const updateMoveControls = (): void => {
-  moveControls.disabled = !controller;
+  moveControls.disabled = !controller || !contextMessage.hidden;
   queueStatus.textContent = `Chờ hiển thị: ${renderer?.pendingMoveCount ?? 0} nước`;
 };
 const buildMoveButtons = (): void => {
@@ -50,8 +51,16 @@ const disableControls = (): void => {
   moveControls.disabled = true;
 };
 try {
-  renderer = new CubeRenderer(container);
+  const diagnosticsEnabled = new URLSearchParams(location.search).has('diagnostics');
+  renderer = new CubeRenderer(container, {measurePerformance: diagnosticsEnabled,
+    instancing: !(diagnosticsEnabled && new URLSearchParams(location.search).has('mesh'))});
+  if (diagnosticsEnabled) Object.defineProperty(window, 'rubikDiagnostics', {value: () => renderer?.getDiagnostics(), configurable: true});
   controller = new DemoController(renderer);
+  renderer.onContextChange = available => {
+    contextMessage.hidden = available;
+    contextMessage.textContent = available ? '' : 'Kết nối đồ họa tạm mất. Đang chờ trình duyệt khôi phục; bạn có thể tải lại trang nếu cần.';
+    moveControls.disabled = !available;
+  };
   renderer.onMoveAnimated = move => {
     updateMoveControls();
     moveStatus.textContent = `Đã xoay ${move}.`;
@@ -153,5 +162,6 @@ if (import.meta.hot) import.meta.hot.dispose(() => {
   cameraReset.removeEventListener('click', onCameraReset);
   cameraBack.removeEventListener('click', onCameraBack);
   algorithmForm.removeEventListener('submit', onAlgorithm);
+  Reflect.deleteProperty(window, 'rubikDiagnostics');
   controller?.dispose();
 });

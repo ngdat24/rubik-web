@@ -2,7 +2,7 @@ name: CI
 on: [push, pull_request]
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -19,3 +19,6 @@ jobs:
       - run: npm run typecheck
       - run: npm run test
       - run: python -B tools/reference/check-engine.py
+      - run: npm run test:e2e
+        env:
+          PLAYWRIGHT_CHANNEL: chrome
