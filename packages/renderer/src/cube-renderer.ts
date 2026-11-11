@@ -3,7 +3,10 @@ import {
   PerspectiveCamera, Scene, Shape, ShapeGeometry, SRGBColorSpace, Vector3, WebGLRenderer,
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { buildLayout } from './layout.js';
+import { parseMove } from '@rubik/engine';
+import type { Move } from '@rubik/engine';
+import { buildLayout, layerSlots, rotationFor } from './layout.js';
+import { animationProgress } from './animator.js';
 import type { CubeLayout, LayoutOptions } from './layout.js';
 import { WESTERN_COLORS, validateDisplayState, validateTheme } from './colors.js';
 import type { ColorTheme } from './colors.js';
@@ -25,7 +28,7 @@ function roundedSticker(side: number): ShapeGeometry {
   return new ShapeGeometry(shape, 4);
 }
 
-/** Static display only. Cube state and move application belong to the controller. */
+/** Display and animation only. Cube state and move application belong to the controller. */
 export class CubeRenderer {
   private readonly scene = new Scene();
   private readonly camera = new PerspectiveCamera(40, 1, 0.1, 100);
@@ -37,6 +40,11 @@ export class CubeRenderer {
   private plasticMaterial: MeshStandardMaterial | undefined;
   private materials: MeshStandardMaterial[] = [];
   private stickers: Mesh<ShapeGeometry, MeshStandardMaterial>[] = [];
+  private bodies: Mesh<BoxGeometry, MeshStandardMaterial>[] = [];
+  private readonly pivot = new Group();
+  private readonly rotationAxis = new Vector3();
+  private active: { move: Move; stateAfter: Uint8Array; startedAt: number; duration: number; angle: number } | undefined;
+  onMoveAnimated: (move: Move) => void = () => {};
   private size = 0;
   private theme: ColorTheme;
   private readonly layoutOptions: LayoutOptions;
@@ -81,6 +89,7 @@ export class CubeRenderer {
   setSize(size: number): void {
     this.assertActive();
     const layout = buildLayout(size, this.layoutOptions);
+    this.cancelAnimation();
     if (size !== this.size) this.rebuild(layout);
   }
 
@@ -88,9 +97,37 @@ export class CubeRenderer {
   setState(state: Uint8Array): void {
     this.assertActive();
     validateDisplayState(state, this.size);
+    this.cancelAnimation();
     for (let index = 0; index < this.stickers.length; index++) {
       this.stickers[index]!.material = this.materials[state[index]!]!;
     }
+  }
+
+  get isAnimating(): boolean { return this.active !== undefined; }
+
+  /** R3 accepts one animation at a time. R4 will add an input queue. */
+  enqueueMove(move: Move, stateAfter: Uint8Array): void {
+    this.assertActive();
+    if (this.active) throw new Error('Animation in progress');
+    const parsed = parseMove(move, this.size);
+    validateDisplayState(stateAfter, this.size);
+    const selection = layerSlots(parsed, this.size);
+    const rotation = rotationFor(parsed);
+    this.rotationAxis.set(...rotation.axis);
+    this.pivot.quaternion.identity();
+    this.cubeGroup.add(this.pivot);
+    for (const index of selection.cubieIndices) this.pivot.add(this.bodies[index]!);
+    for (const index of selection.stickerIndices) this.pivot.add(this.stickers[index]!);
+    this.active = { move: parsed.canonical, stateAfter: stateAfter.slice(), startedAt: performance.now(),
+      duration: parsed.quarterTurns === 2 ? 225 : 150, angle: rotation.angle };
+  }
+
+  private cancelAnimation(): void {
+    this.active = undefined;
+    this.pivot.quaternion.identity();
+    // add() preserves local slot transforms; do not attach() or accumulate rotations.
+    while (this.pivot.children.length) this.cubeGroup.add(this.pivot.children[0]!);
+    this.pivot.removeFromParent();
   }
 
   setTheme(theme: ColorTheme): void {
@@ -105,8 +142,10 @@ export class CubeRenderer {
   }
 
   private releaseCube(): void {
+    this.cancelAnimation();
     this.cubeGroup.clear();
     this.stickers = [];
+    this.bodies = [];
     this.geometry?.dispose();
     this.stickerGeometry?.dispose();
     this.plasticMaterial?.dispose();
@@ -123,6 +162,7 @@ export class CubeRenderer {
     for (const cubie of layout.cubies) {
       const body = new Mesh(this.geometry, this.plasticMaterial);
       body.position.set(...cubie.position);
+      this.bodies.push(body);
       this.cubeGroup.add(body);
     }
     const forward = new Vector3(0, 0, 1), normal = new Vector3();
@@ -147,11 +187,22 @@ export class CubeRenderer {
     this.webgl.setSize(width, height, false);
   };
 
-  private readonly draw = (): void => {
+  private readonly draw = (time = performance.now()): void => {
     if (this.disposed) return;
+    const active = this.active;
+    let completedMove: Move | undefined;
+    if (active) {
+      const elapsed = time - active.startedAt;
+      this.pivot.quaternion.setFromAxisAngle(this.rotationAxis, active.angle * animationProgress(elapsed, active.duration));
+      if (elapsed >= active.duration) {
+        this.setState(active.stateAfter);
+        completedMove = active.move;
+      }
+    }
     this.controls.update();
     this.webgl.render(this.scene, this.camera);
     this.frame = requestAnimationFrame(this.draw);
+    if (completedMove !== undefined) this.onMoveAnimated(completedMove);
   };
 
   dispose(): void {

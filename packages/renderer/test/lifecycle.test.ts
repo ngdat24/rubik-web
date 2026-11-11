@@ -32,6 +32,59 @@ import { WESTERN_COLORS } from '../src/colors.js';
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.clearAllMocks(); });
 
 describe('R0 renderer lifetime without a GPU', () => {
+  it('animates one layer, paints the copied snapshot and cancels safely', () => {
+    vi.stubGlobal('window', { devicePixelRatio: 1, addEventListener: mocks.add, removeEventListener: mocks.removeListener });
+    vi.stubGlobal('requestAnimationFrame', mocks.request);
+    vi.stubGlobal('cancelAnimationFrame', mocks.cancel);
+    vi.stubGlobal('ResizeObserver', class { observe = mocks.observe; disconnect = mocks.disconnect; });
+    vi.spyOn(performance, 'now').mockReturnValue(0);
+    const renderer = new CubeRenderer({clientWidth: 800, clientHeight: 500, append: mocks.append} as unknown as HTMLElement);
+    const callback = vi.fn(); renderer.onMoveAnimated = callback;
+    const draw = mocks.request.mock.calls[0]![0] as unknown as (time: number) => void;
+    draw(0);
+    const scene = mocks.render.mock.calls[0]![0];
+    const group = scene.children.find((child: unknown) => child instanceof Group) as Group;
+    const meshes = [...group.children] as Mesh<ShapeGeometry, MeshStandardMaterial>[];
+    const transforms = meshes.map(mesh => ({position: mesh.position.clone(), quaternion: mesh.quaternion.clone()}));
+    const after = new Cube().applyMoves('R').state;
+    const expectedColors = [...after].map(color => WESTERN_COLORS[color]);
+    renderer.enqueueMove('R', after);
+    after.fill(5);
+    expect(renderer.isAnimating).toBe(true);
+    expect(() => renderer.enqueueMove('U', new Cube().state)).toThrow('progress');
+    const pivot = group.children.find(child => child instanceof Group)!;
+    expect(pivot.children).toHaveLength(9 + 21);
+    draw(75);
+    expect(pivot.rotation.x).toBeCloseTo(-Math.PI / 4);
+    expect(callback).not.toHaveBeenCalled();
+    draw(150);
+    expect(renderer.isAnimating).toBe(false);
+    expect(callback).toHaveBeenCalledWith('R');
+    const stickers = meshes.filter(mesh => mesh.geometry instanceof ShapeGeometry);
+    expect(stickers.map(mesh => mesh.material.color.getHex())).toEqual(expectedColors);
+    for (const [index, mesh] of meshes.entries()) {
+      expect(mesh.parent).toBe(group);
+      expect(mesh.position).toEqual(transforms[index]!.position);
+      expect(mesh.quaternion.toArray()).toEqual(transforms[index]!.quaternion.toArray());
+    }
+    callback.mockClear();
+    renderer.enqueueMove('U2', new Cube().applyMoves('R U2').state);
+    draw(150);
+    expect(renderer.isAnimating).toBe(true); // doubles take 225ms
+    renderer.setState(new Cube().state);
+    draw(999);
+    expect(renderer.isAnimating).toBe(false);
+    expect(callback).not.toHaveBeenCalled();
+    expect(stickers.map(mesh => mesh.material.color.getHex())).toEqual([...new Cube().state].map(c => WESTERN_COLORS[c]));
+    renderer.enqueueMove('x', new Cube().applyMoves('x').state);
+    expect(group.children.find(child => child instanceof Group)!.children).toHaveLength(meshes.length);
+    renderer.setSize(4);
+    expect(renderer.isAnimating).toBe(false);
+    renderer.enqueueMove('Rw', new Cube(4).applyMoves('Rw').state);
+    renderer.dispose();
+    draw(1000);
+    expect(callback).not.toHaveBeenCalled();
+  });
   it('paints without allocating materials, switches theme and reuses the canvas while resizing', () => {
     vi.stubGlobal('window', { devicePixelRatio: 1, addEventListener: mocks.add, removeEventListener: mocks.removeListener });
     vi.stubGlobal('requestAnimationFrame', mocks.request);

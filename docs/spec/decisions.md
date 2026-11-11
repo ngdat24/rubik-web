@@ -82,3 +82,8 @@
 - **Quyết định**: setState kiểm tra độ dài/màu rồi gán material dùng chung theo state[i], không lưu mảng state hoặc tạo material mỗi lần tô. setTheme đổi màu 6 material hiện có. setSize khác N dựng lại cubie/sticker và giải phóng geometry/material cũ, giữ canvas/camera/controls; cùng N là no-op. Controller cấp trạng thái sau setSize, Reset và Scramble. Scramble luôn bắt đầu từ Cube đã giải, dùng seed trong demo và k=0, hiển thị chuỗi đã áp dụng.
 - **Lý do**: Renderer chỉ giữ dữ liệu hiển thị; scramble tái lập và không tích lũy từ trạng thái cũ. R3/R4 sẽ bổ sung hủy pivot/queue khi setState.
 - **Ảnh hưởng**: CubeRenderer, colors.ts, controller.ts, demo R2.
+
+## D-015 | 2026-11-11 | R3 animation một nước bằng pivot tạm
+- **Quyết định**: layerSlots chọn cả sticker/nhựa theo tọa độ cubie E2; rotationFor trả trục dương và quarterTurns*pi/2. Renderer dùng pivot + smoothstep, 150ms/nước đơn, 225ms/nước đôi. enqueueMove(move,stateAfter) giữ snapshot hiển thị độc lập; xong trả pivot về 0, đưa mesh về slot cũ rồi tô snapshot. setState/setSize/dispose hủy pivot, không phát callback cho nước bị hủy. onMoveAnimated chỉ báo hoàn tất hiển thị.
+- **Lý do**: Chặn sai chiều/lớp bằng test Three.js rotation so với permutation engine; tránh tích lũy sai số. Controller áp nước và giữ timestamp input trước khi bắt đầu animation.
+- **Ảnh hưởng**: layout.ts, animator.ts, CubeRenderer, controller và demo R3. Chỉ nhận một nước tại một thời điểm, nút nước đi tạm khóa khi xoay; hàng đợi và tốc độ động thuộc R4.

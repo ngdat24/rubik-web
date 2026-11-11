@@ -1,5 +1,5 @@
-import { stickerGeometry, validateSize } from '@rubik/engine';
-import type { Vector3 } from '@rubik/engine';
+import { parseMove, stickerGeometry, validateSize } from '@rubik/engine';
+import type { ParsedMove, Vector3 } from '@rubik/engine';
 
 export interface LayoutOptions {
   edgeLength?: number;
@@ -36,4 +36,24 @@ export function buildLayout(size: number, options: LayoutOptions = {}): CubeLayo
   }
   return { size, edgeLength, cellSize, cubieSize: cellSize * (1 - gapRatio),
     stickerSize: cellSize * (1 - gapRatio - 2 * stickerInsetRatio), slots, cubies: [...cubies.values()] };
+}
+
+/** Select by cubie coordinate, including every sticker on each selected cubie. */
+export function layerSlots(move: ParsedMove, size: number): { stickerIndices: number[]; cubieIndices: number[] } {
+  const parsed = parseMove(move.canonical, size);
+  const layout = buildLayout(size);
+  const axis = {x: 0, y: 1, z: 2}[parsed.axis];
+  const selected = (coordinates: Vector3) => {
+    const layer = (size + 1 - coordinates[axis]!) / 2;
+    return layer >= parsed.layerStart && layer <= parsed.layerEnd;
+  };
+  return {
+    stickerIndices: layout.slots.filter(slot => selected(stickerGeometry(slot.index, size).cubie)).map(slot => slot.index),
+    cubieIndices: layout.cubies.flatMap((cubie, index) => selected(cubie.coordinates) ? [index] : []),
+  };
+}
+
+export function rotationFor(move: ParsedMove): { axis: Vector3; angle: number } {
+  const axis: Vector3 = move.axis === 'x' ? [1, 0, 0] : move.axis === 'y' ? [0, 1, 0] : [0, 0, 1];
+  return { axis, angle: move.quarterTurns * Math.PI / 2 };
 }
