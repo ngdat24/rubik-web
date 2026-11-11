@@ -77,3 +77,8 @@
 - **Quyết định**: Cạnh khối mặc định 3 đơn vị; cell = cạnh/N. Tọa độ cubie nhân đôi từ E2 nhân cell/2, vị trí slot cộng normal*cell/2. Giữ nguyên index/pháp tuyến engine. Dedupe tọa độ cubie để chỉ dựng bề mặt. Khe nhựa mặc định 4% cell; viền sticker mỗi bên 8% cell; góc bo 9% cạnh sticker. Mesh sticker nhô 0,2% cell, slot toán vẫn ở mặt lý tưởng.
 - **Lý do**: Một hệ chỉ số xuyên engine/renderer và không phụ thuộc WebGL cho test toán. Mọi N có cùng kích thước hiển thị.
 - **Ảnh hưởng**: layout.ts, CubeRenderer, demo R1. Trong R1, controller đổi N bằng cách dispose renderer cũ và dựng lại; API setSize/setState tái sử dụng cảnh sẽ làm ở R2.
+
+## D-014 | 2026-11-11 | R2 tô state tức thì và đổi kích thước giữ camera
+- **Quyết định**: setState kiểm tra độ dài/màu rồi gán material dùng chung theo state[i], không lưu mảng state hoặc tạo material mỗi lần tô. setTheme đổi màu 6 material hiện có. setSize khác N dựng lại cubie/sticker và giải phóng geometry/material cũ, giữ canvas/camera/controls; cùng N là no-op. Controller cấp trạng thái sau setSize, Reset và Scramble. Scramble luôn bắt đầu từ Cube đã giải, dùng seed trong demo và k=0, hiển thị chuỗi đã áp dụng.
+- **Lý do**: Renderer chỉ giữ dữ liệu hiển thị; scramble tái lập và không tích lũy từ trạng thái cũ. R3/R4 sẽ bổ sung hủy pivot/queue khi setState.
+- **Ảnh hưởng**: CubeRenderer, colors.ts, controller.ts, demo R2.
