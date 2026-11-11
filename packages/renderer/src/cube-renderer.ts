@@ -1,6 +1,6 @@
 import {
   AmbientLight, BoxGeometry, DirectionalLight, Group, Mesh, MeshStandardMaterial,
-  PerspectiveCamera, Scene, Shape, ShapeGeometry, SRGBColorSpace, Vector3, WebGLRenderer,
+  Raycaster, Vector2, Plane, PerspectiveCamera, Scene, Shape, ShapeGeometry, SRGBColorSpace, Vector3, WebGLRenderer,
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { parseMove } from '@rubik/engine';
@@ -51,7 +51,8 @@ export class CubeRenderer {
   private readonly pivot = new Group();
   private readonly rotationAxis = new Vector3();
   private queue: PreparedMove[] = [];
-  private active: { item: PreparedMove; progress: number; lastFrameTime: number | undefined } | undefined;
+  private active: { item: PreparedMove; progress: number; lastFrameTime: number | undefined; startAngle?: number } | undefined;
+  private dragAngle: number | undefined;
   private msPerQuarterTurn = 150;
   private instant = false;
   private idleNotified = true;
@@ -107,8 +108,57 @@ export class CubeRenderer {
     if (!this.disposed) this.controls.enabled = enabled;
   }
 
+  get canvas(): HTMLCanvasElement { return this.webgl.domElement; }
+  pick(clientX: number, clientY: number) {
+    if (this.pendingMoveCount || this.dragAngle !== undefined || this.contextLost) return null;
+    const ray = this.pointerRay(clientX,clientY);
+    this.scene.updateMatrixWorld(true);
+    const hit=ray.intersectObjects(this.cubeGroup.children,true)[0];
+    if (!hit) return null;
+    const index=this.instances ? (hit.object===this.instances.stickers ? hit.instanceId : undefined) : this.stickers.indexOf(hit.object as typeof this.stickers[number]);
+    if (index===undefined || index<0) return null;
+    return {slot:buildLayout(this.size,this.layoutOptions).slots[index]!, point:hit.point.clone()};
+  }
+  private pointerRay(x: number,y: number): Raycaster {
+    const rect=this.canvas.getBoundingClientRect();
+    const ray=new Raycaster();
+    this.camera.updateMatrixWorld();
+    ray.setFromCamera(new Vector2((x-rect.left)/rect.width*2-1,-(y-rect.top)/rect.height*2+1),this.camera);
+    return ray;
+  }
+  facePoint(x: number,y: number,normal: readonly number[],point: Vector3): Vector3 | null {
+    return this.pointerRay(x,y).ray.intersectPlane(new Plane().setFromNormalAndCoplanarPoint(new Vector3(...normal as [number,number,number]),point),new Vector3());
+  }
+  beginDrag(move: Move): void {
+    if (this.pendingMoveCount) throw new Error('Wait for animation');
+    const parsed=parseMove(move,this.size), selection=layerSlots(parsed,this.size);
+    this.rotationAxis.set(...rotationFor(parsed).axis);
+    if (this.instances) this.instances.begin(selection);
+    else {this.cubeGroup.add(this.pivot); for(const i of selection.cubieIndices)this.pivot.add(this.bodies[i]!);for(const i of selection.stickerIndices)this.pivot.add(this.stickers[i]!);}
+    this.dragAngle=0;
+  }
+  updateDrag(angle: number): void {
+    if (this.dragAngle===undefined || !Number.isFinite(angle)) return;
+    this.dragAngle=angle;this.pivot.quaternion.setFromAxisAngle(this.rotationAxis,angle);this.instances?.rotate(this.pivot.quaternion);
+  }
+  endDrag(): number { const angle=this.dragAngle??0;this.dragAngle=undefined;this.cancelAnimation();return angle; }
+  resumeDrag(angle: number): void {if(this.active){this.active.startAngle=angle;if(this.active.item.doubleTurn && angle<0)this.active.item.rotation.angle=-Math.PI;}}
+  zoomBy(factor: number): void {
+    const distance=this.camera.position.distanceTo(this.controls.target);
+    const next=Math.min(18,Math.max(5,distance*factor));
+    this.camera.position.sub(this.controls.target).multiplyScalar(next/distance).add(this.controls.target);
+  }
+
   resetCamera(): void { this.setCameraView('ufr'); }
 
+  getPickTargets() {
+    const rect=this.canvas.getBoundingClientRect();this.camera.updateMatrixWorld();
+    return buildLayout(this.size,this.layoutOptions).slots.flatMap(slot=>{
+      const p=new Vector3(...slot.position).project(this.camera);
+      const x=rect.left+(p.x+1)*rect.width/2,y=rect.top+(1-p.y)*rect.height/2;
+      return this.pick(x,y)?.slot.index===slot.index ? [{x,y,index:slot.index}] : [];
+    });
+  }
   getDiagnostics() {
     return { size: this.size, backend: this.instances ? 'instanced' : 'mesh', pending: this.pendingMoveCount, drawCalls: this.webgl.info?.render.calls ?? 0,
       geometries: this.webgl.info?.memory.geometries ?? 0, triangles: this.webgl.info?.render.triangles ?? 0,
@@ -236,6 +286,7 @@ export class CubeRenderer {
   }
 
   private cancelAnimation(): void {
+    this.dragAngle = undefined;
     this.active = undefined;
     this.pivot.quaternion.identity();
     this.instances?.end();
@@ -320,7 +371,7 @@ export class CubeRenderer {
       active.progress = this.instant ? 1 : advanceProgress(active.progress, time - previous,
         this.msPerQuarterTurn, active.item.doubleTurn, this.queue.length);
       this.pivot.quaternion.setFromAxisAngle(this.rotationAxis,
-        active.item.rotation.angle * animationProgress(active.progress, 1));
+        (active.startAngle ?? 0) + (active.item.rotation.angle - (active.startAngle ?? 0)) * animationProgress(active.progress, 1));
       this.instances?.rotate(this.pivot.quaternion);
       if (active.progress < 1) break;
       this.cancelAnimation();

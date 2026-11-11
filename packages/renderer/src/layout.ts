@@ -57,3 +57,23 @@ export function rotationFor(move: ParsedMove): { axis: Vector3; angle: number } 
   const axis: Vector3 = move.axis === 'x' ? [1, 0, 0] : move.axis === 'y' ? [0, 1, 0] : [0, 0, 1];
   return { axis, angle: move.quarterTurns * Math.PI / 2 };
 }
+
+/** Engine-owned slot identity, shared by mesh and instance raycasts. */
+export function pickedSlot(size: number, index: number): StickerSlot | null {
+  if (!Number.isInteger(index) || index < 0 || index >= 6*size*size) return null;
+  return buildLayout(size).slots[index]!;
+}
+/** Drag in a face plane: normal cross displacement determines the rotation axis. */
+export function dragTurn(size: number, index: number, delta: readonly number[]) {
+  const slot = pickedSlot(size,index);
+  if (!slot || delta.length!==3 || delta.some(v=>!Number.isFinite(v))) return null;
+  const n=slot.normal, d=delta;
+  const cross=[n[1]*d[2]!-n[2]*d[1]!,n[2]*d[0]!-n[0]*d[2]!,n[0]*d[1]!-n[1]*d[0]!];
+  const axis=cross.reduce((best,v,i)=>Math.abs(v)>Math.abs(cross[best]!)?i:best,0);
+  if (Math.abs(cross[axis]!)<1e-8) return null;
+  const layer=(size+1-stickerGeometry(index,size).cubie[axis]!)/2;
+  const opposite=size===2 && layer===2;
+  const face=(opposite?['L','D','B']:['R','U','F'])[axis]!;
+  const move=`${layer===1 || opposite?'':layer}${face}${(cross[axis]!>0)!==opposite?"'":''}`;
+  return {axis,layer,move,sign:Math.sign(cross[axis]!)};
+}

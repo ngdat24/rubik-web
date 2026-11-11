@@ -52,3 +52,5 @@ dialog h2 { margin-top: 0; }
 #key-bindings { margin-bottom: 16px; }
 #key-conflict { border: 1px solid #bd8d3c; padding: 12px; margin-bottom: 12px; }
 #key-settings-message, #key-storage-status { font-size: 13px; }
+
+canvas { touch-action: none; }

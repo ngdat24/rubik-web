@@ -63,4 +63,4 @@ Giữ 488 cubie bề mặt + 600 sticker, hai geometry. Không coi số đo Swif
 
 ## Giới hạn phạm vi
 
-Giai đoạn 3 chưa làm keybinding, kéo lớp, timer hoặc backend. Giai đoạn 4 I1 bổ sung bàn phím theo 06-keybindings.md; controller giữ state/timestamp, renderer tiếp tục chỉ hiển thị. Kéo lớp, timer và backend chưa triển khai. Mục tiêu 60 FPS trên phần cứng người dùng cần đo riêng như ghi ở trên.
+Giai đoạn 3 chưa làm keybinding, kéo lớp, timer hoặc backend. Giai đoạn 4 I1 bổ sung bàn phím theo 06-keybindings.md; controller giữ state/timestamp, renderer tiếp tục chỉ hiển thị. Giai đoạn 4 I3–I6 đã bổ sung picking và preview kéo qua beginDrag/updateDrag/endDrag/resumeDrag; controller chốt nước, chi tiết tại 11-input.md. Timer và backend chưa triển khai. Mục tiêu 60 FPS trên phần cứng người dùng cần đo riêng như ghi ở trên.

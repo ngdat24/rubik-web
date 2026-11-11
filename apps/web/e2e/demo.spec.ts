@@ -57,7 +57,7 @@ test('recovers after WebGL context loss and supports touch orbit', async ({brows
   await page.locator('canvas').scrollIntoViewIfNeeded();
   const rect = await page.locator('canvas').boundingBox();
   const cdp = await context.newCDPSession(page);
-  const x = rect!.x + rect!.width / 2, y = rect!.y + rect!.height / 2;
+  const x = rect!.x + 12, y = rect!.y + 12;
   await cdp.send('Input.dispatchTouchEvent', {type: 'touchStart', touchPoints: [{x,y,id:0}]});
   await cdp.send('Input.dispatchTouchEvent', {type: 'touchMove', touchPoints: [{x:x+80,y:y+30,id:0}]});
   await cdp.send('Input.dispatchTouchEvent', {type: 'touchEnd', touchPoints: []});
@@ -219,4 +219,51 @@ test('blocked storage does not prevent in-session key configuration', async ({pa
   await page.locator('#key-settings-close').click();
   await page.locator('#viewport').click({position:{x:5,y:5}}); await page.keyboard.press('a');
   await expect(page.locator('#move-status')).toContainText('R');
+});
+
+test('mouse and touch layer gestures commit through controller, cancel safely and preserve camera', async ({page})=>{
+ await page.goto('/?diagnostics=1');await expect(page.locator('canvas')).toBeVisible();
+ await page.locator('#instant').check();
+ for(const n of ['2','3','7','10']){
+  await page.selectOption('#cube-size',n);await page.locator('canvas').scrollIntoViewIfNeeded();
+  const rect=(await page.locator('canvas').boundingBox())!;
+  const target=await page.evaluate(()=>(window as any).rubikDiagnostics(true).pickTargets.find((p:any)=>Math.floor(p.index/(Number((document.querySelector('#cube-size') as HTMLSelectElement).value)**2))===2));
+  const {x,y}=target;
+  const camera=await page.evaluate(()=>(window as any).rubikDiagnostics().camera);
+  await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x+120,y,{steps:10});await page.mouse.up();
+  await expect(page.locator('#cube-description')).toContainText('Đang luyện tập');
+  await expect(page.locator('#queue-status')).toContainText('0 nước');
+  expect(await page.evaluate(()=>(window as any).rubikDiagnostics().camera)).toEqual(camera);
+  const text=(await page.locator('#move-status').textContent())!;
+  const move=text.match(/Đã xoay (.+)\./)![1]!;
+  const inverse=move.endsWith('2')?move:move.endsWith("'")?move.slice(0,-1):move+"'";
+  await page.locator('#algorithm').fill(inverse);await page.locator('#algorithm-form button').click();
+  await expect(page.locator('#cube-description')).toContainText('đã giải');
+  await page.locator('canvas').scrollIntoViewIfNeeded();
+  const r=(await page.locator('canvas').boundingBox())!;
+  await page.mouse.move(x,y);await page.mouse.down();
+  await page.mouse.move(x+60,y);
+  await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await page.mouse.up();
+  await expect(page.locator('#cube-description')).toContainText('đã giải');
+ }
+ const cdp=await page.context().newCDPSession(page);
+ await page.selectOption('#cube-size','3');await page.locator('canvas').scrollIntoViewIfNeeded();
+ const {x,y}=await page.evaluate(()=>(window as any).rubikDiagnostics(true).pickTargets.find((p:any)=>Math.floor(p.index/9)===2));
+ await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y,id:0}]});
+ await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+120,y,id:0}]});
+ await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+ await expect(page.locator('#cube-description')).toContainText('Đang luyện tập');
+});
+
+test('two fingers on a sticker zoom without committing a layer turn',async({page})=>{
+ await page.goto('/?diagnostics=1');await expect(page.locator('canvas')).toBeVisible();await page.locator('canvas').scrollIntoViewIfNeeded();
+ const {x,y}=await page.evaluate(()=>(window as any).rubikDiagnostics(true).pickTargets.find((p:any)=>Math.floor(p.index/9)===2));
+ const before=await page.evaluate(()=>(window as any).rubikDiagnostics().camera.reduce((s:number,v:number)=>s+v*v,0));
+ const cdp=await page.context().newCDPSession(page);
+ await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y,id:0}]});
+ await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y,id:0},{x:x+40,y,id:1}]});
+ await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x-30,y,id:0},{x:x+80,y,id:1}]});
+ await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+ expect(await page.evaluate(()=>(window as any).rubikDiagnostics().camera.reduce((s:number,v:number)=>s+v*v,0))).toBeLessThan(before);
+ await expect(page.locator('#cube-description')).toContainText('đã giải');
 });
