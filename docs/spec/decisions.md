@@ -93,3 +93,8 @@
 - **Quyết định hủy**: clearQueue hủy phần hiển thị chưa xong và tô snapshot cuối đã nhận để khớp logic controller. setState ưu tiên snapshot truyền vào, setSize/dispose xóa hàng chờ. Nước bị bỏ animation không phát onMoveAnimated; onIdle chỉ phát một lần khi hết việc. Instant hoàn tất theo thứ tự trong RAF, không lấy callback làm nguồn thời gian.
 - **Lý do**: Hình ảnh đuổi theo input mà không nuốt thao tác; không giữ góc quay dở hoặc dùng thời gian vẽ làm thời gian giải. Batch/callback trong một frame có giới hạn để tránh vòng lặp vô hạn khi callback thêm nước mới.
 - **Ảnh hưởng**: CubeRenderer, animator.ts, controller và demo R4. Camera reset ở R5; phím/timer thuộc giai đoạn sau. Cubie bề mặt đã được kiểm tra trong R1.
+
+## D-017 | 2026-11-11 | R5 camera và nhập chuỗi demo
+- **Quyết định**: Camera có preset U/F/R (6,5,7) và D/B/L (-6,-5,-7), reset cả quán tính OrbitControls. Đổi camera không đổi engine. Controller parse toàn bộ chuỗi trước khi nhận, tối đa 2000 nước/lần; lỗi cú pháp không nhận dở chuỗi. Vòng đời renderer tiếp tục giữ canvas/controls khi đổi N.
+- **Lý do**: Người dùng kiểm tra đầy đủ ký hiệu và mặt khuất, phục hồi góc nhìn sau thao tác cảm ứng.
+- **Ảnh hưởng**: CubeRenderer, controller và demo R5.

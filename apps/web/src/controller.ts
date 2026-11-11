@@ -1,4 +1,4 @@
-import { Cube, parseMove, scrambleAt } from '@rubik/engine';
+import { Cube, parseMove, parseMoves, scrambleAt } from '@rubik/engine';
 import type { Move } from '@rubik/engine';
 
 /** Raw monotonic input timestamp; Phase 5 converts this to relative integer event times. */
@@ -67,6 +67,12 @@ export class DemoController {
     this.lastInput = {m: snapshots.at(-1)!.move, timeStamp: inputTime};
     try { this.renderer.enqueueMoves(snapshots); }
     catch (error) { this.cube = before; this.lastInput = beforeInput; throw error; }
+  }
+  sequence(text: string, inputTime: number): number {
+    const moves = parseMoves(text, this.cube.size).map(move => move.canonical);
+    if (moves.length > 2000) throw new RangeError('Tối đa 2000 nước mỗi chuỗi');
+    this.moves(moves, inputTime);
+    return moves.length;
   }
   dispose(): void { this.renderer.dispose(); }
 }

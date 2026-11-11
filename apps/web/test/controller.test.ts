@@ -74,3 +74,15 @@ it('applies whole batches immediately with independent snapshots and atomic vali
   expect(controller.cube).toBe(before);
   expect(controller.lastInput).toEqual({m: 'U2', timeStamp: 100});
 });
+
+it('parses complete sequences before accepting any moves', () => {
+  const display = {isAnimating: false, enqueueMove: vi.fn(), enqueueMoves: vi.fn(), setSize: vi.fn(), setState: vi.fn(), dispose: vi.fn()};
+  const controller = new DemoController(display);
+  expect(controller.sequence("r U2 R2'", 12)).toBe(3);
+  expect(controller.cube.state).toEqual(new Cube().applyMoves('Rw U2 R2').state);
+  const before = controller.cube;
+  expect(() => controller.sequence('R invalid', 13)).toThrow();
+  expect(controller.cube).toBe(before);
+  expect(() => controller.sequence('R '.repeat(2001), 14)).toThrow('2000');
+  expect(controller.cube).toBe(before);
+});

@@ -96,6 +96,20 @@ export class CubeRenderer {
     if (!this.disposed) this.controls.enabled = enabled;
   }
 
+  resetCamera(): void { this.setCameraView('ufr'); }
+
+  setCameraView(view: 'ufr' | 'dbl'): void {
+    this.assertActive();
+    if (view !== 'ufr' && view !== 'dbl') throw new RangeError('Unknown camera view');
+    const damping = this.controls.enableDamping;
+    this.controls.enableDamping = false;
+    this.controls.reset(); // consume any residual orbit delta before applying a preset
+    this.camera.position.set(view === 'ufr' ? 6 : -6, view === 'ufr' ? 5 : -5, view === 'ufr' ? 7 : -7);
+    this.controls.target.set(0, 0, 0);
+    this.controls.update();
+    this.controls.enableDamping = damping;
+  }
+
   /** Rebuild only the cube; preserve the camera, canvas, controls and render loop. */
   setSize(size: number): void {
     this.assertActive();
