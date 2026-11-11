@@ -8,7 +8,7 @@
   </head>
   <body>
     <main>
-      <header><a class="brand" href="/">RUBIK<span> / LAB</span></a><span class="stage">GIAI ĐOẠN 3 · R3</span></header>
+      <header><a class="brand" href="/">RUBIK<span> / LAB</span></a><span class="stage">GIAI ĐOẠN 3 · R4</span></header>
       <section class="intro"><p class="eyebrow">KHÔNG GIAN THỬ NGHIỆM</p><h1>Khám phá góc nhìn.</h1><p>Kéo để xoay camera. Cuộn hoặc chụm hai ngón tay để thu phóng.</p></section>
       <div class="toolbar"><label for="cube-size">Kích thước khối</label><select id="cube-size">
         <option value="2">2×2</option><option value="3" selected>3×3</option><option value="4">4×4</option>
@@ -18,7 +18,12 @@
       <div class="toolbar seed-toolbar"><label for="seed">Seed</label><input id="seed" type="text" maxlength="256" aria-describedby="seed-help" /><button id="scramble" type="button">Scramble</button></div>
       <p id="seed-help" class="hint">Cùng seed và kích thước sẽ cho cùng scramble. Đổi seed để thử lượt khác.</p>
       <section id="viewport" aria-label="Cảnh Rubik 3D"><p id="loading" role="status">Đang khởi tạo cảnh 3D…</p></section>
-      <fieldset id="move-controls" disabled><legend>Nước đi</legend><div id="move-buttons"></div><p id="move-status" role="status"></p></fieldset>
+      <fieldset id="move-controls" disabled><legend>Nước đi</legend>
+        <div class="toolbar"><label for="speed">Thời gian/nước</label><input id="speed" type="range" min="30" max="500" value="150" step="10" /><output id="speed-value" for="speed">150 ms</output>
+        <label><input id="instant" type="checkbox" /> Tức thì</label></div>
+        <div id="move-buttons"></div>
+        <div class="toolbar queue-toolbar"><button id="burst" type="button">Thử chuỗi nhanh (24 nước)</button><button id="catch-up" type="button">Bắt kịp ngay</button><span id="queue-status" role="status">Chờ hiển thị: 0 nước</span></div>
+        <p id="move-status" role="status"></p></fieldset>
       <section class="scramble-panel" aria-label="Chuỗi scramble"><h2>Scramble</h2><p id="scramble-text" aria-live="polite">Chưa có scramble.</p></section>
       <footer><span id="cube-description" aria-live="polite">Rubik 3×3 · Trạng thái đã giải</span><span id="engine-version"></span></footer>
     </main>

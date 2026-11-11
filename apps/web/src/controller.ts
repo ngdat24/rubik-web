@@ -9,6 +9,7 @@ export interface CubeDisplay {
   setState(state: Uint8Array): void;
   readonly isAnimating: boolean;
   enqueueMove(move: Move, stateAfter: Uint8Array): void;
+  enqueueMoves(moves: readonly {move: Move; stateAfter: Uint8Array}[]): void;
   dispose(): void;
 }
 
@@ -43,7 +44,6 @@ export class DemoController {
     return moves;
   }
   move(move: Move, inputTime: number): boolean {
-    if (this.renderer.isAnimating) return false;
     if (!Number.isFinite(inputTime) || inputTime < 0) throw new RangeError('Invalid input timestamp');
     const parsed = parseMove(move, this.cube.size);
     const before = this.cube, beforeInput = this.lastInput;
@@ -52,6 +52,21 @@ export class DemoController {
     try { this.renderer.enqueueMove(parsed.canonical, this.cube.state); }
     catch (error) { this.cube = before; this.lastInput = beforeInput; throw error; }
     return true;
+  }
+  moves(moves: readonly Move[], inputTime: number): void {
+    if (!Number.isFinite(inputTime) || inputTime < 0) throw new RangeError('Invalid input timestamp');
+    if (!moves.length) return;
+    const next = this.cube.clone();
+    const snapshots = moves.map(move => {
+      const parsed = parseMove(move, next.size);
+      next.applyMove(parsed);
+      return {move: parsed.canonical, stateAfter: next.state.slice()};
+    });
+    const before = this.cube, beforeInput = this.lastInput;
+    this.cube = next;
+    this.lastInput = {m: snapshots.at(-1)!.move, timeStamp: inputTime};
+    try { this.renderer.enqueueMoves(snapshots); }
+    catch (error) { this.cube = before; this.lastInput = beforeInput; throw error; }
   }
   dispose(): void { this.renderer.dispose(); }
 }
