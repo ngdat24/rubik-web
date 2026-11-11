@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   remove: vi.fn(), append: vi.fn(), attribute: vi.fn(), render: vi.fn(), size: vi.fn(), ratio: vi.fn(),
-  dispose: vi.fn(), controlsDispose: vi.fn(), update: vi.fn(), observe: vi.fn(), disconnect: vi.fn(),
+  dispose: vi.fn(), contextLoss: vi.fn(), controlsDispose: vi.fn(), update: vi.fn(), observe: vi.fn(), disconnect: vi.fn(),
   request: vi.fn(() => 7), cancel: vi.fn(), add: vi.fn(), removeListener: vi.fn(),
   controls: undefined as { enabled: boolean } | undefined,
 }));
@@ -16,6 +16,7 @@ vi.mock('three', async importOriginal => {
     setSize = mocks.size;
     render = mocks.render;
     dispose = mocks.dispose;
+    forceContextLoss = mocks.contextLoss;
   } };
 });
 vi.mock('three/addons/controls/OrbitControls.js', () => ({ OrbitControls: class {
@@ -23,7 +24,7 @@ vi.mock('three/addons/controls/OrbitControls.js', () => ({ OrbitControls: class 
   target = { set: vi.fn() }; dispose = mocks.controlsDispose; update = mocks.update;
   constructor() { mocks.controls = this; }
 } }));
-import { BoxGeometry, MeshStandardMaterial } from 'three';
+import { BoxGeometry, MeshStandardMaterial, ShapeGeometry, Group, Mesh, Vector3 } from 'three';
 import { CubeRenderer } from '../src/index.js';
 
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.clearAllMocks(); });
@@ -39,6 +40,7 @@ describe('R0 renderer lifetime without a GPU', () => {
       constructor(callback: () => void) { resize = callback; }
     });
     const geometryDispose = vi.spyOn(BoxGeometry.prototype, 'dispose');
+    const stickerDispose = vi.spyOn(ShapeGeometry.prototype, 'dispose');
     const materialDispose = vi.spyOn(MeshStandardMaterial.prototype, 'dispose');
     const container = {clientWidth: 800, clientHeight: 500, append: mocks.append};
     const renderer = new CubeRenderer(container as unknown as HTMLElement);
@@ -50,6 +52,17 @@ describe('R0 renderer lifetime without a GPU', () => {
     const draw = mocks.request.mock.calls[0]![0] as unknown as () => void;
     draw();
     expect(mocks.render).toHaveBeenCalledOnce();
+    const scene = mocks.render.mock.calls[0]![0];
+    const group = scene.children.find((child: unknown) => child instanceof Group) as Group;
+    expect(group.children).toHaveLength(26 + 54);
+    const stickers = group.children.filter(child => (child as Mesh).geometry instanceof ShapeGeometry) as Mesh[];
+    expect(stickers).toHaveLength(54);
+    // PlaneGeometry/ShapeGeometry faces local +Z; the top-left R sticker must face +X.
+    const direction = new Vector3(0, 0, 1).applyQuaternion(stickers[9]!.quaternion);
+    expect(direction.x).toBeCloseTo(1);
+    expect(direction.y).toBeCloseTo(0);
+    expect(direction.z).toBeCloseTo(0);
+    expect(stickers[9]!.position.x).toBeGreaterThan(1.5);
     container.clientWidth = 0; container.clientHeight = 0;
     resize!();
     expect(mocks.size).toHaveBeenLastCalledWith(1, 1, false);
@@ -58,9 +71,11 @@ describe('R0 renderer lifetime without a GPU', () => {
     expect(mocks.disconnect).toHaveBeenCalledOnce();
     expect(mocks.controlsDispose).toHaveBeenCalledOnce();
     expect(mocks.dispose).toHaveBeenCalledOnce();
+    expect(mocks.contextLoss).toHaveBeenCalledOnce();
     expect(mocks.remove).toHaveBeenCalledOnce();
     expect(geometryDispose).toHaveBeenCalledOnce();
-    expect(materialDispose).toHaveBeenCalledTimes(6);
+    expect(stickerDispose).toHaveBeenCalledOnce();
+    expect(materialDispose).toHaveBeenCalledTimes(7);
     expect(mocks.removeListener).toHaveBeenCalledWith('resize', mocks.add.mock.calls[0]![1]);
     draw(); resize!();
     expect(mocks.render).toHaveBeenCalledOnce();
