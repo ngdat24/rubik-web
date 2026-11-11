@@ -6,10 +6,12 @@
 - R2 đã merge qua PR #4; người dùng đã nghiệm thu Scramble/Reset.
 - R3 đã merge qua PR #5, người dùng đã nghiệm thu animation.
 - R4 đã merge qua PR #6, người dùng đã nghiệm thu hàng đợi.
-- R5 đã triển khai, PR #7 chờ duyệt: camera U/F/R, D/B/L và nhập chuỗi có kiểm tra cú pháp.
+- R5/R6 đã merge qua PR #7/#8; CI trên main 542a6d0 xanh.
 - R6 đã triển khai: InstancedMesh N>=6, WebGL recovery, Playwright, benchmark và spec/10-renderer.md.
 - Quyết định: controller sở hữu Cube và timestamp input; renderer nhận stateAfter.
 - Mặc định: 150 ms, nước đôi x1,5, màu phương Tây, hỗ trợ cảm ứng.
-- Local R6: build/lint/typecheck, 261 unit test và 2 Playwright test đạt; chờ CI PR cuối.
+- Local R6: build/lint/typecheck, 261 unit test và 2 Playwright test đạt.
 - 10x10 SwiftShader: 1088 -> 2 draw calls, xoay 14,5 -> 44,2 FPS; chưa đo 60 FPS trên GPU laptop thật.
-- R5/R6 chờ người dùng duyệt PR; người dùng đã nghiệm thu R0..R4 bằng mắt.
+- I0 đã merge qua PR #9, main 6140369; controller dùng chung trong packages/controller.
+- I1 PR #10: đổi sang keymap dễ nhớ theo yêu cầu mới; Shift nghịch, Alt đôi, W wide, số chọn lớp.
+- I1 chưa merge; build/lint/typecheck, 268 unit test và 4 Chrome Playwright test đạt; chờ CI bản mới.

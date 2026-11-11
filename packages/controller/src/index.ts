@@ -94,3 +94,6 @@ export class CubeController {
   }
   dispose(): void { this.inputEnabled = false; this.#listeners.clear(); this.renderer.dispose(); }
 }
+
+export { DEFAULT_KEYMAP, resolveKey } from './keyboard.js';
+export type { Keymap, KeyModifiers } from './keyboard.js';

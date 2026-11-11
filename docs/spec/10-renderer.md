@@ -2,7 +2,7 @@
 
 ## Ranh giới trách nhiệm
 
-- Controller trong apps/web sở hữu Cube. Khi nhận input, controller áp nước và ghi raw performance timestamp ngay; Giai đoạn 5 mới chuyển thành thời gian tương đối nguyên của bản ghi Solve.
+- Controller trong packages/controller sở hữu Cube; apps/web nối sự kiện đầu vào. Khi nhận input, controller áp nước và ghi raw performance timestamp ngay; Giai đoạn 5 mới chuyển thành thời gian tương đối nguyên của bản ghi Solve.
 - CubeRenderer không tính trạng thái hoặc gọi applyMove của engine. Renderer dùng API hình học/parser thuần để chọn lớp và hướng xoay, nhận snapshot độc lập theo từng nước.
 - Slot sticker cố định theo index E2. Animation dùng pivot tạm (N nhỏ) hoặc ma trận instance (N lớn), khôi phục transform gốc rồi tô snapshot. Không tích lũy góc quay.
 
@@ -63,4 +63,4 @@ Giữ 488 cubie bề mặt + 600 sticker, hai geometry. Không coi số đo Swif
 
 ## Giới hạn phạm vi
 
-Chưa có keybinding, kéo lớp, timer hoặc backend; các phần đó thuộc giai đoạn tiếp theo. Mục tiêu 60 FPS trên phần cứng người dùng cần đo riêng như ghi ở trên.
+Giai đoạn 3 chưa làm keybinding, kéo lớp, timer hoặc backend. Giai đoạn 4 I1 bổ sung bàn phím theo 06-keybindings.md; controller giữ state/timestamp, renderer tiếp tục chỉ hiển thị. Kéo lớp, timer và backend chưa triển khai. Mục tiêu 60 FPS trên phần cứng người dùng cần đo riêng như ghi ở trên.
