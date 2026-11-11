@@ -26,10 +26,60 @@ vi.mock('three/addons/controls/OrbitControls.js', () => ({ OrbitControls: class 
 } }));
 import { BoxGeometry, MeshStandardMaterial, ShapeGeometry, Group, Mesh, Vector3 } from 'three';
 import { CubeRenderer } from '../src/index.js';
+import { Cube } from '@rubik/engine';
+import { WESTERN_COLORS } from '../src/colors.js';
 
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.clearAllMocks(); });
 
 describe('R0 renderer lifetime without a GPU', () => {
+  it('paints without allocating materials, switches theme and reuses the canvas while resizing', () => {
+    vi.stubGlobal('window', { devicePixelRatio: 1, addEventListener: mocks.add, removeEventListener: mocks.removeListener });
+    vi.stubGlobal('requestAnimationFrame', mocks.request);
+    vi.stubGlobal('cancelAnimationFrame', mocks.cancel);
+    vi.stubGlobal('ResizeObserver', class { observe = mocks.observe; disconnect = mocks.disconnect; });
+    const geometryDispose = vi.spyOn(BoxGeometry.prototype, 'dispose');
+    const materialDispose = vi.spyOn(MeshStandardMaterial.prototype, 'dispose');
+    const renderer = new CubeRenderer({clientWidth: 800, clientHeight: 500, append: mocks.append} as unknown as HTMLElement);
+    const draw = mocks.request.mock.calls[0]![0] as unknown as () => void;
+    draw();
+    const scene = mocks.render.mock.calls[0]![0];
+    const camera = mocks.render.mock.calls[0]![1];
+    const group = scene.children.find((child: unknown) => child instanceof Group) as Group;
+    const getStickers = () => group.children.filter(child => (child as Mesh).geometry instanceof ShapeGeometry) as Mesh<ShapeGeometry, MeshStandardMaterial>[];
+    const palette = [...new Set(getStickers().map(sticker => sticker.material))];
+    const state = new Cube().applyMoves('R U').state;
+    renderer.setState(state);
+    expect(getStickers().map(s => s.material.color.getHex())).toEqual([...state].map(color => WESTERN_COLORS[color]));
+    expect(getStickers().every(s => palette.includes(s.material))).toBe(true);
+    const painted = getStickers().map(s => s.material);
+    state.fill(5);
+    expect(getStickers().map(s => s.material)).toEqual(painted); // no retained state reference
+    const invalid = new Cube().state;
+    invalid[53] = 255;
+    expect(() => renderer.setState(invalid)).toThrow();
+    expect(getStickers().map(s => s.material)).toEqual(painted);
+    renderer.setTheme([0,1,2,3,4,5]);
+    expect(getStickers().every(s => palette.includes(s.material))).toBe(true);
+    expect(getStickers().map(s => s.material.color.getHex())).toEqual([...new Cube().applyMoves('R U').state]);
+    expect(() => renderer.setSize(11)).toThrow();
+    expect(group.children).toHaveLength(26 + 54);
+    for (let size = 2; size <= 10; size++) {
+      renderer.setSize(size);
+      renderer.setState(new Cube(size).state);
+      expect(getStickers()).toHaveLength(6 * size * size);
+      expect(group.children).toHaveLength(size ** 3 - (size - 2) ** 3 + 6 * size * size);
+      expect(getStickers().map(s => s.material.color.getHex())).toEqual([...new Cube(size).state]);
+    }
+    expect(geometryDispose).toHaveBeenCalledTimes(9);
+    expect(materialDispose).toHaveBeenCalledTimes(9 * 7);
+    expect(mocks.append).toHaveBeenCalledOnce();
+    expect(mocks.controlsDispose).not.toHaveBeenCalled();
+    expect(mocks.contextLoss).not.toHaveBeenCalled();
+    draw();
+    expect(mocks.render.mock.calls.at(-1)![1]).toBe(camera);
+    renderer.dispose();
+    expect(() => renderer.setState(new Cube(10).state)).toThrow('disposed');
+  });
   it('sizes the canvas, limits DPR, toggles orbit, releases resources and stops frames', () => {
     let resize: (() => void) | undefined;
     vi.stubGlobal('window', { devicePixelRatio: 3, addEventListener: mocks.add, removeEventListener: mocks.removeListener });
