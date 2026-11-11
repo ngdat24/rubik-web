@@ -9,7 +9,7 @@
   </head>
   <body>
     <main>
-      <header><a class="brand" href="/">RUBIK<span> / LAB</span></a><span class="stage">GIAI ĐOẠN 3 · R6</span></header>
+      <header><a class="brand" href="/">RUBIK<span> / LAB</span></a><span class="stage">GIAI ĐOẠN 4 · I1</span></header>
       <section class="intro"><p class="eyebrow">KHÔNG GIAN THỬ NGHIỆM</p><h1>Khám phá góc nhìn.</h1><p>Kéo để xoay camera. Cuộn hoặc chụm hai ngón tay để thu phóng.</p></section>
       <div class="toolbar"><label for="cube-size">Kích thước khối</label><select id="cube-size">
         <option value="2">2×2</option><option value="3" selected>3×3</option><option value="4">4×4</option>
@@ -23,6 +23,7 @@
       <fieldset id="move-controls" disabled><legend>Nước đi</legend>
         <div class="toolbar"><label for="speed">Thời gian/nước</label><input id="speed" type="range" min="30" max="500" value="150" step="10" /><output id="speed-value" for="speed">150 ms</output>
         <label><input id="instant" type="checkbox" /> Tức thì</label></div>
+        <p class="hint">Phím thuận/nghịch: R: I/K · U: J/F · F: H/G · L: D/E · D: S/L · B: W/O · x: T/N · y: ;/A · z: P/Q. Nước đôi: bấm hai lần. Phím tắt tạm ngưng khi nhập văn bản.</p>
         <div id="move-buttons"></div>
         <form id="algorithm-form"><label for="algorithm">Chuỗi nước đi</label><textarea id="algorithm" rows="2" maxlength="16000" placeholder="R U R' U'" aria-describedby="algorithm-error"></textarea><button type="submit">Chạy chuỗi</button><p id="algorithm-error" role="alert"></p></form>
         <div class="toolbar queue-toolbar"><button id="burst" type="button">Thử chuỗi nhanh (24 nước)</button><button id="catch-up" type="button">Bắt kịp ngay</button><span id="queue-status" role="status">Chờ hiển thị: 0 nước</span></div>

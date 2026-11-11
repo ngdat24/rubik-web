@@ -80,3 +80,46 @@ test('recovers after WebGL context loss and supports touch orbit', async ({brows
   await expect(page.locator('#cube-description')).toContainText('đã giải');
   await context.close();
 });
+
+test('physical keyboard controls follow spec 06 and leave editing and browser shortcuts alone', async ({page}) => {
+  await page.goto('/');
+  await expect(page.locator('canvas')).toBeVisible();
+  for (const size of ['3', '7']) {
+    await page.selectOption('#cube-size', size);
+    await page.locator('#instant').check();
+    await page.locator('#viewport').click({position:{x:5,y:5}});
+    await page.keyboard.press('i');
+    await expect(page.locator('#move-status')).toContainText('R');
+    await expect(page.locator('#cube-description')).toContainText('Đang luyện tập');
+    await page.keyboard.press('k');
+    await expect(page.locator('#cube-description')).toContainText('đã giải');
+    await page.keyboard.press('i'); await page.keyboard.press('i');
+    await page.locator('#algorithm').fill('R2'); await page.locator('#algorithm-form button').click();
+    await expect(page.locator('#cube-description')).toContainText('đã giải');
+  }
+  const status = await page.locator('#move-status').textContent();
+  await page.locator('#algorithm').focus(); await page.keyboard.type('ijk');
+  await expect(page.locator('#move-status')).toHaveText(status!);
+  await page.evaluate(() => {
+    const editable = document.createElement('div'); editable.contentEditable='true'; editable.id='editable';
+    const child = document.createElement('span'); child.textContent='text'; editable.append(child); document.body.append(editable); editable.focus();
+    child.dispatchEvent(new KeyboardEvent('keydown', {code:'KeyI', bubbles:true}));
+  });
+  await expect(page.locator('#move-status')).toHaveText(status!);
+  await page.locator('#viewport').click({position:{x:5,y:5}});
+  const prevented = await page.evaluate(() => {
+    const flags = [
+      {code:'KeyI',repeat:true},{code:'KeyI',isComposing:true},{code:'KeyI',ctrlKey:true},
+      {code:'KeyI',altKey:true},{code:'KeyI',metaKey:true},{code:'Tab'}, {code:'Escape'}, {code:'KeyZ'}
+    ];
+    return flags.map(init => {const e=new KeyboardEvent('keydown',{...init,bubbles:true,cancelable:true}); window.dispatchEvent(e); return e.defaultPrevented;});
+  });
+  expect(prevented).toEqual(Array(8).fill(false));
+  await expect(page.locator('#move-status')).toHaveText(status!);
+  expect(await page.evaluate(() => {
+    const e=new KeyboardEvent('keydown',{code:'Space',bubbles:true,cancelable:true}); window.dispatchEvent(e); return e.defaultPrevented;
+  })).toBe(true);
+  await page.evaluate(() => {const dialog=document.createElement('dialog');dialog.textContent='settings';document.body.append(dialog);dialog.showModal();});
+  await page.keyboard.press('i');
+  await expect(page.locator('#move-status')).toHaveText(status!);
+});
