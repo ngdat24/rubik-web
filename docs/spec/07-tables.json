@@ -1,0 +1,698 @@
+{
+ "note": "Bang chi so sticker 3x3 cho 07-predicates. Chi so toan cuc = face*9 + r*3 + c, theo 01-coordinates. Thu tu sticker trong moi cubie theo thu tu chu cai cua ten.",
+ "faceOrder": "URFDLB",
+ "edges": {
+  "UF": [
+   7,
+   19
+  ],
+  "UR": [
+   5,
+   10
+  ],
+  "UB": [
+   1,
+   46
+  ],
+  "UL": [
+   3,
+   37
+  ],
+  "DF": [
+   28,
+   25
+  ],
+  "DR": [
+   32,
+   16
+  ],
+  "DB": [
+   34,
+   52
+  ],
+  "DL": [
+   30,
+   43
+  ],
+  "FR": [
+   23,
+   12
+  ],
+  "FL": [
+   21,
+   41
+  ],
+  "BR": [
+   48,
+   14
+  ],
+  "BL": [
+   50,
+   39
+  ]
+ },
+ "corners": {
+  "URF": [
+   8,
+   9,
+   20
+  ],
+  "UFL": [
+   6,
+   18,
+   38
+  ],
+  "ULB": [
+   0,
+   36,
+   47
+  ],
+  "UBR": [
+   2,
+   45,
+   11
+  ],
+  "DRF": [
+   29,
+   15,
+   26
+  ],
+  "DFL": [
+   27,
+   24,
+   44
+  ],
+  "DLB": [
+   33,
+   42,
+   53
+  ],
+  "DBR": [
+   35,
+   51,
+   17
+  ]
+ },
+ "faces": {
+  "U": {
+   "face": 0,
+   "centerIndex": 4,
+   "crossEdges": [
+    {
+     "side": "R",
+     "stickers": [
+      5,
+      10
+     ]
+    },
+    {
+     "side": "F",
+     "stickers": [
+      7,
+      19
+     ]
+    },
+    {
+     "side": "L",
+     "stickers": [
+      3,
+      37
+     ]
+    },
+    {
+     "side": "B",
+     "stickers": [
+      1,
+      46
+     ]
+    }
+   ],
+   "slots": [
+    {
+     "slot": 0,
+     "sides": [
+      "R",
+      "F"
+     ],
+     "corner": [
+      8,
+      9,
+      20
+     ],
+     "edge": [
+      12,
+      23
+     ]
+    },
+    {
+     "slot": 1,
+     "sides": [
+      "R",
+      "B"
+     ],
+     "corner": [
+      2,
+      11,
+      45
+     ],
+     "edge": [
+      14,
+      48
+     ]
+    },
+    {
+     "slot": 2,
+     "sides": [
+      "F",
+      "L"
+     ],
+     "corner": [
+      6,
+      18,
+      38
+     ],
+     "edge": [
+      21,
+      41
+     ]
+    },
+    {
+     "slot": 3,
+     "sides": [
+      "L",
+      "B"
+     ],
+     "corner": [
+      0,
+      36,
+      47
+     ],
+     "edge": [
+      39,
+      50
+     ]
+    }
+   ]
+  },
+  "R": {
+   "face": 1,
+   "centerIndex": 13,
+   "crossEdges": [
+    {
+     "side": "U",
+     "stickers": [
+      10,
+      5
+     ]
+    },
+    {
+     "side": "F",
+     "stickers": [
+      12,
+      23
+     ]
+    },
+    {
+     "side": "D",
+     "stickers": [
+      16,
+      32
+     ]
+    },
+    {
+     "side": "B",
+     "stickers": [
+      14,
+      48
+     ]
+    }
+   ],
+   "slots": [
+    {
+     "slot": 0,
+     "sides": [
+      "U",
+      "F"
+     ],
+     "corner": [
+      9,
+      8,
+      20
+     ],
+     "edge": [
+      7,
+      19
+     ]
+    },
+    {
+     "slot": 1,
+     "sides": [
+      "U",
+      "B"
+     ],
+     "corner": [
+      11,
+      2,
+      45
+     ],
+     "edge": [
+      1,
+      46
+     ]
+    },
+    {
+     "slot": 2,
+     "sides": [
+      "F",
+      "D"
+     ],
+     "corner": [
+      15,
+      26,
+      29
+     ],
+     "edge": [
+      25,
+      28
+     ]
+    },
+    {
+     "slot": 3,
+     "sides": [
+      "D",
+      "B"
+     ],
+     "corner": [
+      17,
+      35,
+      51
+     ],
+     "edge": [
+      34,
+      52
+     ]
+    }
+   ]
+  },
+  "F": {
+   "face": 2,
+   "centerIndex": 22,
+   "crossEdges": [
+    {
+     "side": "U",
+     "stickers": [
+      19,
+      7
+     ]
+    },
+    {
+     "side": "R",
+     "stickers": [
+      23,
+      12
+     ]
+    },
+    {
+     "side": "D",
+     "stickers": [
+      25,
+      28
+     ]
+    },
+    {
+     "side": "L",
+     "stickers": [
+      21,
+      41
+     ]
+    }
+   ],
+   "slots": [
+    {
+     "slot": 0,
+     "sides": [
+      "U",
+      "R"
+     ],
+     "corner": [
+      20,
+      8,
+      9
+     ],
+     "edge": [
+      5,
+      10
+     ]
+    },
+    {
+     "slot": 1,
+     "sides": [
+      "U",
+      "L"
+     ],
+     "corner": [
+      18,
+      6,
+      38
+     ],
+     "edge": [
+      3,
+      37
+     ]
+    },
+    {
+     "slot": 2,
+     "sides": [
+      "R",
+      "D"
+     ],
+     "corner": [
+      26,
+      15,
+      29
+     ],
+     "edge": [
+      16,
+      32
+     ]
+    },
+    {
+     "slot": 3,
+     "sides": [
+      "D",
+      "L"
+     ],
+     "corner": [
+      24,
+      27,
+      44
+     ],
+     "edge": [
+      30,
+      43
+     ]
+    }
+   ]
+  },
+  "D": {
+   "face": 3,
+   "centerIndex": 31,
+   "crossEdges": [
+    {
+     "side": "R",
+     "stickers": [
+      32,
+      16
+     ]
+    },
+    {
+     "side": "F",
+     "stickers": [
+      28,
+      25
+     ]
+    },
+    {
+     "side": "L",
+     "stickers": [
+      30,
+      43
+     ]
+    },
+    {
+     "side": "B",
+     "stickers": [
+      34,
+      52
+     ]
+    }
+   ],
+   "slots": [
+    {
+     "slot": 0,
+     "sides": [
+      "R",
+      "F"
+     ],
+     "corner": [
+      29,
+      15,
+      26
+     ],
+     "edge": [
+      12,
+      23
+     ]
+    },
+    {
+     "slot": 1,
+     "sides": [
+      "R",
+      "B"
+     ],
+     "corner": [
+      35,
+      17,
+      51
+     ],
+     "edge": [
+      14,
+      48
+     ]
+    },
+    {
+     "slot": 2,
+     "sides": [
+      "F",
+      "L"
+     ],
+     "corner": [
+      27,
+      24,
+      44
+     ],
+     "edge": [
+      21,
+      41
+     ]
+    },
+    {
+     "slot": 3,
+     "sides": [
+      "L",
+      "B"
+     ],
+     "corner": [
+      33,
+      42,
+      53
+     ],
+     "edge": [
+      39,
+      50
+     ]
+    }
+   ]
+  },
+  "L": {
+   "face": 4,
+   "centerIndex": 40,
+   "crossEdges": [
+    {
+     "side": "U",
+     "stickers": [
+      37,
+      3
+     ]
+    },
+    {
+     "side": "F",
+     "stickers": [
+      41,
+      21
+     ]
+    },
+    {
+     "side": "D",
+     "stickers": [
+      43,
+      30
+     ]
+    },
+    {
+     "side": "B",
+     "stickers": [
+      39,
+      50
+     ]
+    }
+   ],
+   "slots": [
+    {
+     "slot": 0,
+     "sides": [
+      "U",
+      "F"
+     ],
+     "corner": [
+      38,
+      6,
+      18
+     ],
+     "edge": [
+      7,
+      19
+     ]
+    },
+    {
+     "slot": 1,
+     "sides": [
+      "U",
+      "B"
+     ],
+     "corner": [
+      36,
+      0,
+      47
+     ],
+     "edge": [
+      1,
+      46
+     ]
+    },
+    {
+     "slot": 2,
+     "sides": [
+      "F",
+      "D"
+     ],
+     "corner": [
+      44,
+      24,
+      27
+     ],
+     "edge": [
+      25,
+      28
+     ]
+    },
+    {
+     "slot": 3,
+     "sides": [
+      "D",
+      "B"
+     ],
+     "corner": [
+      42,
+      33,
+      53
+     ],
+     "edge": [
+      34,
+      52
+     ]
+    }
+   ]
+  },
+  "B": {
+   "face": 5,
+   "centerIndex": 49,
+   "crossEdges": [
+    {
+     "side": "U",
+     "stickers": [
+      46,
+      1
+     ]
+    },
+    {
+     "side": "R",
+     "stickers": [
+      48,
+      14
+     ]
+    },
+    {
+     "side": "D",
+     "stickers": [
+      52,
+      34
+     ]
+    },
+    {
+     "side": "L",
+     "stickers": [
+      50,
+      39
+     ]
+    }
+   ],
+   "slots": [
+    {
+     "slot": 0,
+     "sides": [
+      "U",
+      "R"
+     ],
+     "corner": [
+      45,
+      2,
+      11
+     ],
+     "edge": [
+      5,
+      10
+     ]
+    },
+    {
+     "slot": 1,
+     "sides": [
+      "U",
+      "L"
+     ],
+     "corner": [
+      47,
+      0,
+      36
+     ],
+     "edge": [
+      3,
+      37
+     ]
+    },
+    {
+     "slot": 2,
+     "sides": [
+      "R",
+      "D"
+     ],
+     "corner": [
+      51,
+      17,
+      35
+     ],
+     "edge": [
+      16,
+      32
+     ]
+    },
+    {
+     "slot": 3,
+     "sides": [
+      "D",
+      "L"
+     ],
+     "corner": [
+      53,
+      33,
+      42
+     ],
+     "edge": [
+      30,
+      43
+     ]
+    }
+   ]
+  }
+ }
+}
