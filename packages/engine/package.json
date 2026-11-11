@@ -2,9 +2,15 @@
   "name": "@rubik/engine",
   "version": "0.1.0",
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "node tools/check-engine.mjs",
+    "build": "tsc -p tsconfig.build.json",
+    "benchmark": "node tools/benchmark.mjs"
   },
   "devDependencies": {
     "typescript": "^5.0.0",

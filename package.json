@@ -7,6 +7,9 @@
   ],
   "scripts": {
     "test": "npm run test --workspaces",
-    "typecheck": "npm run typecheck --workspaces"
+    "typecheck": "npm run typecheck --workspaces",
+    "lint": "npm run lint --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
+    "benchmark": "npm run benchmark --workspace=@rubik/engine"
   }
 }

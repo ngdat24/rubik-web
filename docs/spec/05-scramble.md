@@ -28,6 +28,32 @@ Chia chuỗi scramble thành các đoạn liên tiếp gồm các nước có c�
 - PRNG: Sử dụng `mulberry32(hash32)` chỉ dùng phép toán nguyên 32-bit và `Math.imul`, tuyệt đối không dùng `Math.random()`.
 - Chuỗi đầu vào để băm cho khối thứ `k`, ứng viên thứ `j`: `seed + "|" + size + "|" + k + "|" + j`.
 
+### 3.1. Thủ tục chọn nước (genVersion 1)
+
+Luồng `u32` của mỗi scramble là `mulberry32(xmur3(seed + "|" + size + "|" + k + "|" + j)())`; mỗi lần gọi trả một số nguyên không dấu 32-bit.
+
+```text
+axis(f) = f % 3  // U,D → 0; R,L → 1; F,B → 2
+cands = []
+for f in (N = 2 ? [U,R,F] : [U,R,F,D,L,B]):
+  wmax = (N >= 4 và f thuộc {U,R,F}) ? floor(N/2) : 1
+  for w in 1..wmax:
+    for s in ["", "'", "2"]:
+      cands.push({f, w, s})
+last = none; segLen = 0
+lặp length(N) lần:
+  pool = cands lọc theo: last = none
+         hoặc axis(c.f) != axis(last)
+         hoặc (segLen = 1 và last < c.f)
+  c = pool[floor(u32() * pool.length / 4294967296)]
+  segLen = (last != none và axis(c.f) = axis(last)) ? segLen + 1 : 1
+  last = c.f
+  xuất tên mặt c.f: w = 1 → "F"; w = 2 → "Fw"; w >= 3 → "{w}Fw"
+  rồi thêm hậu tố c.s (F ở ví dụ này đại diện cho mặt c.f)
+```
+
+Gọi `u32()` đúng một lần cho mỗi nước. Nhóm `scramble` trong vectors.json đã được duyệt; `matchScramble_draft` hoãn tới Giai đoạn 7 và không dùng làm tiêu chí E1–E10.
+
 ## 4. Hai hàm API công khai
 1. **Hàm lõi (`scrambleAt`)**:
    - Chữ ký: `scrambleAt(seed: string, size: number, k: number, genVersion: number): Move[]`

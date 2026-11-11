@@ -1,31 +1,3639 @@
 {
-  "moves_3x3_single": [
-    {
-      "move": "R",
-      "checks": [
-        { "face": "U", "col": 2, "expectedColor": 2 },
-        { "face": "B", "col": 0, "expectedColor": 0 },
-        { "face": "D", "col": 2, "expectedColor": 5 },
-        { "face": "F", "col": 2, "expectedColor": 3 }
-      ]
-    },
-    {
-      "move": "U",
-      "checks": [
-        { "face": "F", "row": 0, "expectedColor": 1 }, 
-        { "face": "L", "row": 0, "expectedColor": 2 },
-        { "face": "B", "row": 0, "expectedColor": 4 },
-        { "face": "R", "row": 0, "expectedColor": 5 }
-      ]
-    },
-    {
-      "move": "L",
-      "checks": [
-        { "face": "F", "col": 0, "expectedColor": 0 },
-        { "face": "U", "col": 0, "expectedColor": 5 },
-        { "face": "B", "col": 2, "expectedColor": 3 },
-        { "face": "D", "col": 0, "expectedColor": 2 }
-      ]
-    }
+ "meta": {
+  "generatedBy": "tools/reference/ref.py (mo hinh tham chieu)",
+  "conventions": "docs/spec/01-coordinates.md .. 09; state = chuoi chu so 0-5 theo chi so face*N*N + r*N + c, thu tu mat U R F D L B; mau 0=U trang 1=R do 2=F luc 3=D vang 4=L cam 5=B lam",
+  "prngCrossCheckedWithNode": true,
+  "status": {
+   "parse": "theo 02 ban moi",
+   "apply": "da kiem tra bang cac dong nhat thuc (selftest)",
+   "metrics": "theo 03 ban moi",
+   "stats": "theo 04 ban moi (single toan DNF hien thi - ; ao/mo3 DNF hien thi DNF)",
+   "predicates": "theo 07; bang tra == dinh nghia hinh hoc",
+   "score": "theo 08",
+   "prng": "khop voi JS (Node) neu prngCrossCheckedWithNode = true",
+   "scramble": "DA DUYET (genVersion 1): thu tuc chon nuoc theo docs/spec/05 muc 3.1 (gen_scramble trong ref.py)",
+   "matchScramble_draft": "HOAN toi Giai doan 7 (can bo giai cross); KHONG dung trong E1-E10. Cross toi uu = min tren 6 mat"
+  }
+ },
+ "parse": {
+  "valid": [
+   {
+    "size": 3,
+    "input": "R U R' U2",
+    "canonical": [
+     "R",
+     "U",
+     "R'",
+     "U2"
+    ]
+   },
+   {
+    "size": 3,
+    "input": "  R   U\nF  ",
+    "canonical": [
+     "R",
+     "U",
+     "F"
+    ]
+   },
+   {
+    "size": 3,
+    "input": "R2'",
+    "canonical": [
+     "R2"
+    ]
+   },
+   {
+    "size": 3,
+    "input": "R’ U‘",
+    "canonical": [
+     "R'",
+     "U'"
+    ]
+   },
+   {
+    "size": 3,
+    "input": "x y' z2",
+    "canonical": [
+     "x",
+     "y'",
+     "z2"
+    ]
+   },
+   {
+    "size": 3,
+    "input": "M E' S2",
+    "canonical": [
+     "M",
+     "E'",
+     "S2"
+    ]
+   },
+   {
+    "size": 3,
+    "input": "Rw",
+    "canonical": [
+     "Rw"
+    ]
+   },
+   {
+    "size": 3,
+    "input": "r u'",
+    "canonical": [
+     "Rw",
+     "Uw'"
+    ]
+   },
+   {
+    "size": 3,
+    "input": "3R",
+    "canonical": [
+     "3R"
+    ]
+   },
+   {
+    "size": 4,
+    "input": "2R",
+    "canonical": [
+     "2R"
+    ]
+   },
+   {
+    "size": 4,
+    "input": "4R",
+    "canonical": [
+     "4R"
+    ]
+   },
+   {
+    "size": 4,
+    "input": "2Rw",
+    "canonical": [
+     "Rw"
+    ]
+   },
+   {
+    "size": 4,
+    "input": "3Rw2",
+    "canonical": [
+     "3Rw2"
+    ]
+   },
+   {
+    "size": 4,
+    "input": "r",
+    "canonical": [
+     "Rw"
+    ]
+   },
+   {
+    "size": 5,
+    "input": "3Rw' 2L",
+    "canonical": [
+     "3Rw'",
+     "2L"
+    ]
+   },
+   {
+    "size": 2,
+    "input": "R U F2' x",
+    "canonical": [
+     "R",
+     "U",
+     "F2",
+     "x"
+    ]
+   },
+   {
+    "size": 10,
+    "input": "5Rw 9B",
+    "canonical": [
+     "5Rw",
+     "9B"
+    ]
+   },
+   {
+    "size": 5,
+    "input": "1R",
+    "canonical": [
+     "R"
+    ]
+   }
+  ],
+  "invalid": [
+   {
+    "size": 3,
+    "input": "R3",
+    "errorCode": "BAD_TOKEN",
+    "badToken": "R3"
+   },
+   {
+    "size": 3,
+    "input": "RU",
+    "errorCode": "BAD_TOKEN",
+    "badToken": "RU"
+   },
+   {
+    "size": 3,
+    "input": "3r",
+    "errorCode": "BAD_TOKEN",
+    "badToken": "3r"
+   },
+   {
+    "size": 3,
+    "input": "m",
+    "errorCode": "BAD_TOKEN",
+    "badToken": "m"
+   },
+   {
+    "size": 3,
+    "input": "(R U)",
+    "errorCode": "BAD_TOKEN",
+    "badToken": "(R"
+   },
+   {
+    "size": 3,
+    "input": "R'2",
+    "errorCode": "BAD_TOKEN",
+    "badToken": "R'2"
+   },
+   {
+    "size": 3,
+    "input": "Mw",
+    "errorCode": "BAD_TOKEN",
+    "badToken": "Mw"
+   },
+   {
+    "size": 3,
+    "input": "xw",
+    "errorCode": "BAD_TOKEN",
+    "badToken": "xw"
+   },
+   {
+    "size": 3,
+    "input": "2x",
+    "errorCode": "BAD_TOKEN",
+    "badToken": "2x"
+   },
+   {
+    "size": 3,
+    "input": "3Rw",
+    "errorCode": "WIDE_RANGE",
+    "badToken": "3Rw"
+   },
+   {
+    "size": 3,
+    "input": "4R",
+    "errorCode": "LAYER_RANGE",
+    "badToken": "4R"
+   },
+   {
+    "size": 3,
+    "input": "K",
+    "errorCode": "BAD_TOKEN",
+    "badToken": "K"
+   },
+   {
+    "size": 3,
+    "input": "R @",
+    "errorCode": "BAD_TOKEN",
+    "badToken": "@"
+   },
+   {
+    "size": 4,
+    "input": "M",
+    "errorCode": "SLICE_ONLY_3X3",
+    "badToken": "M"
+   },
+   {
+    "size": 4,
+    "input": "5R",
+    "errorCode": "LAYER_RANGE",
+    "badToken": "5R"
+   },
+   {
+    "size": 4,
+    "input": "4Rw",
+    "errorCode": "WIDE_RANGE",
+    "badToken": "4Rw"
+   },
+   {
+    "size": 4,
+    "input": "E2",
+    "errorCode": "SLICE_ONLY_3X3",
+    "badToken": "E2"
+   },
+   {
+    "size": 2,
+    "input": "Rw",
+    "errorCode": "WIDE_RANGE",
+    "badToken": "Rw"
+   },
+   {
+    "size": 2,
+    "input": "2R",
+    "errorCode": "LAYER_RANGE",
+    "badToken": "2R"
+   },
+   {
+    "size": 2,
+    "input": "M",
+    "errorCode": "SLICE_ONLY_3X3",
+    "badToken": "M"
+   }
   ]
+ },
+ "apply": [
+  {
+   "size": 3,
+   "moves": "",
+   "state": "000000000111111111222222222333333333444444444555555555",
+   "solved": true
+  },
+  {
+   "size": 3,
+   "moves": "R",
+   "state": "002002002111111111223223223335335335444444444055055055",
+   "solved": false
+  },
+  {
+   "size": 3,
+   "moves": "R'",
+   "state": "005005005111111111220220220332332332444444444355355355",
+   "solved": false
+  },
+  {
+   "size": 3,
+   "moves": "R2",
+   "state": "003003003111111111225225225330330330444444444255255255",
+   "solved": false
+  },
+  {
+   "size": 3,
+   "moves": "U",
+   "state": "000000000555111111111222222333333333222444444444555555",
+   "solved": false
+  },
+  {
+   "size": 3,
+   "moves": "F",
+   "state": "000000444011011011222222222111333333443443443555555555",
+   "solved": false
+  },
+  {
+   "size": 3,
+   "moves": "L",
+   "state": "500500500111111111022022022233233233444444444553553553",
+   "solved": false
+  },
+  {
+   "size": 3,
+   "moves": "D",
+   "state": "000000000111111222222222444333333333444444555555555111",
+   "solved": false
+  },
+  {
+   "size": 3,
+   "moves": "B",
+   "state": "111000000113113113222222222333333444044044044555555555",
+   "solved": false
+  },
+  {
+   "size": 3,
+   "moves": "M",
+   "state": "050050050111111111202202202323323323444444444535535535",
+   "solved": false
+  },
+  {
+   "size": 3,
+   "moves": "E",
+   "state": "000000000111222111222444222333333333444555444555111555",
+   "solved": false
+  },
+  {
+   "size": 3,
+   "moves": "S",
+   "state": "000444000101101101222222222333111333434434434555555555",
+   "solved": false
+  },
+  {
+   "size": 3,
+   "moves": "x",
+   "state": "222222222111111111333333333555555555444444444000000000",
+   "solved": true
+  },
+  {
+   "size": 3,
+   "moves": "y",
+   "state": "000000000555555555111111111333333333222222222444444444",
+   "solved": true
+  },
+  {
+   "size": 3,
+   "moves": "z",
+   "state": "444444444000000000222222222111111111333333333555555555",
+   "solved": true
+  },
+  {
+   "size": 3,
+   "moves": "Rw",
+   "state": "022022022111111111233233233355355355444444444005005005",
+   "solved": false
+  },
+  {
+   "size": 3,
+   "moves": "R U R' U'",
+   "state": "004002002110511011223220222331333333544444444511555555",
+   "solved": false
+  },
+  {
+   "size": 3,
+   "moves": "R U R' U' R' F R2 U' R' U' R U R' F'",
+   "state": "000000000542111111221222222333333333414444444155555555",
+   "solved": false
+  },
+  {
+   "size": 3,
+   "moves": "R U R' U' R U R' U' R U R' U' R U R' U' R U R' U' R U R' U'",
+   "state": "000000000111111111222222222333333333444444444555555555",
+   "solved": true
+  },
+  {
+   "size": 3,
+   "moves": "R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U R U",
+   "state": "000000000111111111222222222333333333444444444555555555",
+   "solved": true
+  },
+  {
+   "size": 2,
+   "moves": "R",
+   "state": "020211112323353544440505",
+   "solved": false
+  },
+  {
+   "size": 2,
+   "moves": "R U F'",
+   "state": "000155311312343522424405",
+   "solved": false
+  },
+  {
+   "size": 2,
+   "moves": "x",
+   "state": "222211113333555544440000",
+   "solved": true
+  },
+  {
+   "size": 4,
+   "moves": "R",
+   "state": "000200020002000211111111111111112223222322232223333533353335333544444444444444440555055505550555",
+   "solved": false
+  },
+  {
+   "size": 4,
+   "moves": "Rw",
+   "state": "002200220022002211111111111111112233223322332233335533553355335544444444444444440055005500550055",
+   "solved": false
+  },
+  {
+   "size": 4,
+   "moves": "2R",
+   "state": "002000200020002011111111111111112232223222322232335333533353335344444444444444445055505550555055",
+   "solved": false
+  },
+  {
+   "size": 4,
+   "moves": "3Rw",
+   "state": "022202220222022211111111111111112333233323332333355535553555355544444444444444440005000500050005",
+   "solved": false
+  },
+  {
+   "size": 4,
+   "moves": "R Rw'",
+   "state": "005000500050005011111111111111112202220222022202332333233323332344444444444444445355535553555355",
+   "solved": false
+  },
+  {
+   "size": 5,
+   "moves": "3R",
+   "state": "002000020000200002000020011111111111111111111111112232222322223222232222322335333353333533335333353344444444444444444444444445505555055550555505555055",
+   "solved": false
+  },
+  {
+   "size": 5,
+   "moves": "Rw",
+   "state": "000220002200022000220002211111111111111111111111112223322233222332223322233333553335533355333553335544444444444444444444444440055500555005550055500555",
+   "solved": false
+  },
+  {
+   "size": 5,
+   "moves": "3Rw'",
+   "state": "005550055500555005550055511111111111111111111111112200022000220002200022000332223322233222332223322244444444444444444444444443335533355333553335533355",
+   "solved": false
+  },
+  {
+   "size": 5,
+   "moves": "2R 2L'",
+   "state": "020200202002020020200202011111111111111111111111112323223232232322323223232353533535335353353533535344444444444444444444444445050550505505055050550505",
+   "solved": false
+  }
+ ],
+ "metrics": [
+  {
+   "size": 3,
+   "moves": "R R",
+   "pressCount": 2,
+   "solutionLength": 1
+  },
+  {
+   "size": 3,
+   "moves": "R R'",
+   "pressCount": 2,
+   "solutionLength": 0
+  },
+  {
+   "size": 3,
+   "moves": "R2 R",
+   "pressCount": 2,
+   "solutionLength": 1
+  },
+  {
+   "size": 3,
+   "moves": "R U U' R",
+   "pressCount": 4,
+   "solutionLength": 1
+  },
+  {
+   "size": 3,
+   "moves": "R x R",
+   "pressCount": 2,
+   "solutionLength": 2
+  },
+  {
+   "size": 3,
+   "moves": "M",
+   "pressCount": 2,
+   "solutionLength": 2
+  },
+  {
+   "size": 3,
+   "moves": "M M'",
+   "pressCount": 4,
+   "solutionLength": 0
+  },
+  {
+   "size": 3,
+   "moves": "Rw",
+   "pressCount": 1,
+   "solutionLength": 1
+  },
+  {
+   "size": 3,
+   "moves": "Rw' R",
+   "pressCount": 2,
+   "solutionLength": 2
+  },
+  {
+   "size": 3,
+   "moves": "x y z",
+   "pressCount": 0,
+   "solutionLength": 0
+  },
+  {
+   "size": 3,
+   "moves": "R L R'",
+   "pressCount": 3,
+   "solutionLength": 3
+  },
+  {
+   "size": 3,
+   "moves": "U D U'",
+   "pressCount": 3,
+   "solutionLength": 3
+  },
+  {
+   "size": 3,
+   "moves": "3R",
+   "pressCount": 1,
+   "solutionLength": 1
+  },
+  {
+   "size": 4,
+   "moves": "2R",
+   "pressCount": 2,
+   "solutionLength": 2
+  },
+  {
+   "size": 4,
+   "moves": "4R",
+   "pressCount": 1,
+   "solutionLength": 1
+  },
+  {
+   "size": 4,
+   "moves": "3Rw",
+   "pressCount": 1,
+   "solutionLength": 1
+  },
+  {
+   "size": 4,
+   "moves": "Rw 2R",
+   "pressCount": 3,
+   "solutionLength": 3
+  },
+  {
+   "size": 4,
+   "moves": "2R 2R'",
+   "pressCount": 4,
+   "solutionLength": 0
+  },
+  {
+   "size": 5,
+   "moves": "3R",
+   "pressCount": 2,
+   "solutionLength": 2
+  },
+  {
+   "size": 5,
+   "moves": "3Rw2",
+   "pressCount": 1,
+   "solutionLength": 1
+  },
+  {
+   "size": 3,
+   "moves": "R U R' U'",
+   "pressCount": 4,
+   "solutionLength": 4
+  },
+  {
+   "size": 3,
+   "moves": "R R R R",
+   "pressCount": 4,
+   "solutionLength": 0
+  }
+ ],
+ "stats": [
+  {
+   "name": "ao5 co ban",
+   "kind": "ao5",
+   "solves": [
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 12000,
+     "penalty": "none"
+    },
+    {
+     "ms": 11000,
+     "penalty": "none"
+    },
+    {
+     "ms": 9000,
+     "penalty": "none"
+    },
+    {
+     "ms": 15000,
+     "penalty": "none"
+    }
+   ],
+   "resultMs": 11000,
+   "display": "11.00"
+  },
+  {
+   "name": "ao5 1 DNF = worst",
+   "kind": "ao5",
+   "solves": [
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 12000,
+     "penalty": "none"
+    },
+    {
+     "ms": 0,
+     "penalty": "DNF"
+    },
+    {
+     "ms": 9000,
+     "penalty": "none"
+    },
+    {
+     "ms": 11000,
+     "penalty": "none"
+    }
+   ],
+   "resultMs": 11000,
+   "display": "11.00"
+  },
+  {
+   "name": "ao5 2 DNF",
+   "kind": "ao5",
+   "solves": [
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 0,
+     "penalty": "DNF"
+    },
+    {
+     "ms": 0,
+     "penalty": "DNF"
+    },
+    {
+     "ms": 9000,
+     "penalty": "none"
+    },
+    {
+     "ms": 11000,
+     "penalty": "none"
+    }
+   ],
+   "resultMs": null,
+   "display": "DNF"
+  },
+  {
+   "name": "ao5 co +2",
+   "kind": "ao5",
+   "solves": [
+    {
+     "ms": 10000,
+     "penalty": "+2"
+    },
+    {
+     "ms": 12000,
+     "penalty": "none"
+    },
+    {
+     "ms": 11000,
+     "penalty": "none"
+    },
+    {
+     "ms": 9000,
+     "penalty": "none"
+    },
+    {
+     "ms": 15000,
+     "penalty": "none"
+    }
+   ],
+   "resultMs": 11667,
+   "display": "11.66"
+  },
+  {
+   "name": "ao5 +2 doi thu tu best/worst",
+   "kind": "ao5",
+   "solves": [
+    {
+     "ms": 8000,
+     "penalty": "+2"
+    },
+    {
+     "ms": 9500,
+     "penalty": "none"
+    },
+    {
+     "ms": 9600,
+     "penalty": "none"
+    },
+    {
+     "ms": 9700,
+     "penalty": "none"
+    },
+    {
+     "ms": 20000,
+     "penalty": "+2"
+    }
+   ],
+   "resultMs": 9767,
+   "display": "9.76"
+  },
+  {
+   "name": "ao5 lam tron len",
+   "kind": "ao5",
+   "solves": [
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 10001,
+     "penalty": "none"
+    },
+    {
+     "ms": 10001,
+     "penalty": "none"
+    },
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 20000,
+     "penalty": "none"
+    }
+   ],
+   "resultMs": 10001,
+   "display": "10.00"
+  },
+  {
+   "name": "ao12 lam tron .5 len",
+   "kind": "ao12",
+   "solves": [
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 30000,
+     "penalty": "none"
+    },
+    {
+     "ms": 9000,
+     "penalty": "none"
+    },
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 10005,
+     "penalty": "none"
+    }
+   ],
+   "resultMs": 10001,
+   "display": "10.00"
+  },
+  {
+   "name": "ao12 1 DNF",
+   "kind": "ao12",
+   "solves": [
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 0,
+     "penalty": "DNF"
+    },
+    {
+     "ms": 9000,
+     "penalty": "none"
+    }
+   ],
+   "resultMs": 10000,
+   "display": "10.00"
+  },
+  {
+   "name": "ao12 2 DNF",
+   "kind": "ao12",
+   "solves": [
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 0,
+     "penalty": "DNF"
+    },
+    {
+     "ms": 0,
+     "penalty": "DNF"
+    }
+   ],
+   "resultMs": null,
+   "display": "DNF"
+  },
+  {
+   "name": "mo3 co ban",
+   "kind": "mo3",
+   "solves": [
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 11000,
+     "penalty": "none"
+    },
+    {
+     "ms": 12001,
+     "penalty": "none"
+    }
+   ],
+   "resultMs": 11000,
+   "display": "11.00"
+  },
+  {
+   "name": "mo3 co DNF",
+   "kind": "mo3",
+   "solves": [
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 0,
+     "penalty": "DNF"
+    },
+    {
+     "ms": 12000,
+     "penalty": "none"
+    }
+   ],
+   "resultMs": null,
+   "display": "DNF"
+  },
+  {
+   "name": "mo3 co +2",
+   "kind": "mo3",
+   "solves": [
+    {
+     "ms": 10000,
+     "penalty": "+2"
+    },
+    {
+     "ms": 11000,
+     "penalty": "none"
+    },
+    {
+     "ms": 12000,
+     "penalty": "none"
+    }
+   ],
+   "resultMs": 11667,
+   "display": "11.66"
+  },
+  {
+   "name": "single",
+   "kind": "single",
+   "solves": [
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 9000,
+     "penalty": "+2"
+    },
+    {
+     "ms": 8500,
+     "penalty": "DNF"
+    },
+    {
+     "ms": 9500,
+     "penalty": "none"
+    }
+   ],
+   "resultMs": 9500,
+   "display": "9.50"
+  },
+  {
+   "name": "single toan DNF",
+   "kind": "single",
+   "solves": [
+    {
+     "ms": 10000,
+     "penalty": "DNF"
+    },
+    {
+     "ms": 9000,
+     "penalty": "DNF"
+    }
+   ],
+   "resultMs": null,
+   "display": "-"
+  },
+  {
+   "name": "hien thi >= 1 phut",
+   "kind": "single",
+   "solves": [
+    {
+     "ms": 61234,
+     "penalty": "none"
+    }
+   ],
+   "resultMs": 61234,
+   "display": "1:01.23"
+  },
+  {
+   "name": "khong du so lan",
+   "kind": "ao5",
+   "solves": [
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 10000,
+     "penalty": "none"
+    },
+    {
+     "ms": 10000,
+     "penalty": "none"
+    }
+   ],
+   "resultMs": null,
+   "display": "-"
+  }
+ ],
+ "predicates": [
+  {
+   "moves": "",
+   "state": "000000000111111111222222222333333333444444444555555555",
+   "isSolved": true,
+   "crossSolved": [
+    "U",
+    "R",
+    "F",
+    "D",
+    "L",
+    "B"
+   ],
+   "f2lSolved": [
+    "U",
+    "R",
+    "F",
+    "D",
+    "L",
+    "B"
+   ],
+   "f2lSolvedAny": true
+  },
+  {
+   "moves": "R",
+   "state": "002002002111111111223223223335335335444444444055055055",
+   "isSolved": false,
+   "crossSolved": [
+    "L"
+   ],
+   "f2lSolved": [
+    "L"
+   ],
+   "f2lSolvedAny": true
+  },
+  {
+   "moves": "R'",
+   "state": "005005005111111111220220220332332332444444444355355355",
+   "isSolved": false,
+   "crossSolved": [
+    "L"
+   ],
+   "f2lSolved": [
+    "L"
+   ],
+   "f2lSolvedAny": true
+  },
+  {
+   "moves": "R2",
+   "state": "003003003111111111225225225330330330444444444255255255",
+   "isSolved": false,
+   "crossSolved": [
+    "L"
+   ],
+   "f2lSolved": [
+    "L"
+   ],
+   "f2lSolvedAny": true
+  },
+  {
+   "moves": "L",
+   "state": "500500500111111111022022022233233233444444444553553553",
+   "isSolved": false,
+   "crossSolved": [
+    "R"
+   ],
+   "f2lSolved": [
+    "R"
+   ],
+   "f2lSolvedAny": true
+  },
+  {
+   "moves": "U",
+   "state": "000000000555111111111222222333333333222444444444555555",
+   "isSolved": false,
+   "crossSolved": [
+    "D"
+   ],
+   "f2lSolved": [
+    "D"
+   ],
+   "f2lSolvedAny": true
+  },
+  {
+   "moves": "D",
+   "state": "000000000111111222222222444333333333444444555555555111",
+   "isSolved": false,
+   "crossSolved": [
+    "U"
+   ],
+   "f2lSolved": [
+    "U"
+   ],
+   "f2lSolvedAny": true
+  },
+  {
+   "moves": "F",
+   "state": "000000444011011011222222222111333333443443443555555555",
+   "isSolved": false,
+   "crossSolved": [
+    "B"
+   ],
+   "f2lSolved": [
+    "B"
+   ],
+   "f2lSolvedAny": true
+  },
+  {
+   "moves": "B",
+   "state": "111000000113113113222222222333333444044044044555555555",
+   "isSolved": false,
+   "crossSolved": [
+    "F"
+   ],
+   "f2lSolved": [
+    "F"
+   ],
+   "f2lSolvedAny": true
+  },
+  {
+   "moves": "x",
+   "state": "222222222111111111333333333555555555444444444000000000",
+   "isSolved": true,
+   "crossSolved": [
+    "U",
+    "R",
+    "F",
+    "D",
+    "L",
+    "B"
+   ],
+   "f2lSolved": [
+    "U",
+    "R",
+    "F",
+    "D",
+    "L",
+    "B"
+   ],
+   "f2lSolvedAny": true
+  },
+  {
+   "moves": "y",
+   "state": "000000000555555555111111111333333333222222222444444444",
+   "isSolved": true,
+   "crossSolved": [
+    "U",
+    "R",
+    "F",
+    "D",
+    "L",
+    "B"
+   ],
+   "f2lSolved": [
+    "U",
+    "R",
+    "F",
+    "D",
+    "L",
+    "B"
+   ],
+   "f2lSolvedAny": true
+  },
+  {
+   "moves": "z2",
+   "state": "333333333444444444222222222000000000111111111555555555",
+   "isSolved": true,
+   "crossSolved": [
+    "U",
+    "R",
+    "F",
+    "D",
+    "L",
+    "B"
+   ],
+   "f2lSolved": [
+    "U",
+    "R",
+    "F",
+    "D",
+    "L",
+    "B"
+   ],
+   "f2lSolvedAny": true
+  },
+  {
+   "moves": "M",
+   "state": "050050050111111111202202202323323323444444444535535535",
+   "isSolved": false,
+   "crossSolved": [],
+   "f2lSolved": [],
+   "f2lSolvedAny": false
+  },
+  {
+   "moves": "R U R' U'",
+   "state": "004002002110511011223220222331333333544444444511555555",
+   "isSolved": false,
+   "crossSolved": [
+    "D",
+    "L"
+   ],
+   "f2lSolved": [],
+   "f2lSolvedAny": false
+  },
+  {
+   "moves": "R U",
+   "state": "000000222055111111111223223335335335223444444444055055",
+   "isSolved": false,
+   "crossSolved": [],
+   "f2lSolved": [],
+   "f2lSolvedAny": false
+  },
+  {
+   "moves": "F R",
+   "state": "002002442000111111221223223115335335443443443455055055",
+   "isSolved": false,
+   "crossSolved": [],
+   "f2lSolved": [],
+   "f2lSolvedAny": false
+  },
+  {
+   "moves": "R U R' U' R' F R2 U' R' U' R U R' F'",
+   "state": "000000000542111111221222222333333333414444444155555555",
+   "isSolved": false,
+   "crossSolved": [
+    "F",
+    "D",
+    "B"
+   ],
+   "f2lSolved": [
+    "D"
+   ],
+   "f2lSolvedAny": true
+  },
+  {
+   "moves": "L' U' L U",
+   "state": "100200200115111111322022222433333333044445440445555555",
+   "isSolved": false,
+   "crossSolved": [
+    "R",
+    "D"
+   ],
+   "f2lSolved": [],
+   "f2lSolvedAny": false
+  },
+  {
+   "moves": "D R D' R'",
+   "state": "005000000111111220222222214153333331444444443355355555",
+   "isSolved": false,
+   "crossSolved": [
+    "U",
+    "L"
+   ],
+   "f2lSolved": [],
+   "f2lSolvedAny": false
+  },
+  {
+   "moves": "R y",
+   "state": "000000222055055055111111111555333333223223223444444444",
+   "isSolved": false,
+   "crossSolved": [
+    "B"
+   ],
+   "f2lSolved": [
+    "B"
+   ],
+   "f2lSolvedAny": true
+  },
+  {
+   "moves": "R y'",
+   "state": "222000000223223223444444444333333555055055055111111111",
+   "isSolved": false,
+   "crossSolved": [
+    "F"
+   ],
+   "f2lSolved": [
+    "F"
+   ],
+   "f2lSolvedAny": true
+  },
+  {
+   "moves": "R y2",
+   "state": "200200200444444444055055055533533533111111111223223223",
+   "isSolved": false,
+   "crossSolved": [
+    "R"
+   ],
+   "f2lSolved": [
+    "R"
+   ],
+   "f2lSolvedAny": true
+  },
+  {
+   "moves": "R x",
+   "state": "223223223111111111335335335550550550444444444200200200",
+   "isSolved": false,
+   "crossSolved": [
+    "L"
+   ],
+   "f2lSolved": [
+    "L"
+   ],
+   "f2lSolvedAny": true
+  },
+  {
+   "moves": "R z",
+   "state": "444444444000000222222222333111111111333333555555555000",
+   "isSolved": false,
+   "crossSolved": [
+    "U"
+   ],
+   "f2lSolved": [
+    "U"
+   ],
+   "f2lSolvedAny": true
+  },
+  {
+   "moves": "R z'",
+   "state": "111111111555333333333222222444444444222000000000555555",
+   "isSolved": false,
+   "crossSolved": [
+    "D"
+   ],
+   "f2lSolved": [
+    "D"
+   ],
+   "f2lSolvedAny": true
+  },
+  {
+   "moves": "U x",
+   "state": "111222222115115115333333333555555444244244244000000000",
+   "isSolved": false,
+   "crossSolved": [
+    "F"
+   ],
+   "f2lSolved": [
+    "F"
+   ],
+   "f2lSolvedAny": true
+  },
+  {
+   "moves": "U z2",
+   "state": "333333333444444222222222111000000000111111555555555444",
+   "isSolved": false,
+   "crossSolved": [
+    "U"
+   ],
+   "f2lSolved": [
+    "U"
+   ],
+   "f2lSolvedAny": true
+  }
+ ],
+ "score": {
+  "scoreRun": [
+   {
+    "name": "2 khoi f2l + 1 khoi do",
+    "cubes": [
+     {
+      "index": 0,
+      "startT": 0,
+      "endT": 900,
+      "result": "f2l",
+      "events": [
+       {
+        "m": "R",
+        "t": 200
+       },
+       {
+        "m": "U",
+        "t": 500
+       },
+       {
+        "m": "F",
+        "t": 900
+       }
+      ]
+     },
+     {
+      "index": 1,
+      "startT": 900,
+      "endT": 2000,
+      "result": "f2l",
+      "events": [
+       {
+        "m": "x",
+        "t": 950
+       },
+       {
+        "m": "R'",
+        "t": 1200
+       },
+       {
+        "m": "U'",
+        "t": 2000
+       }
+      ]
+     },
+     {
+      "index": 2,
+      "startT": 2000,
+      "endT": null,
+      "result": "abandoned",
+      "events": [
+       {
+        "m": "R",
+        "t": 2100
+       }
+      ]
+     }
+    ],
+    "expected": {
+     "score": 2,
+     "lastEndT": 2000,
+     "totalMoves": 5
+    }
+   },
+   {
+    "name": "khong khoi nao",
+    "cubes": [
+     {
+      "index": 0,
+      "startT": 0,
+      "endT": null,
+      "result": "abandoned",
+      "events": [
+       {
+        "m": "R",
+        "t": 500
+       }
+      ]
+     }
+    ],
+    "expected": {
+     "score": 0,
+     "lastEndT": 0,
+     "totalMoves": 0
+    }
+   },
+   {
+    "name": "fullSolve co nuoc lat",
+    "cubes": [
+     {
+      "index": 0,
+      "startT": 0,
+      "endT": 1500,
+      "result": "solved",
+      "events": [
+       {
+        "m": "M",
+        "t": 300
+       },
+       {
+        "m": "R",
+        "t": 800
+       },
+       {
+        "m": "R",
+        "t": 1500
+       }
+      ]
+     }
+    ],
+    "expected": {
+     "score": 1,
+     "lastEndT": 1500,
+     "totalMoves": 4
+    }
+   }
+  ],
+  "compare": [
+   {
+    "name": "score lon hon thang",
+    "a": {
+     "score": 3,
+     "lastEndT": 40000,
+     "totalMoves": 60
+    },
+    "b": {
+     "score": 2,
+     "lastEndT": 30000,
+     "totalMoves": 10
+    },
+    "winner": "A"
+   },
+   {
+    "name": "bang score: xong khoi cuoi som hon thang",
+    "a": {
+     "score": 3,
+     "lastEndT": 40000,
+     "totalMoves": 60
+    },
+    "b": {
+     "score": 3,
+     "lastEndT": 38000,
+     "totalMoves": 90
+    },
+    "winner": "B"
+   },
+   {
+    "name": "bang score va lastEndT: it nuoc hon thang",
+    "a": {
+     "score": 3,
+     "lastEndT": 40000,
+     "totalMoves": 60
+    },
+    "b": {
+     "score": 3,
+     "lastEndT": 40000,
+     "totalMoves": 55
+    },
+    "winner": "B"
+   },
+   {
+    "name": "bang het: hoa",
+    "a": {
+     "score": 3,
+     "lastEndT": 40000,
+     "totalMoves": 60
+    },
+    "b": {
+     "score": 3,
+     "lastEndT": 40000,
+     "totalMoves": 60
+    },
+    "winner": "draw"
+   },
+   {
+    "name": "ca hai 0 diem: hoa",
+    "a": {
+     "score": 0,
+     "lastEndT": 0,
+     "totalMoves": 0
+    },
+    "b": {
+     "score": 0,
+     "lastEndT": 0,
+     "totalMoves": 0
+    },
+    "winner": "draw"
+   }
+  ]
+ },
+ "prng": [
+  {
+   "input": "abc",
+   "hash32": 1792905582,
+   "u32": [
+    3807890421,
+    2150340831,
+    579508299
+   ],
+   "float": [
+    0.8865935776848346,
+    0.5006652397569269,
+    0.13492729025892913
+   ]
+  },
+  {
+   "input": "",
+   "hash32": 167010153,
+   "u32": [
+    4190637403,
+    2672292534,
+    2825484934
+   ],
+   "float": [
+    0.9757088038604707,
+    0.6221915907226503,
+    0.6578594758175313
+   ]
+  },
+  {
+   "input": "a1b2c3d4|3|0|0",
+   "hash32": 965282599,
+   "u32": [
+    969408471,
+    2213459797,
+    62539755
+   ],
+   "float": [
+    0.2257079982664436,
+    0.5153612692374736,
+    0.014561171410605311
+   ]
+  },
+  {
+   "input": "seed-uuid-0001|3|5|2",
+   "hash32": 4091103729,
+   "u32": [
+    4079967860,
+    2893424976,
+    1243729192
+   ],
+   "float": [
+    0.949941542930901,
+    0.6736779995262623,
+    0.2895782683044672
+   ]
+  },
+  {
+   "input": "Tieng Viet",
+   "hash32": 217567437,
+   "u32": [
+    4142773884,
+    3821593987,
+    2089370912
+   ],
+   "float": [
+    0.9645647099241614,
+    0.8897841877769679,
+    0.4864695742726326
+   ]
+  }
+ ],
+ "scramble": [
+  {
+   "seed": "a1b2c3d4",
+   "size": 2,
+   "k": 0,
+   "genVersion": 1,
+   "scramble": [
+    "R2",
+    "F",
+    "R2",
+    "F2",
+    "U",
+    "R",
+    "F2",
+    "U2",
+    "R"
+   ]
+  },
+  {
+   "seed": "a1b2c3d4",
+   "size": 2,
+   "k": 1,
+   "genVersion": 1,
+   "scramble": [
+    "R2",
+    "F'",
+    "R'",
+    "F",
+    "R",
+    "U'",
+    "R",
+    "F",
+    "U"
+   ]
+  },
+  {
+   "seed": "a1b2c3d4",
+   "size": 3,
+   "k": 0,
+   "genVersion": 1,
+   "scramble": [
+    "R'",
+    "D'",
+    "R",
+    "D",
+    "B2",
+    "D",
+    "R",
+    "U2",
+    "F2",
+    "D'",
+    "F'",
+    "U'",
+    "B",
+    "L2",
+    "U2",
+    "R",
+    "L",
+    "F",
+    "D",
+    "B'"
+   ]
+  },
+  {
+   "seed": "a1b2c3d4",
+   "size": 3,
+   "k": 1,
+   "genVersion": 1,
+   "scramble": [
+    "B2",
+    "U",
+    "D",
+    "F'",
+    "L",
+    "F2",
+    "L",
+    "U'",
+    "D2",
+    "F",
+    "B'",
+    "U",
+    "R'",
+    "U2",
+    "L",
+    "U'",
+    "L2",
+    "U",
+    "B",
+    "D'"
+   ]
+  },
+  {
+   "seed": "a1b2c3d4",
+   "size": 4,
+   "k": 0,
+   "genVersion": 1,
+   "scramble": [
+    "Fw",
+    "Uw2",
+    "B",
+    "Uw2",
+    "R2",
+    "L'",
+    "B2",
+    "Uw'",
+    "Rw",
+    "Uw2",
+    "L",
+    "Fw'",
+    "Rw2",
+    "Uw2",
+    "L'",
+    "F",
+    "B'",
+    "Rw2",
+    "F",
+    "L",
+    "B2",
+    "R'",
+    "U2",
+    "R",
+    "D2",
+    "Rw'",
+    "F2",
+    "Rw2",
+    "B",
+    "Uw'",
+    "L'",
+    "D2",
+    "Rw2",
+    "Fw2",
+    "B",
+    "D",
+    "F'",
+    "U2",
+    "R'",
+    "U"
+   ]
+  },
+  {
+   "seed": "a1b2c3d4",
+   "size": 4,
+   "k": 1,
+   "genVersion": 1,
+   "scramble": [
+    "B2",
+    "D2",
+    "L2",
+    "Fw",
+    "Rw",
+    "D'",
+    "L'",
+    "Fw2",
+    "U'",
+    "Fw2",
+    "Rw2",
+    "Fw",
+    "L",
+    "D2",
+    "L'",
+    "B'",
+    "Uw2",
+    "B'",
+    "Rw'",
+    "L'",
+    "Fw",
+    "L",
+    "D2",
+    "Rw'",
+    "F'",
+    "U2",
+    "Rw2",
+    "D",
+    "F2",
+    "Uw2",
+    "R",
+    "U",
+    "L2",
+    "Uw",
+    "F",
+    "Uw'",
+    "R",
+    "Fw",
+    "B",
+    "Uw'"
+   ]
+  },
+  {
+   "seed": "a1b2c3d4",
+   "size": 5,
+   "k": 0,
+   "genVersion": 1,
+   "scramble": [
+    "F2",
+    "L",
+    "Uw",
+    "F2",
+    "Uw",
+    "Rw2",
+    "L",
+    "D'",
+    "R'",
+    "U'",
+    "Fw",
+    "D2",
+    "Fw",
+    "U'",
+    "Rw'",
+    "D'",
+    "L2",
+    "B2",
+    "Rw'",
+    "Uw'",
+    "Fw2",
+    "Uw",
+    "Fw'",
+    "L2",
+    "Fw2",
+    "D2",
+    "B",
+    "U'",
+    "Rw",
+    "Uw",
+    "B",
+    "Rw'",
+    "Fw'",
+    "Rw",
+    "B2",
+    "R'",
+    "D",
+    "F2",
+    "Uw'",
+    "R'",
+    "L",
+    "B2",
+    "L",
+    "Uw2",
+    "B'",
+    "R",
+    "U",
+    "D2",
+    "L'",
+    "Uw",
+    "R",
+    "U",
+    "R",
+    "L2",
+    "U",
+    "D2",
+    "R'",
+    "L'",
+    "B",
+    "D"
+   ]
+  },
+  {
+   "seed": "a1b2c3d4",
+   "size": 5,
+   "k": 1,
+   "genVersion": 1,
+   "scramble": [
+    "Fw2",
+    "Rw",
+    "Fw'",
+    "B",
+    "Uw",
+    "B2",
+    "L'",
+    "F2",
+    "R",
+    "F'",
+    "D",
+    "F",
+    "U'",
+    "Rw2",
+    "F'",
+    "Uw2",
+    "F'",
+    "B'",
+    "L'",
+    "D2",
+    "L2",
+    "F2",
+    "D",
+    "L2",
+    "B2",
+    "L'",
+    "Uw",
+    "L",
+    "D",
+    "Fw",
+    "D2",
+    "Fw'",
+    "U'",
+    "Fw'",
+    "Rw",
+    "L2",
+    "B2",
+    "Rw2",
+    "Fw'",
+    "D'",
+    "L'",
+    "F2",
+    "L'",
+    "Fw",
+    "Rw'",
+    "B2",
+    "L'",
+    "Uw'",
+    "Fw'",
+    "Uw'",
+    "R2",
+    "U2",
+    "Rw2",
+    "B",
+    "U",
+    "Rw2",
+    "Fw2",
+    "L2",
+    "F2",
+    "D"
+   ]
+  },
+  {
+   "seed": "a1b2c3d4",
+   "size": 7,
+   "k": 0,
+   "genVersion": 1,
+   "scramble": [
+    "3Uw",
+    "3Fw'",
+    "D2",
+    "F'",
+    "3Rw",
+    "3Fw",
+    "Uw",
+    "B2",
+    "R",
+    "F'",
+    "3Uw2",
+    "3Fw'",
+    "Rw2",
+    "3Uw",
+    "B'",
+    "Uw'",
+    "Rw2",
+    "Uw",
+    "3Rw",
+    "D",
+    "R",
+    "Uw",
+    "B'",
+    "U",
+    "3Fw",
+    "Rw2",
+    "F",
+    "L2",
+    "3Uw",
+    "F'",
+    "Uw2",
+    "Fw",
+    "R2",
+    "B2",
+    "R'",
+    "U",
+    "D",
+    "3Fw2",
+    "D'",
+    "3Rw2",
+    "3Uw'",
+    "R'",
+    "F",
+    "U",
+    "Rw'",
+    "B2",
+    "R",
+    "B",
+    "L'",
+    "D'",
+    "Fw'",
+    "R2",
+    "Uw",
+    "D",
+    "L'",
+    "Uw'",
+    "Fw'",
+    "B'",
+    "3Uw'",
+    "3Rw2",
+    "U",
+    "3Rw",
+    "Fw'",
+    "3Uw2",
+    "3Fw2",
+    "3Rw2",
+    "Fw'",
+    "L'",
+    "D'",
+    "F",
+    "D",
+    "F'",
+    "U2",
+    "F'",
+    "D'",
+    "3Fw",
+    "Rw",
+    "3Fw'",
+    "3Rw",
+    "B'",
+    "3Uw2",
+    "3Rw'",
+    "U'",
+    "B'",
+    "Uw2",
+    "R'",
+    "L2",
+    "Uw2",
+    "Rw",
+    "B2",
+    "3Rw'",
+    "3Uw'",
+    "D'",
+    "3Rw'",
+    "Fw",
+    "L",
+    "B2",
+    "U2",
+    "R",
+    "B2"
+   ]
+  },
+  {
+   "seed": "a1b2c3d4",
+   "size": 7,
+   "k": 1,
+   "genVersion": 1,
+   "scramble": [
+    "3Fw",
+    "3Rw2",
+    "Uw'",
+    "3Rw",
+    "B'",
+    "L'",
+    "B'",
+    "3Uw2",
+    "L2",
+    "U2",
+    "3Rw",
+    "3Fw'",
+    "3Rw",
+    "L",
+    "Fw2",
+    "3Rw2",
+    "B2",
+    "R2",
+    "B'",
+    "Rw2",
+    "3Fw'",
+    "Rw",
+    "L'",
+    "3Uw",
+    "Rw2",
+    "B2",
+    "3Uw'",
+    "3Rw'",
+    "U2",
+    "L'",
+    "B",
+    "D",
+    "Rw2",
+    "D",
+    "Fw",
+    "L",
+    "D'",
+    "L'",
+    "Fw'",
+    "R2",
+    "U'",
+    "D",
+    "F",
+    "R'",
+    "Uw",
+    "3Fw",
+    "Uw'",
+    "D2",
+    "Fw2",
+    "Uw",
+    "3Fw2",
+    "Rw'",
+    "U2",
+    "Fw",
+    "Uw'",
+    "F",
+    "Rw'",
+    "L",
+    "B",
+    "R",
+    "3Fw",
+    "U'",
+    "L'",
+    "Fw2",
+    "Rw2",
+    "U'",
+    "Fw",
+    "R'",
+    "F",
+    "R'",
+    "U",
+    "B",
+    "Rw'",
+    "D2",
+    "3Fw2",
+    "U",
+    "F2",
+    "D'",
+    "B",
+    "R2",
+    "D'",
+    "Rw'",
+    "U'",
+    "B'",
+    "3Rw'",
+    "B2",
+    "3Rw",
+    "3Uw'",
+    "Fw",
+    "R'",
+    "Uw2",
+    "L",
+    "B'",
+    "D2",
+    "F",
+    "Uw2",
+    "F2",
+    "Uw",
+    "F",
+    "3Rw2"
+   ]
+  },
+  {
+   "seed": "a1b2c3d4",
+   "size": 10,
+   "k": 0,
+   "genVersion": 1,
+   "scramble": [
+    "3Uw2",
+    "4Rw2",
+    "3Uw'",
+    "F2",
+    "R2",
+    "B'",
+    "3Rw",
+    "5Uw2",
+    "R",
+    "U2",
+    "4Rw2",
+    "U2",
+    "5Fw",
+    "B'",
+    "D2",
+    "F",
+    "Uw2",
+    "4Fw2",
+    "3Uw2",
+    "5Fw2",
+    "U'",
+    "4Fw",
+    "4Uw2",
+    "3Fw2",
+    "3Uw2",
+    "3Rw2",
+    "Uw'",
+    "Fw",
+    "Uw",
+    "B2",
+    "Uw",
+    "B'",
+    "3Rw'",
+    "D2",
+    "B'",
+    "Uw",
+    "5Rw",
+    "Uw'",
+    "3Rw",
+    "3Uw2",
+    "F",
+    "4Uw",
+    "3Rw2",
+    "D",
+    "5Fw'",
+    "B2",
+    "R2",
+    "5Uw'",
+    "4Fw'",
+    "4Rw",
+    "B'",
+    "4Uw",
+    "Rw2",
+    "4Fw",
+    "B",
+    "4Uw'",
+    "R",
+    "Fw",
+    "L",
+    "5Fw",
+    "B2",
+    "5Uw",
+    "L2",
+    "5Uw2",
+    "Fw2",
+    "B2",
+    "Rw",
+    "D",
+    "3Rw2",
+    "4Fw2",
+    "U'",
+    "D'",
+    "R",
+    "B'",
+    "U2",
+    "D'",
+    "3Rw2",
+    "F",
+    "Uw2",
+    "4Rw2",
+    "B",
+    "4Rw2",
+    "B",
+    "3Rw'",
+    "4Uw'",
+    "B'",
+    "3Uw",
+    "L'",
+    "U",
+    "4Rw",
+    "5Uw'",
+    "Rw2",
+    "3Fw",
+    "L2",
+    "B",
+    "3Uw'",
+    "R'",
+    "Fw",
+    "D2",
+    "4Fw2",
+    "3Uw",
+    "R'",
+    "B'",
+    "U'",
+    "R2",
+    "Uw",
+    "Rw",
+    "3Uw2",
+    "4Fw'",
+    "3Uw'",
+    "Fw",
+    "L'",
+    "3Uw",
+    "R",
+    "4Uw",
+    "3Rw2",
+    "F",
+    "D'",
+    "R'",
+    "4Uw'"
+   ]
+  },
+  {
+   "seed": "a1b2c3d4",
+   "size": 10,
+   "k": 1,
+   "genVersion": 1,
+   "scramble": [
+    "Fw2",
+    "4Rw",
+    "3Fw'",
+    "3Uw2",
+    "B'",
+    "U",
+    "F",
+    "3Uw2",
+    "3Rw2",
+    "Fw",
+    "L'",
+    "5Fw",
+    "L2",
+    "4Fw'",
+    "3Uw'",
+    "5Fw'",
+    "3Uw2",
+    "F'",
+    "5Rw2",
+    "3Fw2",
+    "D'",
+    "L'",
+    "3Uw'",
+    "B",
+    "U'",
+    "4Fw",
+    "4Uw2",
+    "4Fw",
+    "Rw",
+    "5Uw2",
+    "R",
+    "5Uw'",
+    "4Fw2",
+    "U2",
+    "3Fw'",
+    "R'",
+    "Fw'",
+    "3Uw",
+    "5Fw",
+    "L'",
+    "Uw'",
+    "B2",
+    "3Rw2",
+    "3Fw'",
+    "5Uw",
+    "5Rw2",
+    "4Fw",
+    "Rw'",
+    "4Uw'",
+    "B",
+    "3Rw",
+    "D'",
+    "F'",
+    "Uw2",
+    "B",
+    "4Rw",
+    "4Fw",
+    "U2",
+    "Rw",
+    "L2",
+    "3Fw'",
+    "Rw'",
+    "Fw'",
+    "U2",
+    "R2",
+    "L",
+    "D",
+    "R",
+    "4Fw",
+    "U'",
+    "B",
+    "L'",
+    "Fw'",
+    "3Rw2",
+    "L'",
+    "D'",
+    "Fw'",
+    "5Rw'",
+    "3Fw'",
+    "3Uw'",
+    "B'",
+    "4Rw'",
+    "3Uw2",
+    "F'",
+    "L",
+    "4Uw2",
+    "D2",
+    "B2",
+    "3Uw",
+    "L2",
+    "3Fw2",
+    "D2",
+    "5Fw'",
+    "4Rw'",
+    "F2",
+    "R'",
+    "D'",
+    "F'",
+    "3Uw'",
+    "4Rw2",
+    "4Fw2",
+    "D",
+    "4Rw'",
+    "U'",
+    "L'",
+    "D2",
+    "5Rw'",
+    "L2",
+    "D'",
+    "4Fw'",
+    "Uw'",
+    "Rw'",
+    "3Fw",
+    "5Rw2",
+    "B",
+    "5Uw",
+    "B'",
+    "L",
+    "Fw",
+    "5Rw"
+   ]
+  },
+  {
+   "seed": "550e8400-e29b-41d4-a716-446655440000",
+   "size": 2,
+   "k": 0,
+   "genVersion": 1,
+   "scramble": [
+    "F",
+    "R",
+    "F",
+    "R'",
+    "U'",
+    "R2",
+    "U",
+    "F2",
+    "R'"
+   ]
+  },
+  {
+   "seed": "550e8400-e29b-41d4-a716-446655440000",
+   "size": 2,
+   "k": 1,
+   "genVersion": 1,
+   "scramble": [
+    "R",
+    "F2",
+    "R'",
+    "F",
+    "R'",
+    "U2",
+    "F",
+    "R",
+    "U"
+   ]
+  },
+  {
+   "seed": "550e8400-e29b-41d4-a716-446655440000",
+   "size": 3,
+   "k": 0,
+   "genVersion": 1,
+   "scramble": [
+    "R",
+    "D'",
+    "B2",
+    "R2",
+    "F'",
+    "D",
+    "F",
+    "R",
+    "D2",
+    "B",
+    "U'",
+    "D'",
+    "R2",
+    "U",
+    "F",
+    "D'",
+    "B2",
+    "R",
+    "B'",
+    "R2"
+   ]
+  },
+  {
+   "seed": "550e8400-e29b-41d4-a716-446655440000",
+   "size": 3,
+   "k": 1,
+   "genVersion": 1,
+   "scramble": [
+    "D'",
+    "R'",
+    "B",
+    "L2",
+    "F'",
+    "B2",
+    "R2",
+    "B2",
+    "L",
+    "D'",
+    "R'",
+    "L2",
+    "U",
+    "D'",
+    "L'",
+    "F",
+    "U",
+    "L2",
+    "U",
+    "F2"
+   ]
+  },
+  {
+   "seed": "550e8400-e29b-41d4-a716-446655440000",
+   "size": 4,
+   "k": 0,
+   "genVersion": 1,
+   "scramble": [
+    "L'",
+    "D",
+    "B'",
+    "Uw'",
+    "D",
+    "L'",
+    "D'",
+    "R2",
+    "B",
+    "R2",
+    "Fw",
+    "D'",
+    "L2",
+    "D'",
+    "B'",
+    "Rw",
+    "B2",
+    "D'",
+    "Fw",
+    "U'",
+    "L'",
+    "U2",
+    "R",
+    "U'",
+    "F'",
+    "L",
+    "D",
+    "Fw",
+    "L",
+    "D2",
+    "Fw2",
+    "U'",
+    "D'",
+    "Rw2",
+    "D'",
+    "Rw",
+    "B",
+    "U'",
+    "Fw'",
+    "L'"
+   ]
+  },
+  {
+   "seed": "550e8400-e29b-41d4-a716-446655440000",
+   "size": 4,
+   "k": 1,
+   "genVersion": 1,
+   "scramble": [
+    "Uw",
+    "B'",
+    "L2",
+    "U",
+    "R2",
+    "Uw2",
+    "B2",
+    "D2",
+    "R'",
+    "B",
+    "Uw",
+    "R",
+    "Fw",
+    "B'",
+    "L2",
+    "Fw",
+    "Rw2",
+    "L",
+    "U2",
+    "Fw2",
+    "Uw",
+    "L2",
+    "B",
+    "R'",
+    "L",
+    "U2",
+    "D",
+    "Rw'",
+    "U",
+    "R2",
+    "U'",
+    "Fw'",
+    "Rw",
+    "D'",
+    "R2",
+    "F2",
+    "Rw",
+    "Fw",
+    "Uw'",
+    "Rw"
+   ]
+  },
+  {
+   "seed": "550e8400-e29b-41d4-a716-446655440000",
+   "size": 5,
+   "k": 0,
+   "genVersion": 1,
+   "scramble": [
+    "Rw'",
+    "Uw",
+    "Rw'",
+    "Uw",
+    "Rw2",
+    "U",
+    "Fw",
+    "Uw'",
+    "F'",
+    "L'",
+    "Fw",
+    "B",
+    "R",
+    "Fw2",
+    "R'",
+    "Fw'",
+    "R",
+    "Uw'",
+    "D",
+    "Fw'",
+    "D'",
+    "L",
+    "U2",
+    "Fw",
+    "Rw'",
+    "B'",
+    "D'",
+    "R2",
+    "D",
+    "L'",
+    "B2",
+    "L2",
+    "F",
+    "D2",
+    "F",
+    "R",
+    "B'",
+    "Rw2",
+    "Uw'",
+    "R'",
+    "B'",
+    "R",
+    "F'",
+    "D'",
+    "L'",
+    "F2",
+    "Rw2",
+    "Fw'",
+    "R2",
+    "U2",
+    "Fw",
+    "L2",
+    "Fw",
+    "B",
+    "Uw2",
+    "Fw",
+    "Rw'",
+    "U'",
+    "R'",
+    "L2"
+   ]
+  },
+  {
+   "seed": "550e8400-e29b-41d4-a716-446655440000",
+   "size": 5,
+   "k": 1,
+   "genVersion": 1,
+   "scramble": [
+    "R'",
+    "D'",
+    "Rw'",
+    "L",
+    "D'",
+    "L",
+    "U2",
+    "L",
+    "F",
+    "L",
+    "D2",
+    "Rw'",
+    "B2",
+    "D2",
+    "L'",
+    "D2",
+    "F2",
+    "Uw",
+    "Fw2",
+    "B2",
+    "L",
+    "Fw2",
+    "Rw",
+    "U'",
+    "Fw'",
+    "L",
+    "U'",
+    "F",
+    "Uw",
+    "F2",
+    "B'",
+    "D2",
+    "R'",
+    "F2",
+    "L2",
+    "Fw2",
+    "Uw",
+    "Rw2",
+    "Uw",
+    "Fw2",
+    "U",
+    "D2",
+    "Fw2",
+    "B",
+    "D2",
+    "F2",
+    "R",
+    "Uw2",
+    "D2",
+    "L2",
+    "F'",
+    "Rw",
+    "B2",
+    "D",
+    "B",
+    "U'",
+    "B2",
+    "L2",
+    "F2",
+    "R"
+   ]
+  },
+  {
+   "seed": "550e8400-e29b-41d4-a716-446655440000",
+   "size": 7,
+   "k": 0,
+   "genVersion": 1,
+   "scramble": [
+    "Uw'",
+    "3Fw'",
+    "Rw'",
+    "F2",
+    "3Rw2",
+    "Fw",
+    "Uw'",
+    "F",
+    "B'",
+    "Uw",
+    "Rw2",
+    "3Fw2",
+    "B2",
+    "Rw'",
+    "3Fw",
+    "D'",
+    "F",
+    "Rw2",
+    "B'",
+    "U'",
+    "Rw'",
+    "Uw2",
+    "B",
+    "Uw'",
+    "Rw2",
+    "L2",
+    "3Uw2",
+    "F",
+    "B",
+    "3Rw2",
+    "D'",
+    "R",
+    "3Fw'",
+    "D'",
+    "3Rw'",
+    "Fw'",
+    "Rw2",
+    "Uw2",
+    "Fw",
+    "B'",
+    "U'",
+    "Fw2",
+    "Uw",
+    "B2",
+    "L2",
+    "3Fw'",
+    "L2",
+    "F2",
+    "D",
+    "F2",
+    "B2",
+    "D'",
+    "F'",
+    "D'",
+    "F",
+    "D2",
+    "Rw",
+    "Uw2",
+    "Fw2",
+    "Rw",
+    "L",
+    "U2",
+    "D",
+    "Fw'",
+    "R2",
+    "3Uw'",
+    "F",
+    "L'",
+    "3Uw'",
+    "Fw'",
+    "B'",
+    "D2",
+    "B",
+    "3Rw2",
+    "Fw'",
+    "Uw'",
+    "Rw",
+    "3Fw",
+    "B2",
+    "D'",
+    "R2",
+    "3Fw'",
+    "Rw'",
+    "3Fw2",
+    "B",
+    "L",
+    "U'",
+    "Fw",
+    "Rw2",
+    "B",
+    "L2",
+    "D2",
+    "3Rw2",
+    "F",
+    "3Uw",
+    "Rw'",
+    "F'",
+    "D'",
+    "L2",
+    "3Fw'"
+   ]
+  },
+  {
+   "seed": "550e8400-e29b-41d4-a716-446655440000",
+   "size": 7,
+   "k": 1,
+   "genVersion": 1,
+   "scramble": [
+    "D2",
+    "L2",
+    "D2",
+    "Rw'",
+    "3Fw'",
+    "3Uw'",
+    "R'",
+    "3Uw2",
+    "L'",
+    "F",
+    "B2",
+    "D",
+    "R2",
+    "3Uw'",
+    "Rw2",
+    "D'",
+    "Rw",
+    "D2",
+    "B",
+    "3Uw2",
+    "Rw'",
+    "Fw'",
+    "Uw",
+    "3Rw2",
+    "B",
+    "Uw2",
+    "Rw",
+    "U'",
+    "D'",
+    "R2",
+    "3Fw",
+    "D2",
+    "R2",
+    "Uw",
+    "B'",
+    "3Uw",
+    "Rw",
+    "U",
+    "F2",
+    "B",
+    "L2",
+    "D'",
+    "3Fw'",
+    "R'",
+    "D",
+    "3Fw",
+    "3Rw2",
+    "L'",
+    "3Uw2",
+    "Fw2",
+    "B'",
+    "Rw'",
+    "F2",
+    "3Uw",
+    "Rw2",
+    "B'",
+    "L2",
+    "B'",
+    "U",
+    "D'",
+    "R2",
+    "L",
+    "U'",
+    "Rw'",
+    "L'",
+    "3Fw",
+    "U2",
+    "3Rw'",
+    "D'",
+    "L2",
+    "B'",
+    "R",
+    "B",
+    "D",
+    "B'",
+    "R",
+    "3Fw",
+    "3Uw2",
+    "Fw",
+    "Uw2",
+    "Rw2",
+    "D2",
+    "R'",
+    "Uw2",
+    "3Rw2",
+    "U'",
+    "R",
+    "F",
+    "D2",
+    "L2",
+    "3Fw2",
+    "Uw",
+    "Rw2",
+    "3Fw2",
+    "B'",
+    "3Rw'",
+    "3Uw2",
+    "Rw",
+    "F'",
+    "D"
+   ]
+  },
+  {
+   "seed": "550e8400-e29b-41d4-a716-446655440000",
+   "size": 10,
+   "k": 0,
+   "genVersion": 1,
+   "scramble": [
+    "3Rw",
+    "U",
+    "3Rw'",
+    "3Fw",
+    "5Rw2",
+    "4Uw2",
+    "3Rw2",
+    "5Uw",
+    "B",
+    "5Uw",
+    "3Rw2",
+    "Fw2",
+    "3Rw'",
+    "4Uw",
+    "4Fw'",
+    "Uw2",
+    "Fw2",
+    "5Uw",
+    "4Fw",
+    "L",
+    "3Uw",
+    "R'",
+    "U'",
+    "D2",
+    "3Fw",
+    "Rw2",
+    "L'",
+    "3Fw2",
+    "Rw'",
+    "5Uw2",
+    "R2",
+    "4Fw",
+    "U'",
+    "Fw2",
+    "L",
+    "4Uw",
+    "5Rw",
+    "U2",
+    "Rw2",
+    "5Fw2",
+    "Rw'",
+    "L'",
+    "4Fw'",
+    "4Uw'",
+    "D",
+    "R2",
+    "Uw'",
+    "3Rw'",
+    "U'",
+    "3Rw2",
+    "5Fw",
+    "5Uw",
+    "3Rw2",
+    "D'",
+    "B'",
+    "3Rw",
+    "5Uw",
+    "5Fw'",
+    "Rw",
+    "Fw'",
+    "Rw",
+    "4Fw",
+    "5Uw'",
+    "B'",
+    "3Rw",
+    "D",
+    "5Fw",
+    "U",
+    "5Fw2",
+    "5Rw'",
+    "U'",
+    "Rw2",
+    "F'",
+    "4Rw2",
+    "B'",
+    "L",
+    "4Fw2",
+    "4Uw",
+    "F'",
+    "4Uw2",
+    "3Rw'",
+    "Uw",
+    "3Fw'",
+    "3Uw",
+    "R2",
+    "L'",
+    "B'",
+    "U'",
+    "D",
+    "L",
+    "B",
+    "3Uw'",
+    "L",
+    "5Uw2",
+    "3Fw'",
+    "4Uw'",
+    "4Rw'",
+    "3Fw'",
+    "L2",
+    "4Fw'",
+    "D'",
+    "R",
+    "F'",
+    "5Uw2",
+    "Rw",
+    "F'",
+    "5Uw2",
+    "Fw2",
+    "3Uw2",
+    "5Rw'",
+    "D",
+    "4Rw",
+    "5Fw",
+    "Uw",
+    "Fw",
+    "5Rw2",
+    "5Uw'",
+    "3Fw'",
+    "3Rw2",
+    "4Fw"
+   ]
+  },
+  {
+   "seed": "550e8400-e29b-41d4-a716-446655440000",
+   "size": 10,
+   "k": 1,
+   "genVersion": 1,
+   "scramble": [
+    "Uw",
+    "F2",
+    "4Rw",
+    "5Fw",
+    "R2",
+    "3Uw'",
+    "L'",
+    "5Fw2",
+    "5Uw",
+    "5Fw",
+    "Rw2",
+    "D2",
+    "Rw",
+    "L2",
+    "B'",
+    "U'",
+    "B2",
+    "4Uw",
+    "R",
+    "3Uw'",
+    "R",
+    "U'",
+    "Rw'",
+    "L'",
+    "3Fw",
+    "5Uw'",
+    "Rw2",
+    "F2",
+    "5Rw'",
+    "3Uw'",
+    "3Rw'",
+    "F'",
+    "5Uw2",
+    "D'",
+    "3Rw",
+    "4Fw",
+    "5Rw'",
+    "4Uw'",
+    "4Rw",
+    "F'",
+    "Rw",
+    "3Fw2",
+    "3Uw",
+    "Fw",
+    "Rw2",
+    "U'",
+    "D",
+    "Rw",
+    "5Uw",
+    "3Rw",
+    "Fw",
+    "4Rw'",
+    "U",
+    "4Fw",
+    "4Uw",
+    "R",
+    "4Fw2",
+    "3Uw",
+    "B",
+    "5Rw2",
+    "4Uw",
+    "4Fw",
+    "Uw2",
+    "5Rw'",
+    "U",
+    "D",
+    "F'",
+    "L'",
+    "Uw'",
+    "4Rw'",
+    "B'",
+    "U",
+    "R'",
+    "4Fw",
+    "D2",
+    "Rw'",
+    "5Uw'",
+    "F'",
+    "Uw'",
+    "3Fw'",
+    "3Rw",
+    "5Uw",
+    "F2",
+    "Uw2",
+    "Rw'",
+    "Uw2",
+    "3Rw",
+    "Uw2",
+    "R2",
+    "L2",
+    "U'",
+    "D'",
+    "5Fw2",
+    "5Rw'",
+    "B2",
+    "5Rw'",
+    "4Fw2",
+    "4Rw",
+    "B'",
+    "4Rw2",
+    "3Fw2",
+    "D",
+    "5Fw'",
+    "U",
+    "D2",
+    "3Rw",
+    "5Uw'",
+    "D2",
+    "L2",
+    "4Uw2",
+    "3Rw",
+    "Uw",
+    "B2",
+    "L2",
+    "F'",
+    "5Rw2",
+    "Uw2",
+    "5Fw'",
+    "3Uw2",
+    "4Fw'"
+   ]
+  }
+ ],
+ "matchScramble_draft": [
+  {
+   "seed": "a1b2c3d4",
+   "size": 3,
+   "k": 0,
+   "genVersion": 1,
+   "filter": {
+    "minCrossOptimal": 5,
+    "maxCrossOptimal": null,
+    "maxCandidates": 1000
+   },
+   "candidateIndex": 0,
+   "crossOptimalPerFace": {
+    "U": 7,
+    "R": 6,
+    "F": 6,
+    "D": 6,
+    "L": 5,
+    "B": 5
+   },
+   "crossOptimalMin": 5,
+   "scramble": [
+    "R'",
+    "D'",
+    "R",
+    "D",
+    "B2",
+    "D",
+    "R",
+    "U2",
+    "F2",
+    "D'",
+    "F'",
+    "U'",
+    "B",
+    "L2",
+    "U2",
+    "R",
+    "L",
+    "F",
+    "D",
+    "B'"
+   ]
+  },
+  {
+   "seed": "a1b2c3d4",
+   "size": 3,
+   "k": 1,
+   "genVersion": 1,
+   "filter": {
+    "minCrossOptimal": 5,
+    "maxCrossOptimal": null,
+    "maxCandidates": 1000
+   },
+   "candidateIndex": 2,
+   "crossOptimalPerFace": {
+    "U": 5,
+    "R": 7,
+    "F": 7,
+    "D": 6,
+    "L": 7,
+    "B": 7
+   },
+   "crossOptimalMin": 5,
+   "scramble": [
+    "D2",
+    "F",
+    "U'",
+    "D",
+    "F'",
+    "U'",
+    "F",
+    "U2",
+    "D'",
+    "F'",
+    "D2",
+    "F2",
+    "D2",
+    "L2",
+    "U2",
+    "D'",
+    "F'",
+    "B2",
+    "U2",
+    "D"
+   ]
+  },
+  {
+   "seed": "a1b2c3d4",
+   "size": 3,
+   "k": 2,
+   "genVersion": 1,
+   "filter": {
+    "minCrossOptimal": 5,
+    "maxCrossOptimal": null,
+    "maxCandidates": 1000
+   },
+   "candidateIndex": 1,
+   "crossOptimalPerFace": {
+    "U": 6,
+    "R": 5,
+    "F": 7,
+    "D": 6,
+    "L": 5,
+    "B": 7
+   },
+   "crossOptimalMin": 5,
+   "scramble": [
+    "D'",
+    "B",
+    "U'",
+    "D2",
+    "F",
+    "U",
+    "L'",
+    "F",
+    "R2",
+    "U",
+    "L",
+    "B'",
+    "D2",
+    "R'",
+    "L'",
+    "B'",
+    "R'",
+    "L'",
+    "U2",
+    "D"
+   ]
+  },
+  {
+   "seed": "a1b2c3d4",
+   "size": 3,
+   "k": 3,
+   "genVersion": 1,
+   "filter": {
+    "minCrossOptimal": 5,
+    "maxCrossOptimal": null,
+    "maxCandidates": 1000
+   },
+   "candidateIndex": 0,
+   "crossOptimalPerFace": {
+    "U": 6,
+    "R": 7,
+    "F": 5,
+    "D": 6,
+    "L": 6,
+    "B": 5
+   },
+   "crossOptimalMin": 5,
+   "scramble": [
+    "F",
+    "L",
+    "U2",
+    "B",
+    "U",
+    "L'",
+    "D2",
+    "L'",
+    "F",
+    "U",
+    "B'",
+    "D",
+    "F",
+    "U'",
+    "R",
+    "L",
+    "F2",
+    "B2",
+    "U'",
+    "B2"
+   ]
+  },
+  {
+   "seed": "550e8400-e29b-41d4-a716-446655440000",
+   "size": 3,
+   "k": 0,
+   "genVersion": 1,
+   "filter": {
+    "minCrossOptimal": 5,
+    "maxCrossOptimal": null,
+    "maxCandidates": 1000
+   },
+   "candidateIndex": 0,
+   "crossOptimalPerFace": {
+    "U": 6,
+    "R": 6,
+    "F": 6,
+    "D": 6,
+    "L": 6,
+    "B": 6
+   },
+   "crossOptimalMin": 6,
+   "scramble": [
+    "R",
+    "D'",
+    "B2",
+    "R2",
+    "F'",
+    "D",
+    "F",
+    "R",
+    "D2",
+    "B",
+    "U'",
+    "D'",
+    "R2",
+    "U",
+    "F",
+    "D'",
+    "B2",
+    "R",
+    "B'",
+    "R2"
+   ]
+  },
+  {
+   "seed": "550e8400-e29b-41d4-a716-446655440000",
+   "size": 3,
+   "k": 1,
+   "genVersion": 1,
+   "filter": {
+    "minCrossOptimal": 5,
+    "maxCrossOptimal": null,
+    "maxCandidates": 1000
+   },
+   "candidateIndex": 0,
+   "crossOptimalPerFace": {
+    "U": 5,
+    "R": 7,
+    "F": 6,
+    "D": 5,
+    "L": 6,
+    "B": 5
+   },
+   "crossOptimalMin": 5,
+   "scramble": [
+    "D'",
+    "R'",
+    "B",
+    "L2",
+    "F'",
+    "B2",
+    "R2",
+    "B2",
+    "L",
+    "D'",
+    "R'",
+    "L2",
+    "U",
+    "D'",
+    "L'",
+    "F",
+    "U",
+    "L2",
+    "U",
+    "F2"
+   ]
+  },
+  {
+   "seed": "550e8400-e29b-41d4-a716-446655440000",
+   "size": 3,
+   "k": 2,
+   "genVersion": 1,
+   "filter": {
+    "minCrossOptimal": 5,
+    "maxCrossOptimal": null,
+    "maxCandidates": 1000
+   },
+   "candidateIndex": 2,
+   "crossOptimalPerFace": {
+    "U": 7,
+    "R": 6,
+    "F": 6,
+    "D": 6,
+    "L": 6,
+    "B": 6
+   },
+   "crossOptimalMin": 6,
+   "scramble": [
+    "R2",
+    "D",
+    "L",
+    "D'",
+    "B2",
+    "U2",
+    "D",
+    "F",
+    "L2",
+    "B'",
+    "U'",
+    "B'",
+    "U'",
+    "F'",
+    "U",
+    "B",
+    "L'",
+    "F",
+    "D",
+    "R"
+   ]
+  },
+  {
+   "seed": "550e8400-e29b-41d4-a716-446655440000",
+   "size": 3,
+   "k": 3,
+   "genVersion": 1,
+   "filter": {
+    "minCrossOptimal": 5,
+    "maxCrossOptimal": null,
+    "maxCandidates": 1000
+   },
+   "candidateIndex": 0,
+   "crossOptimalPerFace": {
+    "U": 6,
+    "R": 6,
+    "F": 7,
+    "D": 6,
+    "L": 6,
+    "B": 5
+   },
+   "crossOptimalMin": 5,
+   "scramble": [
+    "U2",
+    "F'",
+    "B2",
+    "D2",
+    "B'",
+    "L",
+    "B",
+    "U'",
+    "L",
+    "U",
+    "B2",
+    "R",
+    "B'",
+    "L2",
+    "B'",
+    "U'",
+    "R2",
+    "L",
+    "F2",
+    "B'"
+   ]
+  }
+ ]
 }

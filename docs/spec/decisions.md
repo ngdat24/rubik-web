@@ -47,3 +47,13 @@
 - **Lý do**: Công bằng tuyệt đối trong thi đấu và nhất quán kết quả tính thống kê giữa mọi thiết bị.
 - **Phương án đã bỏ**: Khóa cố định mặt Trắng/Vàng hoặc làm tròn số hiển thị trước khi tính trung bình.
 - **Ảnh hưởng**: `04-timer.md`, `07-predicates.md`, `08-competitive.md`.
+
+## D-008 | 2026-11-11 | Thủ tục chọn nước của scramble genVersion 1
+- **Quyết định**: Ứng viên theo thứ tự cố định, lọc chống dư thừa, chọn bằng `floor(u32 * n / 2^32)`; chi tiết tại 05 mục 3.1. `matchScramble_draft` hoãn tới Giai đoạn 7.
+- **Lý do**: Scramble tất định, tái lập được ở client và server; mọi bản cài đặt cho kết quả giống nhau.
+- **Ảnh hưởng**: `05-scramble.md`, `vectors.json` (nhóm scramble).
+
+## D-009 | 2026-11-11 | Single toàn DNF hiển thị "-"
+- **Quyết định**: Single không có lần giải hợp lệ thì hiển thị "-"; mo3, ao5, ao12 DNF hiển thị "DNF".
+- **Lý do**: Single không có giá trị để hiển thị, còn trung bình DNF là một kết quả.
+- **Ảnh hưởng**: `04-timer.md`, `vectors.json` (nhóm stats).
