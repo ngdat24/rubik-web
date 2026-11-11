@@ -15,7 +15,8 @@
   },
   "dependencies": {
     "@rubik/engine": "0.1.0",
-    "@rubik/renderer": "0.1.0"
+    "@rubik/renderer": "0.1.0",
+    "@rubik/controller": "0.1.0"
   },
   "devDependencies": {
     "@playwright/test": "1.65.0",

@@ -1,12 +1,12 @@
 import { ENGINE_VERSION, parseMove } from '@rubik/engine';
 import { CubeRenderer } from '@rubik/renderer';
-import { DemoController } from './controller.js';
+import { CubeController } from '@rubik/controller';
 import './style.css';
 
 const container = document.querySelector<HTMLElement>('#viewport')!;
 const loading = document.querySelector<HTMLElement>('#loading')!;
 document.querySelector('#engine-version')!.textContent = `Engine ${ENGINE_VERSION}`;
-let controller: DemoController | undefined;
+let controller: CubeController | undefined;
 let renderer: CubeRenderer | undefined;
 const sizeSelect = document.querySelector<HTMLSelectElement>('#cube-size')!;
 const description = document.querySelector<HTMLElement>('#cube-description')!;
@@ -55,8 +55,9 @@ try {
   renderer = new CubeRenderer(container, {measurePerformance: diagnosticsEnabled,
     instancing: !(diagnosticsEnabled && new URLSearchParams(location.search).has('mesh'))});
   if (diagnosticsEnabled) Object.defineProperty(window, 'rubikDiagnostics', {value: () => renderer?.getDiagnostics(), configurable: true});
-  controller = new DemoController(renderer);
+  controller = new CubeController(renderer);
   renderer.onContextChange = available => {
+    controller!.inputEnabled = available;
     contextMessage.hidden = available;
     contextMessage.textContent = available ? '' : 'Kết nối đồ họa tạm mất. Đang chờ trình duyệt khôi phục; bạn có thể tải lại trang nếu cần.';
     moveControls.disabled = !available;
@@ -107,7 +108,7 @@ const onMove = (event: MouseEvent): void => {
   const inputTime = performance.now();
   if (!(event.target instanceof HTMLButtonElement) || !event.target.dataset.move) return;
   const move = event.target.dataset.move;
-  if (controller?.move(move, inputTime)) {
+  if (controller?.applyMove(move, inputTime)) {
     updateMoveControls();
     moveStatus.textContent = `Đang xoay ${move}…`;
   }

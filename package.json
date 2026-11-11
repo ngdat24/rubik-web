@@ -9,8 +9,8 @@
     "test": "npm run test --workspaces",
     "typecheck": "npm run typecheck --workspaces",
     "lint": "npm run lint --workspaces --if-present",
-    "build": "npm run build --workspace=@rubik/engine && npm run build --workspace=@rubik/renderer && npm run build --workspace=@rubik/web",
-    "dev": "npm run build --workspace=@rubik/engine && npm run build --workspace=@rubik/renderer && npm run dev --workspace=@rubik/web",
+    "build": "npm run build --workspace=@rubik/engine && npm run build --workspace=@rubik/renderer && npm run build --workspace=@rubik/controller && npm run build --workspace=@rubik/web",
+    "dev": "npm run build --workspace=@rubik/engine && npm run build --workspace=@rubik/renderer && npm run build --workspace=@rubik/controller && npm run dev --workspace=@rubik/web",
     "benchmark": "npm run benchmark --workspace=@rubik/engine",
     "test:e2e": "npm run test:e2e --workspace=@rubik/web"
   }
