@@ -1,5 +1,5 @@
 import { DEFAULT_KEYMAP, resolveKey } from '@rubik/controller';
-import type { CubeController } from '@rubik/controller';
+import type { Keymap, CubeController } from '@rubik/controller';
 
 function isEditing(event: Event): boolean {
   return event.composedPath().some(target => target instanceof HTMLElement &&
@@ -7,7 +7,7 @@ function isEditing(event: Event): boolean {
 }
 
 /** Timestamp is the face-key keydown, never the earlier selector or the animation. */
-export function attachKeyboard(controller: CubeController, onMove: (move: string) => void): () => void {
+export function attachKeyboard(controller: CubeController, onMove: (move: string) => void, getKeymap: () => Keymap = () => DEFAULT_KEYMAP): () => void {
   const held = new Set<string>();
   const clear = (): void => { held.clear(); };
   const onFocus = (event: FocusEvent): void => { if (isEditing(event)) clear(); };
@@ -28,7 +28,7 @@ export function attachKeyboard(controller: CubeController, onMove: (move: string
     const layer = digits[0] ? Number(digits[0].slice(5)) || 10 : undefined;
     const move = resolveKey(event.code, {ctrlKey:event.ctrlKey, metaKey:event.metaKey,
       shiftKey:event.shiftKey, altKey:event.altKey, wide:held.has('KeyW'),
-      ...(layer === undefined ? {} : {layer})}, DEFAULT_KEYMAP, controller.cube.size);
+      ...(layer === undefined ? {} : {layer})}, getKeymap(), controller.cube.size);
     if (!move) return;
     event.preventDefault();
     if (controller.applyMove(move, event.timeStamp)) onMove(move);

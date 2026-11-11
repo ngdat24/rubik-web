@@ -54,3 +54,13 @@ Hỗ trợ tạo nhiều hồ sơ phím (profile), nút "Khôi phục mặc đ�
 - `profiles`: Object chứa các hồ sơ, mỗi hồ sơ gồm `bindings` ánh xạ từ `event.code` sang ký hiệu nước chuẩn (ví dụ `"KeyR": "R"`).
 
 Khi người dùng nhập file JSON: kiểm tra đúng cấu trúc bằng schema, từ chối và giữ nguyên cấu hình cũ nếu file hỏng, chứa phím bị cấm hoặc gán quá 2 phím cho 1 nước.
+## 6. Triển khai I2: hồ sơ, lưu trữ và an toàn khi nhập
+
+- Cài đặt phím mở trong dialog, tạm ngưng mọi phím chơi khi mở. Chọn Gán phím rồi nhấn một phím vật lý không kèm modifier. Esc hủy việc gán đang chờ, hoặc đóng dialog khi không gán. Tab vẫn duyệt focus.
+- Chỉ cho gán chữ A..Z trừ W, và các phím dấu Semicolon/Quote/Comma/Period/Slash/BracketLeft/BracketRight/Backslash/Minus/Equal/Backquote. Phím chức năng, điều hướng, W, hàng số và modifier bị khóa. Ctrl/Meta/AltGr không được dùng làm tổ hợp gán.
+- Danh sách hiển thị nước cơ sở và các nước đã gán; có thể thêm nước chuẩn (Rw, 3R, R'...) để gán. Modifier Shift/Alt tiếp tục áp dụng lên nước đã gán; lớp/W chỉ kết hợp với nước cơ sở mặt U/R/F/D/L/B. Nước không hợp lệ cho N hiện tại bị bỏ qua khi chơi.
+- Tối đa 20 hồ sơ, tên 1..40 ký tự, mỗi nước tối đa hai phím. Hồ sơ `default` bất biến: sửa/gỡ phím trên mặc định tạo hồ sơ `custom` mới. Tạo bản sao, chuyển hoặc xóa hồ sơ cá nhân được hỗ trợ. Khôi phục mặc định chỉ đặt lại hồ sơ đang chọn, không xóa các hồ sơ khác.
+- Khi trùng: Gán lại chuyển phím nguồn sang nước đích; nếu đích đã có hai phím thì chọn phím bị thay. Hoán đổi cần chọn một phím ở nước đích để đổi với nguồn. Hủy không đổi cấu hình. Báo khi nước nguồn mất phím cuối.
+- Lưu duy nhất cấu hình phím tại localStorage `rubik.keymap.v1`, schema version=1 theo mục 5. Không lưu dữ liệu nhạy cảm. Đọc/ghi đều try/catch; hỏng, phiên bản không hỗ trợ hoặc bị chặn đọc thì dùng mặc định và báo. Ghi bị chặn vẫn dùng cấu hình trong phiên, có thể xuất JSON.
+- Nhập tối đa 100 KB, kiểm tra toàn bộ trước khi thay cấu hình: schema, hồ sơ đang chọn tồn tại, tên hợp lệ, phím được phép, ký hiệu nước chuẩn, tối đa hai phím/nước. Thiếu hồ sơ default thì bổ sung; cố sửa default thì từ chối. Nhập lỗi giữ nguyên cấu hình đang dùng. Phiên bản cũ/chưa hỗ trợ bị từ chối, không tự đoán cách chuyển đổi.
+- Xuất JSON bao gồm mọi hồ sơ và activeProfile, nhập lại để khôi phục. Đồng bộ nhiều tab/đám mây chưa triển khai.

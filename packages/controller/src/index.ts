@@ -97,3 +97,6 @@ export class CubeController {
 
 export { DEFAULT_KEYMAP, resolveKey } from './keyboard.js';
 export type { Keymap, KeyModifiers } from './keyboard.js';
+
+export { KEYMAP_STORAGE_KEY, defaultSettings, isAssignableCode, canonicalBinding, validProfileName, validateSettings, importSettings, loadSettings, saveSettings, bindingConflict, assignBinding } from './keymap-settings.js';
+export type { KeymapSettings, KeymapStorage, BindingConflict } from './keymap-settings.js';

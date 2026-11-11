@@ -9,7 +9,7 @@
   </head>
   <body>
     <main>
-      <header><a class="brand" href="/">RUBIK<span> / LAB</span></a><span class="stage">GIAI ĐOẠN 4 · I1</span></header>
+      <header><a class="brand" href="/">RUBIK<span> / LAB</span></a><span class="stage">GIAI ĐOẠN 4 · I2</span></header>
       <section class="intro"><p class="eyebrow">KHÔNG GIAN THỬ NGHIỆM</p><h1>Khám phá góc nhìn.</h1><p>Kéo để xoay camera. Cuộn hoặc chụm hai ngón tay để thu phóng.</p></section>
       <div class="toolbar"><label for="cube-size">Kích thước khối</label><select id="cube-size">
         <option value="2">2×2</option><option value="3" selected>3×3</option><option value="4">4×4</option>
@@ -23,7 +23,8 @@
       <fieldset id="move-controls" disabled><legend>Nước đi</legend>
         <div class="toolbar"><label for="speed">Thời gian/nước</label><input id="speed" type="range" min="30" max="500" value="150" step="10" /><output id="speed-value" for="speed">150 ms</output>
         <label><input id="instant" type="checkbox" /> Tức thì</label></div>
-        <p class="hint">U/R/F/D/L/B: xoay mặt · Shift: đảo chiều · Alt: quay đôi · giữ W: wide · giữ 2–9 hoặc 0 (=10): chọn lớp/độ rộng · X/Y/Z: quay khối · M/E/S: chỉ 3×3. Shift+Alt vẫn quay đôi. Nhả W/số để về nước mặt; phím tắt tạm ngưng khi nhập văn bản.</p>
+        <p class="hint">Mặc định: U/R/F/D/L/B: xoay mặt · Shift: đảo chiều · Alt: quay đôi · giữ W: wide · giữ 2–9 hoặc 0 (=10): chọn lớp/độ rộng · X/Y/Z: quay khối · M/E/S: chỉ 3×3. Shift+Alt vẫn quay đôi. Nhả W/số để về nước mặt; phím tắt tạm ngưng khi nhập văn bản.</p>
+        <button id="key-settings-open" type="button">Cài đặt phím</button><p id="key-storage-status" role="status"></p>
         <div id="move-buttons"></div>
         <form id="algorithm-form"><label for="algorithm">Chuỗi nước đi</label><textarea id="algorithm" rows="2" maxlength="16000" placeholder="R U R' U'" aria-describedby="algorithm-error"></textarea><button type="submit">Chạy chuỗi</button><p id="algorithm-error" role="alert"></p></form>
         <div class="toolbar queue-toolbar"><button id="burst" type="button">Thử chuỗi nhanh (24 nước)</button><button id="catch-up" type="button">Bắt kịp ngay</button><span id="queue-status" role="status">Chờ hiển thị: 0 nước</span></div>
@@ -31,6 +32,17 @@
       <section class="scramble-panel" aria-label="Chuỗi scramble"><h2>Scramble</h2><p id="scramble-text" aria-live="polite">Chưa có scramble.</p></section>
       <footer><span id="cube-description" aria-live="polite">Rubik 3×3 · Trạng thái đã giải</span><span id="engine-version"></span></footer>
     </main>
+    <dialog id="key-settings" aria-labelledby="key-settings-title">
+      <h2 id="key-settings-title">Cài đặt bàn phím</h2>
+      <p>Shift đảo chiều, Alt quay đôi. W và hàng số dành cho wide/lớp. Hồ sơ mặc định luôn được giữ nguyên.</p>
+      <div class="toolbar"><label for="key-profile">Hồ sơ</label><select id="key-profile"></select><button id="key-profile-delete" type="button">Xóa hồ sơ</button></div>
+      <form id="key-profile-form" class="toolbar"><input id="key-profile-name" aria-label="Tên hồ sơ mới" maxlength="40" placeholder="Tên hồ sơ mới" required /><button>Tạo bản sao</button></form>
+      <form id="key-add-move" class="toolbar"><input id="key-move" aria-label="Nước cần gán" placeholder="Nước cần gán, ví dụ Rw, 3R" required /><button>Thêm nước vào danh sách</button></form>
+      <p id="key-settings-message" role="status" aria-live="polite"></p>
+      <div id="key-conflict" hidden><p id="key-conflict-message"></p><label>Phím đích để thay/đổi <select id="key-replace"></select></label><div class="toolbar"><button id="key-reassign" type="button">Gán lại</button><button id="key-swap" type="button">Hoán đổi</button><button id="key-cancel" type="button">Hủy</button></div></div>
+      <div id="key-bindings"></div>
+      <div class="toolbar"><button id="key-reset" type="button">Khôi phục mặc định</button><button id="key-export" type="button">Xuất JSON</button><label>Nhập JSON <input id="key-import" type="file" accept=".json,application/json" /></label><button id="key-settings-close" type="button">Đóng</button></div>
+    </dialog>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

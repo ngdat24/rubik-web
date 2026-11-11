@@ -3,6 +3,9 @@ import { CubeRenderer } from '@rubik/renderer';
 import { CubeController } from '@rubik/controller';
 import './style.css';
 import { attachKeyboard } from './keyboard.js';
+import { mountKeySettings } from './key-settings.js';
+
+const keySettings = mountKeySettings();
 
 let detachKeyboard: (() => void) | undefined;
 
@@ -62,7 +65,7 @@ try {
   detachKeyboard = attachKeyboard(controller, move => {
     updateMoveControls();
     moveStatus.textContent = `Đang xoay ${move}…`;
-  });
+  }, keySettings.getKeymap);
   renderer.onContextChange = available => {
     controller!.inputEnabled = available;
     contextMessage.hidden = available;
@@ -154,11 +157,12 @@ burst.addEventListener('click', onBurst);
 resetButton.addEventListener('click', onReset);
 scrambleButton.addEventListener('click', onScramble);
 const onPageHide = (event: PageTransitionEvent): void => {
-  if (!event.persisted) { detachKeyboard?.(); controller?.dispose(); }
+  if (!event.persisted) { detachKeyboard?.(); keySettings.dispose(); controller?.dispose(); }
 };
 window.addEventListener('pagehide', onPageHide);
 if (import.meta.hot) import.meta.hot.dispose(() => {
   detachKeyboard?.();
+  keySettings.dispose();
   window.removeEventListener('pagehide', onPageHide);
   sizeSelect.removeEventListener('change', onSizeChange);
   resetButton.removeEventListener('click', onReset);
