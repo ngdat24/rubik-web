@@ -59,7 +59,7 @@ Giữ 488 cubie bề mặt + 600 sticker, hai geometry. Không coi số đo Swif
 - Benchmark: chạy preview cổng 4173 rồi `npm.cmd run benchmark:renderer --workspace=@rubik/web`.
 - Chỉ với `?diagnostics=1`, demo cung cấp hàm đọc window.rubikDiagnostics(); thêm `&mesh=1` để đối chiếu backend cũ. Không cho phép ghi engine qua bridge này.
 - Unit test kiểm tra mọi phép xoay/lớp/normal theo hoán vị engine N=2..10, queue/snapshot/cancel/timestamp, instance matrix không drift và lifecycle.
-- Playwright kiểm tra pixel canvas, chuỗi hợp lệ/lỗi, các N, draw calls/geometry, heap sau nhiều lần đổi N, cảm ứng và context loss/restore. CI Linux chạy Chromium với SwiftShader.
+- Playwright kiểm tra pixel canvas, chuỗi hợp lệ/lỗi, các N, draw calls/geometry, heap sau nhiều lần đổi N, cảm ứng và context loss/restore. CI Ubuntu 24.04 dùng Google Chrome có sẵn với SwiftShader; tránh tải browser qua CDN trong mỗi job. Phiên bản browser theo runner image, phiên bản Playwright được ghim trong package.json.
 
 ## Giới hạn phạm vi
 
