@@ -57,3 +57,18 @@
 - **Quyết định**: Single không có lần giải hợp lệ thì hiển thị "-"; mo3, ao5, ao12 DNF hiển thị "DNF".
 - **Lý do**: Single không có giá trị để hiển thị, còn trung bình DNF là một kết quả.
 - **Ảnh hưởng**: `04-timer.md`, `vectors.json` (nhóm stats).
+
+## D-010 | 2026-11-11 | Controller sở hữu Cube và cấp snapshot cho renderer
+- **Quyết định**: Controller áp nước vào engine ngay khi input tới. Renderer chỉ hiển thị; API animation R3/R4 là `enqueueMove(move, stateAfter)`. Kết thúc animation trả pivot về 0 rồi tô snapshot. `setState(state)` hủy animation/hàng đợi và tô ngay. Dùng snapshot độc lập để tránh thay đổi bởi các nước đến sau.
+- **Lý do**: Giữ engine là nguồn sự thật, tránh renderer sở hữu hoặc tính trạng thái Rubik.
+- **Ảnh hưởng**: Controller của apps/web, packages/renderer, Giai đoạn 3 R2–R4.
+
+## D-011 | 2026-11-11 | Timestamp input độc lập animation
+- **Quyết định**: Controller giữ timestamp tại sự kiện input. Với bàn phím dùng `event.timeStamp` theo 04/09; input khác lấy `performance.now()` ngay khi nhận (cùng hệ quy chiếu). Timer/inspection/solve dùng mốc này. Callback renderer là `onMoveAnimated`, chỉ cho âm thanh/hiển thị, không làm nguồn thời gian.
+- **Lý do**: Thời lượng animation và độ dài queue không làm sai thời gian giải.
+- **Ảnh hưởng**: Controller, API renderer R4, timer Giai đoạn 5.
+
+## D-012 | 2026-11-11 | Stack và mặc định renderer Giai đoạn 3
+- **Quyết định**: Three.js ghim phiên bản, renderer TypeScript độc lập React; demo Vite + TypeScript thuần. 150 ms/nước đơn, nước đôi x1,5; bảng màu phương Tây, cảm ứng OrbitControls bật, pan tắt, damping bật, pixel ratio tối đa 2. R0 dùng hộp tạm. Không làm kéo lớp hoặc timer ở giai đoạn này.
+- **Lý do**: Kiểm tra hình học/animation từng bước và tái sử dụng renderer với giao diện React sau này.
+- **Ảnh hưởng**: packages/renderer, apps/web, Giai đoạn 3 R0–R6.
