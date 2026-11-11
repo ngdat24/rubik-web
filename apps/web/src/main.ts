@@ -23,6 +23,11 @@ const speedValue = document.querySelector<HTMLOutputElement>('#speed-value')!;
 const instant = document.querySelector<HTMLInputElement>('#instant')!;
 const catchUp = document.querySelector<HTMLButtonElement>('#catch-up')!;
 const burst = document.querySelector<HTMLButtonElement>('#burst')!;
+const cameraReset = document.querySelector<HTMLButtonElement>('#camera-reset')!;
+const cameraBack = document.querySelector<HTMLButtonElement>('#camera-back')!;
+const algorithmForm = document.querySelector<HTMLFormElement>('#algorithm-form')!;
+const algorithm = document.querySelector<HTMLTextAreaElement>('#algorithm')!;
+const algorithmError = document.querySelector<HTMLElement>('#algorithm-error')!;
 const updateMoveControls = (): void => {
   moveControls.disabled = !controller;
   queueStatus.textContent = `Chờ hiển thị: ${renderer?.pendingMoveCount ?? 0} nước`;
@@ -106,6 +111,25 @@ const onBurst = (): void => {
   controller?.moves(Array.from({length: 6}, () => ['R', 'U', "R'", "U'"]).flat(), performance.now());
   updateMoveControls();
 };
+const onCameraReset = (): void => { renderer?.resetCamera(); };
+const onCameraBack = (): void => { renderer?.setCameraView('dbl'); };
+const onAlgorithm = (event: SubmitEvent): void => {
+  const inputTime = performance.now();
+  event.preventDefault();
+  try {
+    const count = controller?.sequence(algorithm.value, inputTime) ?? 0;
+    algorithmError.textContent = '';
+    algorithm.removeAttribute('aria-invalid');
+    moveStatus.textContent = count ? `Đã nhận ${count} nước.` : 'Hãy nhập chuỗi nước đi.';
+    updateMoveControls();
+  } catch (error) {
+    algorithmError.textContent = error instanceof Error ? error.message : 'Chuỗi nước không hợp lệ.';
+    algorithm.setAttribute('aria-invalid', 'true');
+  }
+};
+cameraReset.addEventListener('click', onCameraReset);
+cameraBack.addEventListener('click', onCameraBack);
+algorithmForm.addEventListener('submit', onAlgorithm);
 speed.addEventListener('input', onSpeed);
 instant.addEventListener('change', onInstant);
 catchUp.addEventListener('click', onCatchUp);
@@ -126,5 +150,8 @@ if (import.meta.hot) import.meta.hot.dispose(() => {
   instant.removeEventListener('change', onInstant);
   catchUp.removeEventListener('click', onCatchUp);
   burst.removeEventListener('click', onBurst);
+  cameraReset.removeEventListener('click', onCameraReset);
+  cameraBack.removeEventListener('click', onCameraBack);
+  algorithmForm.removeEventListener('submit', onAlgorithm);
   controller?.dispose();
 });

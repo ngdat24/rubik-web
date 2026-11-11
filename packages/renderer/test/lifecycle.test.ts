@@ -21,7 +21,7 @@ vi.mock('three', async importOriginal => {
 });
 vi.mock('three/addons/controls/OrbitControls.js', () => ({ OrbitControls: class {
   enabled = true; enablePan = true; enableDamping = false; minDistance = 0; maxDistance = 0;
-  target = { set: vi.fn() }; dispose = mocks.controlsDispose; update = mocks.update;
+  target = { set: vi.fn() }; dispose = mocks.controlsDispose; update = mocks.update; reset = vi.fn();
   constructor() { mocks.controls = this; }
 } }));
 import { BoxGeometry, MeshStandardMaterial, ShapeGeometry, Group, Mesh, Vector3 } from 'three';
@@ -98,6 +98,10 @@ describe('R0 renderer lifetime without a GPU', () => {
     draw();
     const scene = mocks.render.mock.calls[0]![0];
     const camera = mocks.render.mock.calls[0]![1];
+    renderer.setCameraView('dbl');
+    expect(camera.position.toArray()).toEqual([-6,-5,-7]);
+    renderer.resetCamera();
+    expect(camera.position.toArray()).toEqual([6,5,7]);
     const group = scene.children.find((child: unknown) => child instanceof Group) as Group;
     const getStickers = () => group.children.filter(child => (child as Mesh).geometry instanceof ShapeGeometry) as Mesh<ShapeGeometry, MeshStandardMaterial>[];
     const palette = [...new Set(getStickers().map(sticker => sticker.material))];
