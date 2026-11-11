@@ -81,36 +81,36 @@ test('recovers after WebGL context loss and supports touch orbit', async ({brows
   await context.close();
 });
 
-test('physical keyboard controls follow spec 06 and leave editing and browser shortcuts alone', async ({page}) => {
+test('physical keyboard controls follow revised spec 06 and leave editing and browser shortcuts alone', async ({page}) => {
   await page.goto('/');
   await expect(page.locator('canvas')).toBeVisible();
   for (const size of ['3', '7']) {
     await page.selectOption('#cube-size', size);
     await page.locator('#instant').check();
     await page.locator('#viewport').click({position:{x:5,y:5}});
-    await page.keyboard.press('i');
+    await page.keyboard.press('r');
     await expect(page.locator('#move-status')).toContainText('R');
     await expect(page.locator('#cube-description')).toContainText('Đang luyện tập');
-    await page.keyboard.press('k');
+    await page.keyboard.press('Shift+r');
     await expect(page.locator('#cube-description')).toContainText('đã giải');
-    await page.keyboard.press('i'); await page.keyboard.press('i');
+    await page.keyboard.press('r'); await page.keyboard.press('r');
     await page.locator('#algorithm').fill('R2'); await page.locator('#algorithm-form button').click();
     await expect(page.locator('#cube-description')).toContainText('đã giải');
   }
   const status = await page.locator('#move-status').textContent();
-  await page.locator('#algorithm').focus(); await page.keyboard.type('ijk');
+  await page.locator('#algorithm').focus(); await page.keyboard.type('ruf');
   await expect(page.locator('#move-status')).toHaveText(status!);
   await page.evaluate(() => {
     const editable = document.createElement('div'); editable.contentEditable='true'; editable.id='editable';
     const child = document.createElement('span'); child.textContent='text'; editable.append(child); document.body.append(editable); editable.focus();
-    child.dispatchEvent(new KeyboardEvent('keydown', {code:'KeyI', bubbles:true}));
+    child.dispatchEvent(new KeyboardEvent('keydown', {code:'KeyR', bubbles:true}));
   });
   await expect(page.locator('#move-status')).toHaveText(status!);
   await page.locator('#viewport').click({position:{x:5,y:5}});
   const prevented = await page.evaluate(() => {
     const flags = [
-      {code:'KeyI',repeat:true},{code:'KeyI',isComposing:true},{code:'KeyI',ctrlKey:true},
-      {code:'KeyI',altKey:true},{code:'KeyI',metaKey:true},{code:'Tab'}, {code:'Escape'}, {code:'KeyZ'}
+      {code:'KeyR',repeat:true},{code:'KeyR',isComposing:true},{code:'KeyR',ctrlKey:true},
+      {code:'KeyR',altKey:true,ctrlKey:true},{code:'KeyR',metaKey:true},{code:'Tab'}, {code:'Escape'}, {code:'KeyI'}
     ];
     return flags.map(init => {const e=new KeyboardEvent('keydown',{...init,bubbles:true,cancelable:true}); window.dispatchEvent(e); return e.defaultPrevented;});
   });
@@ -120,6 +120,44 @@ test('physical keyboard controls follow spec 06 and leave editing and browser sh
     const e=new KeyboardEvent('keydown',{code:'Space',bubbles:true,cancelable:true}); window.dispatchEvent(e); return e.defaultPrevented;
   })).toBe(true);
   await page.evaluate(() => {const dialog=document.createElement('dialog');dialog.textContent='settings';document.body.append(dialog);dialog.showModal();});
-  await page.keyboard.press('i');
+  await page.keyboard.press('r');
   await expect(page.locator('#move-status')).toHaveText(status!);
+});
+
+test('held layer and wide selectors, doubles and focus cleanup', async ({page}) => {
+  await page.goto('/'); await expect(page.locator('canvas')).toBeVisible();
+  await page.selectOption('#cube-size','7'); await page.locator('#instant').check();
+  const focusCube = () => page.locator('#viewport').click({position:{x:5,y:5}});
+  const check = async (keys: string[], move: string) => {
+    await focusCube();
+    for(const key of keys.slice(0,-1)) await page.keyboard.down(key);
+    await page.keyboard.press(keys.at(-1)!);
+    for(const key of keys.slice(0,-1).reverse()) await page.keyboard.up(key);
+    await expect(page.locator('#move-status')).toContainText(move);
+    // Two half turns, or a quarter and its inverse, return to solved state.
+    const inverse=move.endsWith('2')?move:move.endsWith("'")?move.slice(0,-1):move+"'";
+    await page.locator('#algorithm').fill(inverse); await page.locator('#algorithm-form button').click();
+    await expect(page.locator('#cube-description')).toContainText('đã giải');
+  };
+  await check(['Alt','r'],'R2');
+  await check(['Shift','Alt','r'],'R2');
+  await check(['w','r'],'Rw');
+  await check(['3','r'],'3R');
+  await check(['3','w','Shift','r'],"3Rw'");
+  await check(['w','3','Alt','r'],'3Rw2');
+  await focusCube(); await page.keyboard.down('2'); await page.keyboard.down('3'); await page.keyboard.press('r');
+  await expect(page.locator('#cube-description')).toContainText('đã giải');
+  await page.keyboard.up('2'); await page.keyboard.up('3');
+  await page.keyboard.down('w'); await page.keyboard.down('3');
+  await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+  await page.keyboard.up('w'); await page.keyboard.up('3');
+  await check(['r'],'R');
+  await focusCube(); await page.keyboard.down('w'); await page.locator('#algorithm').focus();
+  await page.keyboard.up('w'); await check(['r'],'R');
+  await page.selectOption('#cube-size','10'); await check(['0','r'],'10R');
+  await page.selectOption('#cube-size','3'); await check(['m'],'M'); await check(['Shift','e'],"E'");
+  await page.selectOption('#cube-size','2'); await focusCube();
+  await page.keyboard.press('m'); await page.keyboard.down('w'); await page.keyboard.press('r'); await page.keyboard.up('w');
+  await page.keyboard.down('3'); await page.keyboard.press('r'); await page.keyboard.up('3');
+  await expect(page.locator('#cube-description')).toContainText('đã giải');
 });

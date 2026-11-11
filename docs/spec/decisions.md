@@ -104,3 +104,8 @@
 - **Bằng chứng**: Chrome headless SwiftShader 10x10: Mesh 1088 draw calls, 44,8 FPS idle/14,5 FPS xoay; instanced 2 draw calls, 44,8 FPS idle/44,2 FPS xoay. CPU submit khi xoay 62,07 -> 0,27ms. Hai geometry, 488 cubie + 600 sticker. Chi tiết và giới hạn trong spec/10-renderer.md; chưa xác minh mục tiêu 60 FPS trên GPU laptop thật.
 - **Kiểm tra**: Playwright chính thức ở R6 chạy Chrome local/Chromium CI; canvas phải có pixel, không console error, đổi N không tích lũy geometry, có heap GC check, cảm ứng và context restore. Không dựa vào mock để kết luận WebGL hoạt động.
 - **Ảnh hưởng**: Renderer, demo, test:e2e, CI và tài liệu renderer.
+
+## D-019 | 2026-11-12 | I1 keymap dễ nhớ và chọn lớp bằng phím giữ
+- **Quyết định**: Theo yêu cầu mới của người dùng, thay bảng phím cũ của 06 bằng U/R/F/D/L/B, X/Y/Z, M/E/S; dùng event.code. Shift đảo chiều, Alt quay đôi (Shift+Alt vẫn đôi), Ctrl/Meta và AltGr bị bỏ qua. Giữ W cho wide; giữ số 1..9 hoặc 0 (=10) cho lớp; số+W chọn độ rộng. Parser engine quyết định giới hạn N, không sửa engine. Tổ hợp số/W không ghép rotation/slice; nhiều số đồng thời bị từ chối.
+- **Vòng đời**: Xóa phím chọn khi blur/visibilitychange/nhập văn bản hoặc input bị khóa; không nhận repeat/IME/modal. Timestamp lấy nguyên event.timeStamp tại phím tạo nước. Space/Tab/Escape vẫn dành cho hệ thống. Alt chỉ hoạt động khi trình duyệt nhận được tổ hợp, không bảo đảm vượt qua phím tắt hệ điều hành.
+- **Ảnh hưởng**: 06-keybindings.md, controller/keyboard, demo I1. JSON bindings là nước cơ sở, modifier do hàm thuần resolveKey xử lý. Tùy chỉnh/lưu hồ sơ ở I2; chưa làm timer/kéo lớp.
