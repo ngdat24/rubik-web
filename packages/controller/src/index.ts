@@ -14,65 +14,83 @@ export interface CubeDisplay {
 }
 
 /** Owns logical state; the display never applies moves or retains this Cube. */
-export class DemoController {
-  cube: Cube;
+export interface MoveApplied { move: Move; stateAfter: Uint8Array; t: number }
+
+export class CubeController {
+  inputEnabled = true;
+  #listeners = new Set<(event: MoveApplied) => void>();
+  /** Inspection snapshot: callers cannot mutate the owned engine. */
+  get cube(): Cube { return this.#cube.clone(); }
+  onMoveApplied(listener: (event: MoveApplied) => void): () => void {
+    this.#listeners.add(listener);
+    return () => { this.#listeners.delete(listener); };
+  }
+  #emit(move: Move, stateAfter: Uint8Array, t: number): void {
+    for (const listener of [...this.#listeners]) listener({move, stateAfter: stateAfter.slice(), t});
+  }
+  #cube: Cube;
   lastInput: MoveInput | undefined;
   constructor(readonly renderer: CubeDisplay, size = 3) {
-    this.cube = new Cube(size);
+    this.#cube = new Cube(size);
     renderer.setSize(size);
-    renderer.setState(this.cube.state);
+    renderer.setState(this.#cube.state);
   }
   setSize(size: number): void {
     const cube = new Cube(size);
     this.renderer.setSize(size);
     this.renderer.setState(cube.state);
-    this.cube = cube;
+    this.#cube = cube;
     this.lastInput = undefined;
   }
   reset(): void {
-    const cube = new Cube(this.cube.size);
+    const cube = new Cube(this.#cube.size);
     this.renderer.setState(cube.state);
-    this.cube = cube;
+    this.#cube = cube;
     this.lastInput = undefined;
   }
   scramble(seed: string, index = 0): Move[] {
-    const moves = scrambleAt(seed, this.cube.size, index);
-    const cube = new Cube(this.cube.size).applyMoves(moves);
+    const moves = scrambleAt(seed, this.#cube.size, index);
+    const cube = new Cube(this.#cube.size).applyMoves(moves);
     this.renderer.setState(cube.state);
-    this.cube = cube;
+    this.#cube = cube;
     this.lastInput = undefined;
     return moves;
   }
-  move(move: Move, inputTime: number): boolean {
+  applyMove(move: Move, inputTime: number): boolean {
+    if (!this.inputEnabled) return false;
     if (!Number.isFinite(inputTime) || inputTime < 0) throw new RangeError('Invalid input timestamp');
-    const parsed = parseMove(move, this.cube.size);
-    const before = this.cube, beforeInput = this.lastInput;
-    this.cube = before.clone().applyMove(parsed);
+    const parsed = parseMove(move, this.#cube.size);
+    const before = this.#cube, beforeInput = this.lastInput;
+    this.#cube = before.clone().applyMove(parsed);
     this.lastInput = { m: parsed.canonical, timeStamp: inputTime };
-    try { this.renderer.enqueueMove(parsed.canonical, this.cube.state); }
-    catch (error) { this.cube = before; this.lastInput = beforeInput; throw error; }
+    try { this.renderer.enqueueMove(parsed.canonical, this.#cube.state); }
+    catch (error) { this.#cube = before; this.lastInput = beforeInput; throw error; }
+    this.#emit(parsed.canonical, this.#cube.state, inputTime);
     return true;
   }
   moves(moves: readonly Move[], inputTime: number): void {
+    if (!this.inputEnabled) return;
     if (!Number.isFinite(inputTime) || inputTime < 0) throw new RangeError('Invalid input timestamp');
     if (!moves.length) return;
-    const next = this.cube.clone();
+    const next = this.#cube.clone();
     const snapshots = moves.map(move => {
       const parsed = parseMove(move, next.size);
       next.applyMove(parsed);
       return {move: parsed.canonical, stateAfter: next.state.slice()};
     });
-    const before = this.cube, beforeInput = this.lastInput;
-    this.cube = next;
+    const before = this.#cube, beforeInput = this.lastInput;
+    this.#cube = next;
     this.lastInput = {m: snapshots.at(-1)!.move, timeStamp: inputTime};
     try { this.renderer.enqueueMoves(snapshots); }
-    catch (error) { this.cube = before; this.lastInput = beforeInput; throw error; }
+    catch (error) { this.#cube = before; this.lastInput = beforeInput; throw error; }
+    for (const snapshot of snapshots) this.#emit(snapshot.move, snapshot.stateAfter, inputTime);
   }
   sequence(text: string, inputTime: number): number {
-    const moves = parseMoves(text, this.cube.size).map(move => move.canonical);
+    if (!this.inputEnabled) return 0;
+    const moves = parseMoves(text, this.#cube.size).map(move => move.canonical);
     if (moves.length > 2000) throw new RangeError('Tối đa 2000 nước mỗi chuỗi');
     this.moves(moves, inputTime);
     return moves.length;
   }
-  dispose(): void { this.renderer.dispose(); }
+  dispose(): void { this.inputEnabled = false; this.#listeners.clear(); this.renderer.dispose(); }
 }
