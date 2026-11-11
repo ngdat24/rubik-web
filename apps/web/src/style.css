@@ -43,3 +43,12 @@ canvas { display: block; width: 100%; height: 100%; }
 #loading { position: absolute; inset: 40% 20px auto; text-align: center; color: #52634e; }
 footer { display: flex; justify-content: space-between; gap: 16px; margin-top: 16px; color: #66746c; font-size: 11px; line-height: 1.6; }
 @media (max-width: 600px) { main { padding-inline: 16px; } header { height: 72px; } .brand { font-size: 15px; } .stage { font-size: 9px; padding: 7px 9px; } .intro { padding-top: 26px; } footer { flex-wrap: wrap; } }
+
+dialog { width: min(740px, calc(100% - 32px)); max-height: 85vh; overflow: auto; border: 1px solid #b5c3ae; border-radius: 14px; color: inherit; padding: 24px; }
+dialog::backdrop { background: #24312f66; }
+dialog h2 { margin-top: 0; }
+.key-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; border-bottom: 1px solid #d7e0d1; padding: 8px 0; }
+.key-row strong { min-width: 44px; }
+#key-bindings { margin-bottom: 16px; }
+#key-conflict { border: 1px solid #bd8d3c; padding: 12px; margin-bottom: 12px; }
+#key-settings-message, #key-storage-status { font-size: 13px; }

@@ -14,4 +14,6 @@
 - 10x10 SwiftShader: 1088 -> 2 draw calls, xoay 14,5 -> 44,2 FPS; chưa đo 60 FPS trên GPU laptop thật.
 - I0 đã merge qua PR #9, main 6140369; controller dùng chung trong packages/controller.
 - I1 PR #10: đổi sang keymap dễ nhớ theo yêu cầu mới; Shift nghịch, Alt đôi, W wide, số chọn lớp.
-- I1 chưa merge; build/lint/typecheck, 268 unit test và 4 Chrome Playwright test đạt; chờ CI bản mới.
+- I1 đã nghiệm thu và merge qua PR #10, main c808bae; CI PR xanh.
+- I2: cấu hình phím, hồ sơ, trùng phím và nhập/xuất JSON; chưa merge.
+- Local I2: build/lint/typecheck, 272 unit test và 6 Chrome Playwright test đạt (một lượt retry sau timeout hiển thị cũ).
