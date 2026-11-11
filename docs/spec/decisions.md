@@ -98,3 +98,9 @@
 - **Quyết định**: Camera có preset U/F/R (6,5,7) và D/B/L (-6,-5,-7), reset cả quán tính OrbitControls. Đổi camera không đổi engine. Controller parse toàn bộ chuỗi trước khi nhận, tối đa 2000 nước/lần; lỗi cú pháp không nhận dở chuỗi. Vòng đời renderer tiếp tục giữ canvas/controls khi đổi N.
 - **Lý do**: Người dùng kiểm tra đầy đủ ký hiệu và mặt khuất, phục hồi góc nhìn sau thao tác cảm ứng.
 - **Ảnh hưởng**: CubeRenderer, controller và demo R5.
+
+## D-018 | 2026-11-11 | R6 InstancedMesh và kiểm tra trình duyệt thật
+- **Quyết định**: N>=6 mặc định hai InstancedMesh (nhựa/sticker), giữ nguyên index/layout/permutation. Ma trận nền bất biến, xoay instance từ ma trận nền và trả lại sau nước; không tạo Three math objects mỗi frame. Có backend Mesh để đối chiếu. Context mất sẽ chốt snapshot cuối và dừng RAF; restored tiếp tục vẽ. Hủy renderer gỡ cả listener context.
+- **Bằng chứng**: Chrome headless SwiftShader 10x10: Mesh 1088 draw calls, 44,8 FPS idle/14,5 FPS xoay; instanced 2 draw calls, 44,8 FPS idle/44,2 FPS xoay. CPU submit khi xoay 62,07 -> 0,27ms. Hai geometry, 488 cubie + 600 sticker. Chi tiết và giới hạn trong spec/10-renderer.md; chưa xác minh mục tiêu 60 FPS trên GPU laptop thật.
+- **Kiểm tra**: Playwright chính thức ở R6 chạy Chrome local/Chromium CI; canvas phải có pixel, không console error, đổi N không tích lũy geometry, có heap GC check, cảm ứng và context restore. Không dựa vào mock để kết luận WebGL hoạt động.
+- **Ảnh hưởng**: Renderer, demo, test:e2e, CI và tài liệu renderer.

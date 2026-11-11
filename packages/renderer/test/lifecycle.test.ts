@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('three', async importOriginal => {
   const original = await importOriginal<typeof import('three')>();
   return { ...original, WebGLRenderer: class {
-    domElement = { remove: mocks.remove, setAttribute: mocks.attribute };
+    domElement = { remove: mocks.remove, setAttribute: mocks.attribute, addEventListener: vi.fn(), removeEventListener: vi.fn() };
     outputColorSpace = '';
     setPixelRatio = mocks.ratio;
     setSize = mocks.size;
@@ -24,7 +24,7 @@ vi.mock('three/addons/controls/OrbitControls.js', () => ({ OrbitControls: class 
   target = { set: vi.fn() }; dispose = mocks.controlsDispose; update = mocks.update; reset = vi.fn();
   constructor() { mocks.controls = this; }
 } }));
-import { BoxGeometry, MeshStandardMaterial, ShapeGeometry, Group, Mesh, Vector3 } from 'three';
+import { BoxGeometry, Color, InstancedMesh, MeshStandardMaterial, ShapeGeometry, Group, Mesh, Vector3 } from 'three';
 import { CubeRenderer } from '../src/index.js';
 import { Cube } from '@rubik/engine';
 import { WESTERN_COLORS } from '../src/colors.js';
@@ -124,12 +124,20 @@ describe('R0 renderer lifetime without a GPU', () => {
     for (let size = 2; size <= 10; size++) {
       renderer.setSize(size);
       renderer.setState(new Cube(size).state);
-      expect(getStickers()).toHaveLength(6 * size * size);
-      expect(group.children).toHaveLength(size ** 3 - (size - 2) ** 3 + 6 * size * size);
-      expect(getStickers().map(s => s.material.color.getHex())).toEqual([...new Cube(size).state]);
+      if (size < 6) {
+        expect(getStickers()).toHaveLength(6 * size * size);
+        expect(group.children).toHaveLength(size ** 3 - (size - 2) ** 3 + 6 * size * size);
+        expect(getStickers().map(s => s.material.color.getHex())).toEqual([...new Cube(size).state]);
+      } else {
+        expect(group.children).toHaveLength(2);
+        const stickers = group.children.find(child => (child as Mesh).geometry instanceof ShapeGeometry) as InstancedMesh;
+        expect(stickers.count).toBe(6 * size * size);
+        const color = new Color();
+        expect(Array.from({length: stickers.count}, (_, index) => {stickers.getColorAt(index, color); return color.getHex();})).toEqual([...new Cube(size).state]);
+      }
     }
     expect(geometryDispose).toHaveBeenCalledTimes(9);
-    expect(materialDispose).toHaveBeenCalledTimes(9 * 7);
+    expect(materialDispose).toHaveBeenCalledTimes(9 * 7 + 4); // four disposed large-cube instance palettes
     expect(mocks.append).toHaveBeenCalledOnce();
     expect(mocks.controlsDispose).not.toHaveBeenCalled();
     expect(mocks.contextLoss).not.toHaveBeenCalled();
