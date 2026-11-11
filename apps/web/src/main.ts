@@ -7,6 +7,7 @@ const container = document.querySelector<HTMLElement>('#viewport')!;
 const loading = document.querySelector<HTMLElement>('#loading')!;
 document.querySelector('#engine-version')!.textContent = `Engine ${ENGINE_VERSION}`;
 let controller: DemoController | undefined;
+let renderer: CubeRenderer | undefined;
 const sizeSelect = document.querySelector<HTMLSelectElement>('#cube-size')!;
 const description = document.querySelector<HTMLElement>('#cube-description')!;
 const seed = document.querySelector<HTMLInputElement>('#seed')!;
@@ -16,8 +17,15 @@ const scrambleText = document.querySelector<HTMLElement>('#scramble-text')!;
 const moveControls = document.querySelector<HTMLFieldSetElement>('#move-controls')!;
 const moveButtons = document.querySelector<HTMLElement>('#move-buttons')!;
 const moveStatus = document.querySelector<HTMLElement>('#move-status')!;
+const queueStatus = document.querySelector<HTMLElement>('#queue-status')!;
+const speed = document.querySelector<HTMLInputElement>('#speed')!;
+const speedValue = document.querySelector<HTMLOutputElement>('#speed-value')!;
+const instant = document.querySelector<HTMLInputElement>('#instant')!;
+const catchUp = document.querySelector<HTMLButtonElement>('#catch-up')!;
+const burst = document.querySelector<HTMLButtonElement>('#burst')!;
 const updateMoveControls = (): void => {
-  moveControls.disabled = !controller || controller.renderer.isAnimating;
+  moveControls.disabled = !controller;
+  queueStatus.textContent = `Chờ hiển thị: ${renderer?.pendingMoveCount ?? 0} nước`;
 };
 const buildMoveButtons = (): void => {
   moveButtons.replaceChildren();
@@ -37,11 +45,14 @@ const disableControls = (): void => {
   moveControls.disabled = true;
 };
 try {
-  const renderer = new CubeRenderer(container);
+  renderer = new CubeRenderer(container);
   controller = new DemoController(renderer);
   renderer.onMoveAnimated = move => {
     updateMoveControls();
     moveStatus.textContent = `Đã xoay ${move}.`;
+  };
+  renderer.onIdle = () => {
+    updateMoveControls();
     description.textContent = `Rubik ${sizeSelect.value}×${sizeSelect.value} · ${controller!.cube.isSolved() ? 'Trạng thái đã giải' : 'Đang luyện tập'}`;
   };
   buildMoveButtons(); updateMoveControls();
@@ -88,6 +99,17 @@ const onMove = (event: MouseEvent): void => {
   }
 };
 moveButtons.addEventListener('click', onMove);
+const onSpeed = (): void => { renderer?.setSpeed(Number(speed.value)); speedValue.value = `${speed.value} ms`; };
+const onInstant = (): void => { renderer?.setInstant(instant.checked); };
+const onCatchUp = (): void => { renderer?.clearQueue(); updateMoveControls(); };
+const onBurst = (): void => {
+  controller?.moves(Array.from({length: 6}, () => ['R', 'U', "R'", "U'"]).flat(), performance.now());
+  updateMoveControls();
+};
+speed.addEventListener('input', onSpeed);
+instant.addEventListener('change', onInstant);
+catchUp.addEventListener('click', onCatchUp);
+burst.addEventListener('click', onBurst);
 resetButton.addEventListener('click', onReset);
 scrambleButton.addEventListener('click', onScramble);
 const onPageHide = (event: PageTransitionEvent): void => {
@@ -100,5 +122,9 @@ if (import.meta.hot) import.meta.hot.dispose(() => {
   resetButton.removeEventListener('click', onReset);
   scrambleButton.removeEventListener('click', onScramble);
   moveButtons.removeEventListener('click', onMove);
+  speed.removeEventListener('input', onSpeed);
+  instant.removeEventListener('change', onInstant);
+  catchUp.removeEventListener('click', onCatchUp);
+  burst.removeEventListener('click', onBurst);
   controller?.dispose();
 });

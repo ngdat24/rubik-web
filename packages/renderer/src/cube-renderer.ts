@@ -6,12 +6,18 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { parseMove } from '@rubik/engine';
 import type { Move } from '@rubik/engine';
 import { buildLayout, layerSlots, rotationFor } from './layout.js';
-import { animationProgress } from './animator.js';
+import { advanceProgress, animationProgress } from './animator.js';
 import type { CubeLayout, LayoutOptions } from './layout.js';
 import { WESTERN_COLORS, validateDisplayState, validateTheme } from './colors.js';
 import type { ColorTheme } from './colors.js';
 
 export interface RendererOptions extends LayoutOptions { size?: number; theme?: ColorTheme }
+export interface MoveSnapshot { move: Move; stateAfter: Uint8Array }
+interface PreparedMove extends MoveSnapshot {
+  rotation: ReturnType<typeof rotationFor>;
+  selection: ReturnType<typeof layerSlots>;
+  doubleTurn: boolean;
+}
 
 function roundedSticker(side: number): ShapeGeometry {
   const half = side / 2, radius = side * 0.09;
@@ -43,8 +49,13 @@ export class CubeRenderer {
   private bodies: Mesh<BoxGeometry, MeshStandardMaterial>[] = [];
   private readonly pivot = new Group();
   private readonly rotationAxis = new Vector3();
-  private active: { move: Move; stateAfter: Uint8Array; startedAt: number; duration: number; angle: number } | undefined;
+  private queue: PreparedMove[] = [];
+  private active: { item: PreparedMove; progress: number; lastFrameTime: number | undefined } | undefined;
+  private msPerQuarterTurn = 150;
+  private instant = false;
+  private idleNotified = true;
   onMoveAnimated: (move: Move) => void = () => {};
+  onIdle: () => void = () => {};
   private size = 0;
   private theme: ColorTheme;
   private readonly layoutOptions: LayoutOptions;
@@ -89,15 +100,21 @@ export class CubeRenderer {
   setSize(size: number): void {
     this.assertActive();
     const layout = buildLayout(size, this.layoutOptions);
-    this.cancelAnimation();
+    this.cancelPending();
     if (size !== this.size) this.rebuild(layout);
+    this.notifyIdle();
   }
 
   /** Paint immediately without retaining the caller's mutable state buffer. */
   setState(state: Uint8Array): void {
     this.assertActive();
     validateDisplayState(state, this.size);
-    this.cancelAnimation();
+    this.cancelPending();
+    this.paint(state);
+    this.notifyIdle();
+  }
+
+  private paint(state: Uint8Array): void {
     for (let index = 0; index < this.stickers.length; index++) {
       this.stickers[index]!.material = this.materials[state[index]!]!;
     }
@@ -105,21 +122,66 @@ export class CubeRenderer {
 
   get isAnimating(): boolean { return this.active !== undefined; }
 
-  /** R3 accepts one animation at a time. R4 will add an input queue. */
+  get pendingMoveCount(): number { return this.queue.length + (this.active ? 1 : 0); }
+
   enqueueMove(move: Move, stateAfter: Uint8Array): void {
+    this.enqueueMoves([{ move, stateAfter }]);
+  }
+
+  /** Validate and copy the whole batch before changing the running queue. */
+  enqueueMoves(moves: readonly MoveSnapshot[]): void {
     this.assertActive();
-    if (this.active) throw new Error('Animation in progress');
-    const parsed = parseMove(move, this.size);
-    validateDisplayState(stateAfter, this.size);
-    const selection = layerSlots(parsed, this.size);
-    const rotation = rotationFor(parsed);
-    this.rotationAxis.set(...rotation.axis);
+    const prepared = moves.map(({move, stateAfter}): PreparedMove => {
+      const parsed = parseMove(move, this.size);
+      validateDisplayState(stateAfter, this.size);
+      return { move: parsed.canonical, stateAfter: stateAfter.slice(), rotation: rotationFor(parsed),
+        selection: layerSlots(parsed, this.size), doubleTurn: parsed.quarterTurns === 2 };
+    });
+    if (!prepared.length) return;
+    this.queue.push(...prepared);
+    this.idleNotified = false;
+    this.startNext();
+  }
+
+  setSpeed(msPerQuarterTurn: number): void {
+    this.assertActive();
+    if (!Number.isFinite(msPerQuarterTurn) || msPerQuarterTurn <= 0) throw new RangeError('Speed must be positive milliseconds');
+    this.msPerQuarterTurn = msPerQuarterTurn;
+  }
+
+  setInstant(enabled: boolean): void { this.assertActive(); this.instant = enabled; }
+
+  /** Skip unfinished visuals and paint the latest accepted snapshot; never undo controller state. */
+  clearQueue(): void {
+    this.assertActive();
+    const finalState = this.queue.at(-1)?.stateAfter ?? this.active?.item.stateAfter;
+    this.cancelPending();
+    if (finalState) this.paint(finalState);
+    this.notifyIdle();
+  }
+
+  private startNext(): void {
+    if (this.active || this.disposed) return;
+    const item = this.queue.shift();
+    if (!item) return;
+    this.rotationAxis.set(...item.rotation.axis);
     this.pivot.quaternion.identity();
     this.cubeGroup.add(this.pivot);
-    for (const index of selection.cubieIndices) this.pivot.add(this.bodies[index]!);
-    for (const index of selection.stickerIndices) this.pivot.add(this.stickers[index]!);
-    this.active = { move: parsed.canonical, stateAfter: stateAfter.slice(), startedAt: performance.now(),
-      duration: parsed.quarterTurns === 2 ? 225 : 150, angle: rotation.angle };
+    for (const index of item.selection.cubieIndices) this.pivot.add(this.bodies[index]!);
+    for (const index of item.selection.stickerIndices) this.pivot.add(this.stickers[index]!);
+    this.active = { item, progress: 0, lastFrameTime: undefined };
+  }
+
+  private cancelPending(): void {
+    this.queue.length = 0;
+    this.cancelAnimation();
+  }
+
+  private notifyIdle(): void {
+    if (!this.disposed && this.pendingMoveCount === 0 && !this.idleNotified) {
+      this.idleNotified = true;
+      this.onIdle();
+    }
   }
 
   private cancelAnimation(): void {
@@ -142,7 +204,7 @@ export class CubeRenderer {
   }
 
   private releaseCube(): void {
-    this.cancelAnimation();
+    this.cancelPending();
     this.cubeGroup.clear();
     this.stickers = [];
     this.bodies = [];
@@ -189,20 +251,31 @@ export class CubeRenderer {
 
   private readonly draw = (time = performance.now()): void => {
     if (this.disposed) return;
-    const active = this.active;
-    let completedMove: Move | undefined;
-    if (active) {
-      const elapsed = time - active.startedAt;
-      this.pivot.quaternion.setFromAxisAngle(this.rotationAxis, active.angle * animationProgress(elapsed, active.duration));
-      if (elapsed >= active.duration) {
-        this.setState(active.stateAfter);
-        completedMove = active.move;
-      }
+    // Bound instant work to the batch present at frame start; callbacks may enqueue more.
+    const budget = this.instant ? this.pendingMoveCount : 1;
+    for (let index = 0; index < budget; index++) {
+      const active = this.active;
+      if (!active) break;
+      const previous = active.lastFrameTime ?? time;
+      active.lastFrameTime = Math.max(previous, time);
+      active.progress = this.instant ? 1 : advanceProgress(active.progress, time - previous,
+        this.msPerQuarterTurn, active.item.doubleTurn, this.queue.length);
+      this.pivot.quaternion.setFromAxisAngle(this.rotationAxis,
+        active.item.rotation.angle * animationProgress(active.progress, 1));
+      if (active.progress < 1) break;
+      this.cancelAnimation();
+      this.paint(active.item.stateAfter);
+      this.startNext();
+      if (this.active) this.active.lastFrameTime = time;
+      this.onMoveAnimated(active.item.move);
+      if (this.disposed) return;
+      if (!this.instant) break;
     }
+    this.notifyIdle();
+    if (this.disposed) return;
     this.controls.update();
     this.webgl.render(this.scene, this.camera);
     this.frame = requestAnimationFrame(this.draw);
-    if (completedMove !== undefined) this.onMoveAnimated(completedMove);
   };
 
   dispose(): void {

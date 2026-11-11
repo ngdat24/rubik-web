@@ -2,7 +2,7 @@ import { expect, it } from 'vitest';
 import { Quaternion, Vector3 } from 'three';
 import { compileMove, parseMove } from '@rubik/engine';
 import { buildLayout, layerSlots, rotationFor } from '../src/layout.js';
-import { animationProgress } from '../src/animator.js';
+import { advanceProgress, animationProgress } from '../src/animator.js';
 
 for (let size = 2; size <= 10; size++) {
   it(`R3: rotation of every valid move matches engine permutation for N=${size}`, () => {
@@ -51,4 +51,12 @@ it('clamps and eases animation progress at both endpoints', () => {
   expect(animationProgress(75, 150)).toBe(0.5);
   expect(animationProgress(150, 150)).toBe(1);
   expect(animationProgress(999, 150)).toBe(1);
+});
+
+it('integrates dynamic speed without rewinding and respects double turns', () => {
+  expect(advanceProgress(0, 75, 150, false, 0)).toBe(0.5);
+  expect(advanceProgress(0, 112.5, 150, true, 0)).toBe(0.5);
+  expect(advanceProgress(0.5, -10, 150, false, 0)).toBe(0.5);
+  expect(advanceProgress(0, 75, 150, false, 2)).toBe(1);
+  expect(advanceProgress(0.5, 20, 500, false, 0)).toBeGreaterThan(0.5);
 });

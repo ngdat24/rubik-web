@@ -51,9 +51,9 @@ describe('R0 renderer lifetime without a GPU', () => {
     renderer.enqueueMove('R', after);
     after.fill(5);
     expect(renderer.isAnimating).toBe(true);
-    expect(() => renderer.enqueueMove('U', new Cube().state)).toThrow('progress');
     const pivot = group.children.find(child => child instanceof Group)!;
     expect(pivot.children).toHaveLength(9 + 21);
+    draw(0);
     draw(75);
     expect(pivot.rotation.x).toBeCloseTo(-Math.PI / 4);
     expect(callback).not.toHaveBeenCalled();
@@ -69,6 +69,7 @@ describe('R0 renderer lifetime without a GPU', () => {
     }
     callback.mockClear();
     renderer.enqueueMove('U2', new Cube().applyMoves('R U2').state);
+    draw(0);
     draw(150);
     expect(renderer.isAnimating).toBe(true); // doubles take 225ms
     renderer.setState(new Cube().state);
