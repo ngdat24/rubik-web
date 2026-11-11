@@ -1,19 +1,13 @@
 # Trạng thái dự án
 
-- Giai đoạn 2 đã merge qua PR #1; engine N=2..10.
-- Giai đoạn 3 R0 đã merge qua PR #2, main 7bdc6ea.
-- R1 đã merge qua PR #3; người dùng đã nghiệm thu hiển thị bằng mắt.
-- R2 đã merge qua PR #4; người dùng đã nghiệm thu Scramble/Reset.
-- R3 đã merge qua PR #5, người dùng đã nghiệm thu animation.
-- R4 đã merge qua PR #6, người dùng đã nghiệm thu hàng đợi.
-- R5/R6 đã merge qua PR #7/#8; CI trên main 542a6d0 xanh.
-- R6 đã triển khai: InstancedMesh N>=6, WebGL recovery, Playwright, benchmark và spec/10-renderer.md.
-- Quyết định: controller sở hữu Cube và timestamp input; renderer nhận stateAfter.
-- Mặc định: 150 ms, nước đôi x1,5, màu phương Tây, hỗ trợ cảm ứng.
-- Local R6: build/lint/typecheck, 261 unit test và 2 Playwright test đạt.
-- 10x10 SwiftShader: 1088 -> 2 draw calls, xoay 14,5 -> 44,2 FPS; chưa đo 60 FPS trên GPU laptop thật.
-- I0 đã merge qua PR #9, main 6140369; controller dùng chung trong packages/controller.
-- I1 PR #10: đổi sang keymap dễ nhớ theo yêu cầu mới; Shift nghịch, Alt đôi, W wide, số chọn lớp.
-- I1 đã nghiệm thu và merge qua PR #10, main c808bae; CI PR xanh.
-- I2: cấu hình phím, hồ sơ, trùng phím và nhập/xuất JSON; chưa merge.
-- Local I2: build/lint/typecheck, 272 unit test và 6 Chrome Playwright test đạt (một lượt retry sau timeout hiển thị cũ).
+- Giai đoạn 2: engine N=2..10 đã merge PR #1, không sửa engine trong Giai đoạn 3/4.
+- Giai đoạn 3: R0..R6 đã merge PR #2..#8; renderer tách khỏi controller.
+- Giai đoạn 4: I0 controller PR #9, I1 bàn phím PR #10, I2 cấu hình PR #11 đã merge.
+- I3..I6: chọn sticker, kéo chuột/touch, pinch, hủy gesture và tài liệu 11-input đã triển khai; PR hoàn tất chờ CI và tự merge theo yêu cầu người dùng.
+- Local: build/lint/typecheck, 273 unit test, 8 Chrome Playwright test đạt.
+- Kiểm tra kéo: N=2/3/7/10, nước ngược về solved, camera không đổi, hủy blur, touch và pinch; toán mọi slot N=2..10.
+- Controller sở hữu Cube; bàn phím ghi event.timeStamp tại keydown, drag tại pointerup. Renderer chỉ preview/animation.
+- Phím theo 06-keybindings.md; quyết định D-019..D-021; hướng dẫn nhập/kéo tại 11-input.md.
+- CPU controller 200 mẫu: median 0,0029 ms, p95 0,0131 ms; không phải độ trễ hệ điều hành/GPU.
+- Chưa thử điện thoại thật, giải scramble thủ công trọn lượt hoặc đo FPS GPU laptop thật; tự động đã kiểm tra thao tác và trạng thái engine.
+- Giai đoạn 5 (timer/inspection) chưa bắt đầu.

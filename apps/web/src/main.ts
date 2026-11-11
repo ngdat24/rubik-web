@@ -2,6 +2,8 @@ import { ENGINE_VERSION, parseMove } from '@rubik/engine';
 import { CubeRenderer } from '@rubik/renderer';
 import { CubeController } from '@rubik/controller';
 import './style.css';
+import { attachDrag } from './drag.js';
+let detachDrag: (()=>void) | undefined;
 import { attachKeyboard } from './keyboard.js';
 import { mountKeySettings } from './key-settings.js';
 
@@ -60,8 +62,9 @@ try {
   const diagnosticsEnabled = new URLSearchParams(location.search).has('diagnostics');
   renderer = new CubeRenderer(container, {measurePerformance: diagnosticsEnabled,
     instancing: !(diagnosticsEnabled && new URLSearchParams(location.search).has('mesh'))});
-  if (diagnosticsEnabled) Object.defineProperty(window, 'rubikDiagnostics', {value: () => renderer?.getDiagnostics(), configurable: true});
+  if (diagnosticsEnabled) Object.defineProperty(window, 'rubikDiagnostics', {value: (picking=false) => ({...renderer?.getDiagnostics(),...(picking?{pickTargets:renderer?.getPickTargets()}:{})}), configurable: true});
   controller = new CubeController(renderer);
+  detachDrag = attachDrag(renderer,controller,updateMoveControls);
   detachKeyboard = attachKeyboard(controller, move => {
     updateMoveControls();
     moveStatus.textContent = `Đang xoay ${move}…`;
@@ -157,10 +160,11 @@ burst.addEventListener('click', onBurst);
 resetButton.addEventListener('click', onReset);
 scrambleButton.addEventListener('click', onScramble);
 const onPageHide = (event: PageTransitionEvent): void => {
-  if (!event.persisted) { detachKeyboard?.(); keySettings.dispose(); controller?.dispose(); }
+  if (!event.persisted) { detachDrag?.(); detachKeyboard?.(); keySettings.dispose(); controller?.dispose(); }
 };
 window.addEventListener('pagehide', onPageHide);
 if (import.meta.hot) import.meta.hot.dispose(() => {
+  detachDrag?.();
   detachKeyboard?.();
   keySettings.dispose();
   window.removeEventListener('pagehide', onPageHide);

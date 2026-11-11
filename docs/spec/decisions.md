@@ -113,3 +113,7 @@
 ## D-020 | 2026-11-12 | I2 tùy chỉnh phím và hồ sơ local
 - **Quyết định**: Schema version=1 theo 06, localStorage rubik.keymap.v1; chỉ cho phím chữ/dấu an toàn, giữ W/số/modifier/system cho điều khiển chung. Default bất biến, chỉnh default tạo custom. Tối đa hai phím/nước và 20 hồ sơ; nhập tối đa 100 KB, kiểm tra toàn bộ trước commit. Trùng phím có Gán lại/Hoán đổi/Hủy; đích đủ hai phím phải chọn phím thay. Bản nhập cũ/hỏng bị từ chối, cấu hình hiện tại giữ nguyên; dữ liệu local hỏng hoặc chặn đọc dùng mặc định. Chặn ghi chỉ làm mất lưu qua phiên, không khóa chơi.
 - **Ảnh hưởng**: controller/keymap-settings thuần, dialog cài đặt web, bộ đọc keymap hiện hành cho I1; JSON xuất/nhập và kiểm thử lỗi lưu trữ. Chưa đồng bộ tài khoản/tab.
+
+## D-021 | 2026-11-12 | I3–I6 picking, kéo lớp và cảm ứng
+- **Quyết định**: Slot/instanceId lấy từ E2; hit nhựa không chọn. Kéo chỉ bắt đầu khi queue rỗng; khóa input trong gesture. Ngưỡng 8px, khóa trục theo normal cross displacement, lớp từ cubie engine. Thả làm tròn 90 độ, tối đa 180; timestamp pointerup. Renderer preview transform và nối animation phần còn lại; không áp nước engine.
+- **Vòng đời**: Pointer Events chung chuột/touch; nền orbit, hai ngón pinch hủy preview; blur/cancel/lost capture/context loss hủy gesture. Chi tiết và giới hạn tại 11-input.md. Người dùng cho phép tự kiểm tra và merge toàn bộ phần còn lại.
