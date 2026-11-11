@@ -8,10 +8,15 @@
   </head>
   <body>
     <main>
-      <header><a class="brand" href="/">RUBIK<span> / LAB</span></a><span class="stage">GIAI ĐOẠN 3 · R0</span></header>
+      <header><a class="brand" href="/">RUBIK<span> / LAB</span></a><span class="stage">GIAI ĐOẠN 3 · R1</span></header>
       <section class="intro"><p class="eyebrow">KHÔNG GIAN THỬ NGHIỆM</p><h1>Khám phá góc nhìn.</h1><p>Kéo để xoay camera. Cuộn hoặc chụm hai ngón tay để thu phóng.</p></section>
+      <div class="toolbar"><label for="cube-size">Kích thước khối</label><select id="cube-size">
+        <option value="2">2×2</option><option value="3" selected>3×3</option><option value="4">4×4</option>
+        <option value="5">5×5</option><option value="6">6×6</option><option value="7">7×7</option>
+        <option value="8">8×8</option><option value="9">9×9</option><option value="10">10×10</option>
+      </select></div>
       <section id="viewport" aria-label="Cảnh Rubik 3D"><p id="loading" role="status">Đang khởi tạo cảnh 3D…</p></section>
-      <footer><span>Hộp tạm · Kiểm tra camera và ánh sáng</span><span id="engine-version"></span></footer>
+      <footer><span id="cube-description" aria-live="polite">Rubik 3×3 · Trạng thái đã giải</span><span id="engine-version"></span></footer>
     </main>
     <script type="module" src="/src/main.ts"></script>
   </body>

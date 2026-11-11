@@ -72,3 +72,8 @@
 - **Quyết định**: Three.js ghim phiên bản, renderer TypeScript độc lập React; demo Vite + TypeScript thuần. 150 ms/nước đơn, nước đôi x1,5; bảng màu phương Tây, cảm ứng OrbitControls bật, pan tắt, damping bật, pixel ratio tối đa 2. R0 dùng hộp tạm. Không làm kéo lớp hoặc timer ở giai đoạn này.
 - **Lý do**: Kiểm tra hình học/animation từng bước và tái sử dụng renderer với giao diện React sau này.
 - **Ảnh hưởng**: packages/renderer, apps/web, Giai đoạn 3 R0–R6.
+
+## D-013 | 2026-11-11 | Layout tĩnh R1 lấy trực tiếp hình học sticker từ engine
+- **Quyết định**: Cạnh khối mặc định 3 đơn vị; cell = cạnh/N. Tọa độ cubie nhân đôi từ E2 nhân cell/2, vị trí slot cộng normal*cell/2. Giữ nguyên index/pháp tuyến engine. Dedupe tọa độ cubie để chỉ dựng bề mặt. Khe nhựa mặc định 4% cell; viền sticker mỗi bên 8% cell; góc bo 9% cạnh sticker. Mesh sticker nhô 0,2% cell, slot toán vẫn ở mặt lý tưởng.
+- **Lý do**: Một hệ chỉ số xuyên engine/renderer và không phụ thuộc WebGL cho test toán. Mọi N có cùng kích thước hiển thị.
+- **Ảnh hưởng**: layout.ts, CubeRenderer, demo R1. Trong R1, controller đổi N bằng cách dispose renderer cũ và dựng lại; API setSize/setState tái sử dụng cảnh sẽ làm ở R2.
