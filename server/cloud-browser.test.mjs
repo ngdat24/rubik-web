@@ -53,7 +53,9 @@ test('cloud account login, auto upload, cross-device history and logout isolatio
         return fulfill({json:{access_token:token,refresh_token:'refresh-'+id,expires_in:3600,expires_at:exp,token_type:'bearer',user}});
       });
       const page=await context.newPage();const diagnostics=[];page.on('pageerror',e=>diagnostics.push(e.message));page.on('console',m=>{if(m.type()==='error')diagnostics.push(m.text());});await page.goto(base);await expect(page.locator('canvas')).toBeVisible();await page.locator('#account-open').click();
-      await page.locator('#account-email').fill(email);await page.locator('#account-password').fill('test-password');await page.locator('#account-form button[type=submit]').click();
+      await page.locator('#account-email').fill(email);await page.locator('#account-password').fill('test-password');
+      await Promise.all([page.waitForNavigation({waitUntil:'domcontentloaded'}),page.locator('#account-form button[type=submit]').click()]);
+      await expect(page.locator('#cloud-sync')).toBeVisible();
       try{await expect(page.locator('#account-open')).toHaveText('Tài khoản');}catch(e){throw new Error(String(e)+' Diagnostics: '+JSON.stringify({errors:diagnostics,message:await page.locator('#account-message').textContent(),cloud:await page.locator('#cloud-message').textContent()}));}return {context,page};
     };
     const {context,page}=await create('a@example.test');const errors=[];page.on('pageerror',e=>errors.push(e.message));
