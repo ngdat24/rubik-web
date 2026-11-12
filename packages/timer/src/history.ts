@@ -15,6 +15,7 @@ export class SolveHistory {
     for(const entry of entries) if(!this.#entries.some(old=>old.solve.id===entry.solve.id)) {
       this.#entries.push(copy(entry)); added++;
     }
+    if(added)this.#entries.sort((a,b)=>Date.parse(a.solve.startedAt)-Date.parse(b.solve.startedAt));
     return added;
   }
   add(solve: Solve): boolean {
