@@ -19,8 +19,9 @@ test('blocked IndexedDB keeps timer usable and backup controls available',async(
 
 test('another tab cannot silently overwrite a newer durable history',async({context})=>{
  const a=await context.newPage(),b=await context.newPage();
- for(const p of [a,b]){await p.clock.install();await p.goto('/');await expect(p.locator('#history-storage-status')).toContainText('Đã tải');}
- await a.locator('#scramble').click();await a.locator('#timer-start').click();await a.clock.runFor(17100);await expect(a.locator('#history-storage-status')).toContainText('Đã lưu');
- await b.locator('#scramble').click();await b.locator('#timer-start').click();await b.clock.runFor(17100);await expect(b.locator('#history-storage-status')).toContainText('Không lưu');
- const firstId=await a.locator('#solve-history li').getAttribute('data-solve-id');await b.reload();await expect(b.locator('#solve-history li')).toHaveCount(1);await expect(b.locator('#solve-history li')).toHaveAttribute('data-solve-id',firstId!);
+ for(const p of [a,b]){await p.goto('/');await expect(p.locator('#history-storage-status')).toContainText('Đã tải');}
+ const file=(id:string)=>({name:'backup.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({version:1,entries:[{solve:{schemaVersion:1,id,size:3,seed:'s',scrambleIndex:0,scrambleSource:'generated',genVersion:1,engineVersion:'0.1.0',preEvents:[],events:[],inspectionMs:17001,timeMs:0,penalty:'DNF',startedAt:'2026-11-13T00:00:00.000Z'},penaltyOverride:null}]}))});
+ await a.bringToFront();await a.locator('#history-import').setInputFiles(file('first'));await expect(a.locator('#history-storage-status')).toContainText('Đã lưu');
+ await b.bringToFront();await b.locator('#history-import').setInputFiles(file('second'));await expect(b.locator('#history-storage-status')).toContainText('Không lưu');
+ await b.reload();await expect(b.locator('#solve-history li')).toHaveCount(1);await expect(b.locator('#solve-history li')).toHaveAttribute('data-solve-id','first');
 });
