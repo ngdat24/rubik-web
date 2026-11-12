@@ -7,7 +7,7 @@ function isEditing(event: Event): boolean {
 }
 
 /** Timestamp is the face-key keydown, never the earlier selector or the animation. */
-export function attachKeyboard(controller: CubeController, onMove: (move: string) => void, getKeymap: () => Keymap = () => DEFAULT_KEYMAP): () => void {
+export function attachKeyboard(controller: CubeController, onMove: (move: string) => void, getKeymap: () => Keymap = () => DEFAULT_KEYMAP, transform: (move:string)=>string = move=>move): () => void {
   const held = new Set<string>();
   const clear = (): void => { held.clear(); };
   const onFocus = (event: FocusEvent): void => { if (isEditing(event)) clear(); };
@@ -31,7 +31,7 @@ export function attachKeyboard(controller: CubeController, onMove: (move: string
       ...(layer === undefined ? {} : {layer})}, getKeymap(), controller.size);
     if (!move) return;
     event.preventDefault();
-    if (controller.applyMove(move, event.timeStamp)) onMove(move);
+    if (controller.applyMove(transform(move), event.timeStamp)) onMove(move);
   };
   window.addEventListener('keydown', onKeyDown);
   window.addEventListener('keyup', onKeyUp);

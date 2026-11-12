@@ -19,7 +19,7 @@ export function attachTimer(controller: CubeController, newScramble: () => void)
     if(running())controller.unlockInput('timer');else controller.lockInput('timer');
     for(const node of document.querySelectorAll<HTMLInputElement|HTMLButtonElement|HTMLSelectElement|HTMLTextAreaElement>('#cube-size,#seed,#scramble,#reset,#move-buttons button,#algorithm-form textarea,#algorithm-form button,#burst,#key-settings-open')) node.disabled=running();
     start.disabled=running();cancel.disabled=!running();
-    start.textContent=timer.phase==='finished'?'Chuẩn bị lượt mới':'Bắt đầu';
+    start.textContent=timer.phase==='finished'||!timer.armed?'Chuẩn bị scramble':'Bắt đầu inspection';
     phaseLabel.textContent={idle:timer.armed?'Sẵn sàng · Space để inspection':'Chờ scramble',inspecting:'Inspection · nước xoay lớp đầu tiên bắt đầu giải',solving:'Đang giải',finished:'Đã kết thúc'}[timer.phase];
   };
   const show=():void=>{
@@ -44,7 +44,7 @@ export function attachTimer(controller: CubeController, newScramble: () => void)
     message.textContent='';
     if(timer.phase==='finished'){newScramble();return;}
     if(timer.phase!=='idle')return;
-    if(!timer.armed){message.textContent='Hãy bấm Scramble trước.';return;}
+    if(!timer.armed){newScramble();return;}
     if(timer.startInspection(stamp)){
       (document.activeElement as HTMLElement|null)?.blur();
       wake=window.setTimeout(wakeUp,17001);
@@ -55,7 +55,7 @@ export function attachTimer(controller: CubeController, newScramble: () => void)
   on(window,'keydown',event=>{
     const e=event as KeyboardEvent;
     if(e.isComposing||editing(e)||e.ctrlKey||e.metaKey||e.altKey||document.querySelector('dialog[open]'))return;
-    if(e.code==='Space'){e.preventDefault();if(!e.repeat)begin(e.timeStamp);}
+    if(e.code==='Space'){e.preventDefault();if(!e.repeat){if(e.shiftKey && !running())newScramble();else if(!e.shiftKey)begin(e.timeStamp);}}
     else if(e.code==='Escape'&&!e.repeat&&running()){e.preventDefault();requestCancel();}
   },true);
   on(window,'keyup',event=>{const e=event as KeyboardEvent;if(e.code==='Space'&&!editing(e)&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!document.querySelector('dialog[open]'))e.preventDefault();},true);

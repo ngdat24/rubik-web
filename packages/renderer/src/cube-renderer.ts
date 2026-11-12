@@ -1,3 +1,5 @@
+import { FACE_NORMALS, viewFaces } from './view.js';
+import type { FaceName, FaceView } from './view.js';
 import {
   AmbientLight, BoxGeometry, DirectionalLight, Group, Mesh, MeshStandardMaterial,
   Raycaster, Vector2, Plane, PerspectiveCamera, Scene, Shape, ShapeGeometry, SRGBColorSpace, Vector3, WebGLRenderer,
@@ -150,6 +152,23 @@ export class CubeRenderer {
   }
 
   resetCamera(): void { this.setCameraView('ufr'); }
+
+  getViewFaces() {
+    this.camera.updateMatrixWorld();
+    const half=buildLayout(this.size,this.layoutOptions).edgeLength/2;
+    const views:FaceView[]=[];
+    for(const face of Object.keys(FACE_NORMALS) as FaceName[]){
+      const n=new Vector3(...FACE_NORMALS[face]),centre=n.clone().multiplyScalar(half),p=centre.clone().project(this.camera);
+      let area=0;
+      if(n.dot(this.camera.position.clone().sub(centre))>0){
+        const a=new Vector3(...(Math.abs(n.y)<0.5?[0,1,0]:[1,0,0]) as [number,number,number]),b=new Vector3().crossVectors(n,a);
+        const corners=[[1,1],[-1,1],[-1,-1],[1,-1]].map(([x,y])=>centre.clone().addScaledVector(a,x!*half).addScaledVector(b,y!*half).project(this.camera));
+        for(let i=0;i<4;i++){const q=corners[i]!,r=corners[(i+1)%4]!;area+=q.x*r.y-r.x*q.y;}area=Math.abs(area)/2;
+      }
+      views.push({face,area,x:p.x,y:p.y});
+    }
+    return viewFaces(views);
+  }
 
   getPickTargets() {
     const rect=this.canvas.getBoundingClientRect();this.camera.updateMatrixWorld();

@@ -63,8 +63,8 @@ test('blocked storage does not prevent in-session key configuration', async ({pa
 test('timer flow, focused Space, rotations, solved result and next scramble stays idle',async({page})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/?diagnostics=1');await expect(page.locator('canvas')).toBeVisible();
- await page.locator('#instant').check();await page.locator('#timer-start').click();await expect(page.locator('#timer-message')).toContainText('Scramble');
- await page.keyboard.press('r');await expect(page.locator('#timer-phase')).toContainText('Chờ');
+ await page.locator('#instant').check();await page.locator('#timer-start').click();await expect(page.locator('#timer-phase')).toContainText('Sẵn sàng');
+ await page.keyboard.press('r');await expect(page.locator('#timer-phase')).toContainText('Sẵn sàng');
  await page.locator('#seed').fill('timer-e2e');await page.locator('#scramble').click();const scramble=(await page.locator('#scramble-text').textContent())!.trim().split(/\s+/);
  await page.locator('#reset').focus();await page.keyboard.press('Space');await expect(page.locator('#timer-phase')).toContainText('Inspection');
  await expect(page.locator('#scramble-text')).not.toContainText('Chưa có');
@@ -184,4 +184,15 @@ test('touch Start enters inspection without a hardware keyboard',async({browser}
  const context=await browser.newContext({hasTouch:true,viewport:{width:600,height:900}});const page=await context.newPage();
  await page.goto('/');await expect(page.locator('canvas')).toBeVisible();await page.locator('#scramble').tap();await page.locator('#timer-start').tap();
  await expect(page.locator('#timer-phase')).toContainText('Inspection');await expect(page.locator('#key-settings-open')).toBeDisabled();await context.close();
+});
+
+test('Space prepares then starts, Shift+Space regenerates; view keys are opt-in',async({page})=>{
+ await page.goto('/');await expect(page.locator('canvas')).toBeVisible();await page.locator('#instant').check();
+ await page.locator('#viewport').click({position:{x:5,y:5}});await page.keyboard.press('Space');
+ await expect(page.locator('#timer-phase')).toContainText('Sẵn sàng');const first=await page.locator('#seed').inputValue();
+ await page.keyboard.press('Shift+Space');await expect(page.locator('#seed')).not.toHaveValue(first);await expect(page.locator('#timer-phase')).toContainText('Sẵn sàng');
+ await expect(page.locator('#view-keys')).not.toBeChecked();await page.locator('#view-keys').check();await page.locator('#camera-back').click();
+ await expect(page.locator('#view-key-map')).toContainText('F → B');await expect(page.locator('#view-key-map')).toContainText('R → L');
+ await page.locator('#viewport').click({position:{x:5,y:5}});await page.keyboard.press('Space');await expect(page.locator('#timer-phase')).toContainText('Inspection');
+ await page.keyboard.press('r');await expect(page.locator('#move-status')).toContainText('L');await expect(page.locator('#timer-phase')).toContainText('Đang giải');
 });

@@ -7,3 +7,5 @@ export { WESTERN_COLORS, stateToColors } from './colors.js';
 export type { ColorTheme } from './colors.js';
 
 export { pickedSlot, dragTurn } from './layout.js';
+
+export { viewFaces, viewMove } from './view.js';
