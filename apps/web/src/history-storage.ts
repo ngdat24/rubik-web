@@ -10,6 +10,6 @@ export async function loadHistory():Promise<unknown>{const db=await open();try{r
 });}finally{db.close();}}
 export async function saveHistory(backup:HistoryBackup):Promise<void>{const db=await open();try{await new Promise<void>((resolve,reject)=>{
  const tx=db.transaction('history','readwrite'),store=tx.objectStore('history'),read=store.get('backup');
- read.onsuccess=()=>{if(revision===undefined||(read.result?.revision??0)!==revision){tx.abort();return;}store.put({revision:revision+1,backup},'backup');};
+ read.onsuccess=()=>{try{if(revision===undefined||(read.result?.revision??0)!==revision){tx.abort();return;}store.put({revision:revision+1,backup},'backup');}catch(error){tx.abort();reject(error);}};
  tx.oncomplete=()=>{revision=(revision??0)+1;resolve();};tx.onabort=()=>reject(tx.error);tx.onerror=()=>reject(tx.error);
 });}finally{db.close();}}

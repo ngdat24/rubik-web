@@ -89,6 +89,9 @@ export class CubeController {
     if (!Number.isFinite(inputTime) || inputTime < 0) throw new RangeError('Invalid input timestamp');
     if (!moves.length) return true;
     const parsedMoves = moves.map(move => parseMove(move,this.size));
+    // A stateful gate (e.g. the solve timer) cannot approve future moves before
+    // receiving the preceding move's result. Keep timed input one move at a time.
+    if(this.#gate && parsedMoves.length > 1) return false;
     if(parsedMoves.some(move => this.#gate && !this.#gate(move,inputTime)) || !this.inputEnabled) return false;
     const next = this.#cube.clone();
     const snapshots = parsedMoves.map(parsed => {

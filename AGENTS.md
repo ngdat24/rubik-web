@@ -26,9 +26,9 @@
 
 - Đọc 04/09/12 và D-022..D-024; mỗi task một PR, chờ người dùng duyệt trước merge.
 - Timer thuần chỉ phụ thuộc engine. Timestamp ở controller (keydown/pointerup); giữ origin chính xác, floor chênh lệch. Date chỉ cho startedAt.
-- Named locks drag/context/timer/disposed độc lập; chỉ gỡ khóa của mình. Gate kiểm tra trước mutate và từ chối toàn batch nguyên tử.
+- Named locks drag/context/timer/disposed độc lập; chỉ gỡ khóa của mình. Gate kiểm tra trước mutate; khi có gate thì từ chối batch nhiều hơn một nước để không vượt điểm kết thúc solve.
 - Space hai bước: chuẩn bị scramble rồi mới inspection; Shift+Space đổi scramble khi chưa chạy. Hộp hủy không dừng đồng hồ.
-- Solve gốc bất biến, penaltyOverride là metadata local riêng. History chỉ trong phiên, thống kê dùng engine theo size.
+- Solve gốc bất biến, penaltyOverride là metadata local riêng. History ban đầu trong phiên; Giai đoạn 6 đã thêm IndexedDB/backup và LAN, thống kê vẫn dùng engine theo size.
 - Không sửa engine, không thêm backend/lưu history lâu dài hoặc tự đổi hợp đồng dữ liệu ngoài task được duyệt.
 
 ## Lệnh tại thư mục gốc
@@ -39,3 +39,12 @@
 - `npm run lint`, `npm run typecheck`, `npm test`: kiểm tra các workspace.
 - `python -B tools/reference/check-engine.py`: đối chiếu engine đã build với Python.
 - `npm run benchmark`: benchmark engine; chỉ chạy khi cần đo hiệu năng engine.
+- `npm run lan` / `npm run start:lan`: build/chạy hoặc chỉ chạy server LAN; dữ liệu ở lan-data/ (không commit).
+- `npm run test:lan`: integration API và Chrome hai trình duyệt cho LAN.
+
+## Mốc Giai đoạn 6
+
+- Web: phím theo góc nhìn mặc định bật; Khóa xoay phím bật hệ trục cố định. Web 40 ms, range 30–100; API renderer mặc định 150 ms.
+- Chuột kéo lớp hệ số 0,675; touch/camera riêng. Người dùng đã thử nhiều thiết bị, chưa ghi số đo FPS/latency.
+- IndexedDB local tự lưu; backup nhập không tự lên bảng. LAN nhận Solve gốc mới 2×2/3×3, không nhận override local.
+- Không suy kết quả replay thành chống gian lận thời gian; hosting online/Sandbox/solver là scope tiếp theo.

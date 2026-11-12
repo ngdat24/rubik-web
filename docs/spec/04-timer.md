@@ -50,4 +50,4 @@ Chi tiết từng trạng thái:
 - Thời gian không tạm dừng khi mất focus, đổi tab, mất WebGL hoặc mở hộp hủy. Hộp thoại ghi rõ đồng hồ vẫn chạy và hết inspection vẫn DNF.
 - Hai bước Space áp dụng cả sau kết quả: chuẩn bị scramble ngẫu nhiên với seed mới, k=0 rồi về IDLE; bấm tiếp mới inspection. Nút Bắt đầu trên cảm ứng có cùng hành vi, dùng click event.timeStamp. Shift+Space chỉ đổi scramble khi chưa chạy.
 - Phạt gốc của Solve bất biến. Chỉnh phạt lịch sử lưu ở penaltyOverride riêng; thống kê dùng override nếu có, ngược lại dùng Solve.penalty. Có thể khôi phục phạt gốc. Chi tiết wrapper tại 09 mục 2.2.1.
-- Lịch sử chỉ trong bộ nhớ phiên trang, lọc theo kích thước và thứ tự giải; reload mất lịch sử. Timer giao diện và danh sách điều khiển tại 12-timer-ui.md.
+- Lịch sử tự lưu IndexedDB theo trình duyệt/origin, lọc theo kích thước và thứ tự giải; reload giữ lịch sử nếu lưu thành công. Có backup JSON và CSV; không phải bấm backup sau mỗi lượt. Timer giao diện và danh sách điều khiển tại 12-timer-ui.md.
