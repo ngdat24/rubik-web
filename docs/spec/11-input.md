@@ -14,6 +14,18 @@ Một ngón trên sticker kéo lớp; trên nền xoay camera. Ngón thứ hai t
 ## Kiểm tra và giới hạn
 Unit test mọi slot, mọi mặt và hai hướng tangent cho N=2..10 so với geometry/parser engine; giữ nguyên invariant permutation R3. Chrome Playwright kiểm tra keyboard/settings, raycast trên Mesh/InstancedMesh, kéo + nước ngược về solved, hủy blur, touch và orbit nền. Đo CPU applyMove riêng (không GPU) để kiểm tra đường nhận input không đợi animation. Không lấy callback onMoveAnimated làm đồng hồ.
 
-Ngưỡng 8px và độ nhạy pi/1.5 rad trên một đơn vị thế giới là mặc định có thể chỉnh sau trải nghiệm tay. Cảm ứng đã mô phỏng trong Chrome; chưa xác nhận điện thoại thật hoặc FPS trên GPU người dùng. Không có undo/timer/network trong giai đoạn này.
+Ngưỡng 8px và độ nhạy pi/1.5 rad trên một đơn vị thế giới là mặc định có thể chỉnh sau trải nghiệm tay. Cảm ứng đã mô phỏng trong Chrome; chưa xác nhận điện thoại thật hoặc FPS trên GPU người dùng. Giai đoạn 4 không có undo/timer/network; Giai đoạn 5 đã bổ sung timer tại 12-timer-ui.md, chưa có undo/network.
 
 Đo local Node ngày 2026-11-12, 200 nước R với display giả không chờ animation: median 0,0029 ms, p95 0,0131 ms. Đây là chi phí CPU từ gọi controller tới khi trạng thái đã đổi, không phải độ trễ bàn phím hệ điều hành hay thời gian hiện hình trên GPU.
+
+## Lưu ý Alt/Option
+
+Alt cho nước đôi chỉ hoạt động khi tổ hợp được trình duyệt chuyển tới trang. Alt trên Windows có thể dành cho menu; Option trên macOS có thể tạo ký tự khác. Dùng event.code không vượt qua phím tắt hệ điều hành. Có thể gán một phím thường cho nước đôi (ví dụ R2) trong Cài đặt phím làm phương án thay thế. Không dùng AltGr (Ctrl+Alt) để chơi.
+
+## Bổ sung T0/T2: khóa độc lập và gate
+
+Controller dùng lockInput(reason)/unlockInput(reason), inputEnabled chỉ đọc. Các lý do drag/context/timer độc lập; kết thúc kéo chỉ gỡ drag, không gỡ khóa timer/context. disposed không thể mở lại. lockedBy trả bản sao. Trong idle/finished timer khóa nhận nước; khi inspecting/solving timer nhả khóa của chính nó.
+
+setMoveGate kiểm tra ParsedMove và timestamp trước khi mutate; batch parse và kiểm tra toàn bộ trước khi áp bất kỳ nước nào. Gate từ chối thì không đổi Cube/timestamp/queue. Gate chỉ được có side effect idempotent advance(now), tránh bắt đầu/ghi nước trước khi enqueue thành công. onStateReplaced sau setSize/reset/scramble giúp timer disarm; sau scramble thành công, web arm timer với seed/index tương ứng. size và isSolved() đọc trực tiếp, không clone Cube trên đường input.
+
+Phím theo góc nhìn và hai bước Space được mô tả tại 06 mục 3/7. Render preview vẫn độc lập thời gian; nước kéo được timer nhận ở pointerup, không phải pointerdown hay lúc animation xong.

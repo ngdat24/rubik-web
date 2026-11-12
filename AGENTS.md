@@ -1,6 +1,6 @@
 # Quy ước làm việc
 
-- Trao đổi và giải thích thay đổi bằng tiếng Việt. Mỗi issue có nhánh `codex/gd3-r<số>` hoặc `codex/gd4-i<số>` và PR nhỏ.
+- Trao đổi và giải thích thay đổi bằng tiếng Việt. Mỗi issue có nhánh `codex/gd3-r<số>` hoặc `codex/gd4-i<số>` / `codex/gd5-t<số>` và PR nhỏ.
 - Đọc STATUS.md, docs/spec/decisions.md và API engine trước khi code.
 - Chỉ sửa file cần thiết cho issue; chỉ cập nhật tài liệu được yêu cầu.
 - Giai đoạn 3: không sửa packages/engine khi chưa được người dùng đồng ý rõ ràng.
@@ -22,11 +22,20 @@
 - STATUS.md dưới 60 dòng, AGENTS.md dưới 150 dòng; decisions.md ghi quyết định đã chốt.
 - Giải thích bằng tiếng Việt trước khi merge. Không tự merge khi issue yêu cầu người dùng duyệt trước.
 
+## Giai đoạn 5
+
+- Đọc 04/09/12 và D-022..D-024; mỗi task một PR, chờ người dùng duyệt trước merge.
+- Timer thuần chỉ phụ thuộc engine. Timestamp ở controller (keydown/pointerup); giữ origin chính xác, floor chênh lệch. Date chỉ cho startedAt.
+- Named locks drag/context/timer/disposed độc lập; chỉ gỡ khóa của mình. Gate kiểm tra trước mutate và từ chối toàn batch nguyên tử.
+- Space hai bước: chuẩn bị scramble rồi mới inspection; Shift+Space đổi scramble khi chưa chạy. Hộp hủy không dừng đồng hồ.
+- Solve gốc bất biến, penaltyOverride là metadata local riêng. History chỉ trong phiên, thống kê dùng engine theo size.
+- Không sửa engine, không thêm backend/lưu history lâu dài hoặc tự đổi hợp đồng dữ liệu ngoài task được duyệt.
+
 ## Lệnh tại thư mục gốc
 
 - `npm install`: cài dependency workspace.
 - `npm run dev`: build các thư viện rồi chạy demo Vite.
-- `npm run build`: engine → renderer → web.
+- `npm run build`: engine → renderer → controller → timer → web.
 - `npm run lint`, `npm run typecheck`, `npm test`: kiểm tra các workspace.
 - `python -B tools/reference/check-engine.py`: đối chiếu engine đã build với Python.
 - `npm run benchmark`: benchmark engine; chỉ chạy khi cần đo hiệu năng engine.
