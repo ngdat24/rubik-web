@@ -2,8 +2,9 @@ import { loadHistory, saveHistory } from './history-storage.js';
 import { formatTime } from '@rubik/engine';
 import type { Penalty } from '@rubik/engine';
 import { SolveHistory, parseHistoryBackup, validateHistoryBackup, historyCsv } from '@rubik/timer';
+import type {HistoryEntry} from '@rubik/timer';
 
-export function attachHistory(history: SolveHistory, getSize: ()=>number) {
+export function attachHistory(history: SolveHistory, getSize: ()=>number, onMutation:(entry:HistoryEntry,deleted:boolean)=>void=()=>{}) {
   const list=document.querySelector<HTMLOListElement>('#solve-history')!;
   const stats=document.querySelector<HTMLElement>('#solve-stats')!;
   const status=document.querySelector<HTMLElement>('#history-message')!;
@@ -37,7 +38,9 @@ export function attachHistory(history: SolveHistory, getSize: ()=>number) {
     const button=(event.target as Element).closest<HTMLButtonElement>('button[data-action]');
     const id=button?.closest<HTMLLIElement>('li')?.dataset.solveId;if(!button||!id)return;
     const action=button.dataset.action!;
+    const original=history.entries().find(entry=>entry.solve.id===id)!;
     if(action==='delete')history.delete(id);else history.edit(id,action==='original'?null:action as Penalty);
+    onMutation(action==='delete'?original:history.entries().find(entry=>entry.solve.id===id)!,action==='delete');
     render();persist();status.textContent=action==='delete'?'Đã xóa lần giải.':'Đã cập nhật phạt và thống kê; bản ghi gốc được giữ nguyên.';
   };
   const download=(text:string,type:string,name:string):void=>{
@@ -55,9 +58,9 @@ export function attachHistory(history: SolveHistory, getSize: ()=>number) {
   const jsonButton=document.querySelector('#history-export')!,csvButton=document.querySelector('#history-csv')!;
   jsonButton.addEventListener('click',exportJson);csvButton.addEventListener('click',exportCsv);input.addEventListener('change',importFile);
   list.addEventListener('click',click);render();
-  void loadHistory().then(value=>{
+  const loaded=loadHistory().then(value=>{
     if(disposed)return;const unsaved=history.entries().length>0;if(value!==undefined)history.merge(validateHistoryBackup(value).entries);
     ready=true;render();storageStatus.textContent='Đã tải lịch sử trên trình duyệt này.';if(unsaved)persist();
   }).catch(()=>{if(!disposed){ready=true;canPersist=false;storageStatus.textContent='Không đọc được lịch sử đã lưu; phiên hiện tại vẫn dùng được. Hãy giữ backup JSON.';}});
-  return {render,changed:()=>{render();persist();},dispose:()=>{disposed=true;list.removeEventListener('click',click);jsonButton.removeEventListener('click',exportJson);csvButton.removeEventListener('click',exportCsv);input.removeEventListener('change',importFile);}};
+  return {loaded,render,changed:()=>{render();persist();},dispose:()=>{disposed=true;list.removeEventListener('click',click);jsonButton.removeEventListener('click',exportJson);csvButton.removeEventListener('click',exportCsv);input.removeEventListener('change',importFile);}};
 }

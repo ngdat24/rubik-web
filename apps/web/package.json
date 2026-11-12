@@ -14,10 +14,11 @@
     "benchmark:renderer": "node tools/benchmark.mjs"
   },
   "dependencies": {
+    "@rubik/controller": "0.1.0",
     "@rubik/engine": "0.1.0",
     "@rubik/renderer": "0.1.0",
-    "@rubik/controller": "0.1.0",
-    "@rubik/timer": "0.1.0"
+    "@rubik/timer": "0.1.0",
+    "@supabase/supabase-js": "2.119.0"
   },
   "devDependencies": {
     "@playwright/test": "1.65.0",

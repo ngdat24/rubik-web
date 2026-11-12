@@ -19,6 +19,7 @@ jobs:
       - run: npm run typecheck
       - run: npm run test
       - run: npm run test:lan
+      - run: npm run test:cloud
       - run: python -B tools/reference/check-engine.py
       - run: npm run test:e2e
         env:

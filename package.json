@@ -15,6 +15,7 @@
     "test:e2e": "npm run test:e2e --workspace=@rubik/web",
     "lan": "npm run build && node tools/lan/server.mjs",
     "start:lan": "node tools/lan/server.mjs",
-    "test:lan": "node --test tools/lan/server.test.mjs tools/lan/browser.test.mjs"
+    "test:lan": "node --test tools/lan/server.test.mjs tools/lan/browser.test.mjs",
+    "test:cloud": "node --test server/cloud.test.mjs server/cloud-browser.test.mjs"
   }
 }
