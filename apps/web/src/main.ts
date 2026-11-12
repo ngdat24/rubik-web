@@ -1,3 +1,4 @@
+import { newId } from './id.js';
 import { ENGINE_VERSION, parseMove } from '@rubik/engine';
 import { CubeRenderer, viewMove } from '@rubik/renderer';
 import { CubeController } from '@rubik/controller';
@@ -14,7 +15,7 @@ let timerUI: ReturnType<typeof attachTimer> | undefined;
 const keySettings = mountKeySettings();
 const viewLabelTimer=window.setInterval(()=>{
  const label=document.querySelector('#view-key-map')!;
- label.textContent=renderer && document.querySelector<HTMLInputElement>('#view-keys')!.checked?Object.entries(renderer.getViewFaces()).map(([key,face])=>`${key} → ${face}`).join(' · '):'Phím theo hệ trục khối';
+ label.textContent=renderer && !document.querySelector<HTMLInputElement>('#view-keys')!.checked?Object.entries(renderer.getViewFaces()).map(([key,face])=>`${key} → ${face}`).join(' · '):'Phím theo hệ trục khối';
 },150);
 
 let detachKeyboard: (() => void) | undefined;
@@ -37,8 +38,6 @@ const queueStatus = document.querySelector<HTMLElement>('#queue-status')!;
 const speed = document.querySelector<HTMLInputElement>('#speed')!;
 const speedValue = document.querySelector<HTMLOutputElement>('#speed-value')!;
 const instant = document.querySelector<HTMLInputElement>('#instant')!;
-const catchUp = document.querySelector<HTMLButtonElement>('#catch-up')!;
-const burst = document.querySelector<HTMLButtonElement>('#burst')!;
 const cameraReset = document.querySelector<HTMLButtonElement>('#camera-reset')!;
 const cameraBack = document.querySelector<HTMLButtonElement>('#camera-back')!;
 const algorithmForm = document.querySelector<HTMLFormElement>('#algorithm-form')!;
@@ -61,7 +60,7 @@ const buildMoveButtons = (): void => {
     moveButtons.append(button);
   }
 };
-seed.value = crypto.randomUUID();
+seed.value = newId();
 const disableControls = (): void => {
   sizeSelect.disabled = seed.disabled = scrambleButton.disabled = resetButton.disabled = true;
   moveControls.disabled = true;
@@ -71,12 +70,13 @@ try {
   renderer = new CubeRenderer(container, {measurePerformance: diagnosticsEnabled,
     instancing: !(diagnosticsEnabled && new URLSearchParams(location.search).has('mesh'))});
   if (diagnosticsEnabled) Object.defineProperty(window, 'rubikDiagnostics', {value: (picking=false) => ({...renderer?.getDiagnostics(),...(picking?{pickTargets:renderer?.getPickTargets()}:{})}), configurable: true});
+  renderer.setSpeed(Number(speed.value));
   controller = new CubeController(renderer);
   detachDrag = attachDrag(renderer,controller,updateMoveControls);
   detachKeyboard = attachKeyboard(controller, move => {
     updateMoveControls();
     moveStatus.textContent = `Đang xoay ${move}…`;
-  }, keySettings.getKeymap,move=>document.querySelector<HTMLInputElement>('#view-keys')!.checked?viewMove(move,renderer!.getViewFaces()):move);
+  }, keySettings.getKeymap,move=>!document.querySelector<HTMLInputElement>('#view-keys')!.checked?viewMove(move,renderer!.getViewFaces()):move);
   renderer.onContextChange = available => {
     if(available) controller!.unlockInput('context'); else controller!.lockInput('context');
     contextMessage.hidden = available;
@@ -138,11 +138,6 @@ const onMove = (event: MouseEvent): void => {
 moveButtons.addEventListener('click', onMove);
 const onSpeed = (): void => { renderer?.setSpeed(Number(speed.value)); speedValue.value = `${speed.value} ms`; };
 const onInstant = (): void => { renderer?.setInstant(instant.checked); };
-const onCatchUp = (): void => { renderer?.clearQueue(); updateMoveControls(); };
-const onBurst = (): void => {
-  controller?.moves(Array.from({length: 6}, () => ['R', 'U', "R'", "U'"]).flat(), performance.now());
-  updateMoveControls();
-};
 const onCameraReset = (): void => { renderer?.resetCamera(); };
 const onCameraBack = (): void => { renderer?.setCameraView('dbl'); };
 const onAlgorithm = (event: SubmitEvent): void => {
@@ -164,11 +159,11 @@ cameraBack.addEventListener('click', onCameraBack);
 algorithmForm.addEventListener('submit', onAlgorithm);
 speed.addEventListener('input', onSpeed);
 instant.addEventListener('change', onInstant);
-catchUp.addEventListener('click', onCatchUp);
-burst.addEventListener('click', onBurst);
+
+
 resetButton.addEventListener('click', onReset);
 scrambleButton.addEventListener('click', onScramble);
-if(controller) timerUI=attachTimer(controller,()=>{seed.value=crypto.randomUUID();onScramble();});
+if(controller) timerUI=attachTimer(controller,()=>{seed.value=newId();onScramble();});
 const onPageHide = (event: PageTransitionEvent): void => {
   if (!event.persisted) { clearInterval(viewLabelTimer); timerUI?.dispose(); detachDrag?.(); detachKeyboard?.(); keySettings.dispose(); controller?.dispose(); }
 };
@@ -186,8 +181,8 @@ if (import.meta.hot) import.meta.hot.dispose(() => {
   moveButtons.removeEventListener('click', onMove);
   speed.removeEventListener('input', onSpeed);
   instant.removeEventListener('change', onInstant);
-  catchUp.removeEventListener('click', onCatchUp);
-  burst.removeEventListener('click', onBurst);
+
+
   cameraReset.removeEventListener('click', onCameraReset);
   cameraBack.removeEventListener('click', onCameraBack);
   algorithmForm.removeEventListener('submit', onAlgorithm);
