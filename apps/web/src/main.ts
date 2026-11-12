@@ -3,9 +3,13 @@ import { CubeRenderer } from '@rubik/renderer';
 import { CubeController } from '@rubik/controller';
 import './style.css';
 import { attachDrag } from './drag.js';
-let detachDrag: (()=>void) | undefined;
+
 import { attachKeyboard } from './keyboard.js';
+import { attachTimer } from './timer-controls.js';
 import { mountKeySettings } from './key-settings.js';
+
+let detachDrag: (()=>void) | undefined;
+let timerUI: ReturnType<typeof attachTimer> | undefined;
 
 const keySettings = mountKeySettings();
 
@@ -113,6 +117,7 @@ const onReset = (): void => {
 const onScramble = (): void => {
   const moves = controller?.scramble(seed.value);
   if (!moves) return;
+  timerUI?.scrambled(seed.value);
   scrambleText.textContent = moves.join(' ');
   description.textContent = `Rubik ${sizeSelect.value}×${sizeSelect.value} · Đã trộn`;
   updateMoveControls(); moveStatus.textContent = '';
@@ -159,11 +164,13 @@ catchUp.addEventListener('click', onCatchUp);
 burst.addEventListener('click', onBurst);
 resetButton.addEventListener('click', onReset);
 scrambleButton.addEventListener('click', onScramble);
+if(controller) timerUI=attachTimer(controller,()=>{seed.value=crypto.randomUUID();onScramble();});
 const onPageHide = (event: PageTransitionEvent): void => {
-  if (!event.persisted) { detachDrag?.(); detachKeyboard?.(); keySettings.dispose(); controller?.dispose(); }
+  if (!event.persisted) { timerUI?.dispose(); detachDrag?.(); detachKeyboard?.(); keySettings.dispose(); controller?.dispose(); }
 };
 window.addEventListener('pagehide', onPageHide);
 if (import.meta.hot) import.meta.hot.dispose(() => {
+  timerUI?.dispose();
   detachDrag?.();
   detachKeyboard?.();
   keySettings.dispose();

@@ -9,7 +9,7 @@
   </head>
   <body>
     <main>
-      <header><a class="brand" href="/">RUBIK<span> / LAB</span></a><span class="stage">GIAI ĐOẠN 4 · I6</span></header>
+      <header><a class="brand" href="/">RUBIK<span> / LAB</span></a><span class="stage">GIAI ĐOẠN 5 · T2</span></header>
       <section class="intro"><p class="eyebrow">KHÔNG GIAN THỬ NGHIỆM</p><h1>Khám phá góc nhìn.</h1><p>Kéo trên sticker để xoay lớp; kéo trên nền để xoay camera. Cuộn hoặc chụm hai ngón tay để thu phóng. Khi khối đang xoay, hãy chờ hết animation trước khi kéo lớp.</p></section>
       <div class="toolbar"><label for="cube-size">Kích thước khối</label><select id="cube-size">
         <option value="2">2×2</option><option value="3" selected>3×3</option><option value="4">4×4</option>
@@ -18,6 +18,13 @@
       </select><button id="reset" type="button">Reset</button><button id="camera-reset" type="button">Góc U/F/R</button><button id="camera-back" type="button">Góc D/B/L</button></div>
       <div class="toolbar seed-toolbar"><label for="seed">Seed</label><input id="seed" type="text" maxlength="256" aria-describedby="seed-help" /><button id="scramble" type="button">Scramble</button></div>
       <p id="seed-help" class="hint">Cùng seed và kích thước sẽ cho cùng scramble. Đổi seed để thử lượt khác.</p>
+      <section class="timer-panel" aria-label="Đồng hồ giải">
+        <output id="timer-readout" aria-label="Thời gian">0.00</output>
+        <p id="timer-phase" role="status" aria-live="polite">Chờ scramble</p>
+        <button id="timer-start" type="button">Bắt đầu</button>
+        <button id="timer-cancel" type="button" disabled>Hủy lượt</button>
+        <p id="timer-message" role="status"></p>
+      </section>
       <section id="viewport" aria-label="Cảnh Rubik 3D"><p id="loading" role="status">Đang khởi tạo cảnh 3D…</p></section>
       <p id="context-message" role="status" hidden></p>
       <fieldset id="move-controls" disabled><legend>Nước đi</legend>
@@ -42,6 +49,11 @@
       <div id="key-conflict" hidden><p id="key-conflict-message"></p><label>Phím đích để thay/đổi <select id="key-replace"></select></label><div class="toolbar"><button id="key-reassign" type="button">Gán lại</button><button id="key-swap" type="button">Hoán đổi</button><button id="key-cancel" type="button">Hủy</button></div></div>
       <div id="key-bindings"></div>
       <div class="toolbar"><button id="key-reset" type="button">Khôi phục mặc định</button><button id="key-export" type="button">Xuất JSON</button><label>Nhập JSON <input id="key-import" type="file" accept=".json,application/json" /></label><button id="key-settings-close" type="button">Đóng</button></div>
+    </dialog>
+    <dialog id="timer-cancel-dialog" aria-labelledby="timer-cancel-title">
+      <h2 id="timer-cancel-title">Hủy lượt giải?</h2>
+      <p>Đồng hồ vẫn chạy khi hộp thoại mở. Hết inspection vẫn bị DNF. Hủy sẽ bỏ lượt và khôi phục scramble cũ.</p>
+      <button id="timer-keep" type="button">Tiếp tục lượt</button><button id="timer-confirm-cancel" type="button">Xác nhận hủy</button>
     </dialog>
     <script type="module" src="/src/main.ts"></script>
   </body>
