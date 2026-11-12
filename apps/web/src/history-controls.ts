@@ -22,7 +22,8 @@ export function attachHistory(history: SolveHistory, getSize: ()=>number) {
       }
       list.append(row);
     }
-    stats.textContent=Object.entries(history.statistics(getSize())).map(([kind,value])=>`${kind}: ${value.display}`).join(' · ');
+    stats.replaceChildren();
+    for(const [kind,value] of Object.entries(history.statistics(getSize()))){const cell=document.createElement('span');cell.textContent=`${kind}: ${value.display}`;stats.append(cell);}
     document.querySelector('#history-empty')!.textContent=entries.length?'':`Chưa có lần giải ${getSize()}×${getSize()}.`;
   };
   const click=(event:MouseEvent):void=>{
