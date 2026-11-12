@@ -33,5 +33,9 @@ test('cloud API verifies identities, scopes history, rejects conflicts and does 
     const deletion=db.calls.find(c=>c.method==='DELETE');assert.ok(deletion.url.pathname.endsWith('22222222-2222-4222-8222-222222222222'));
     const cross=await fetch(base+'/api/player',{method:'POST',headers:{Origin:'https://evil.test','Content-Type':'application/json'},body:'{}'});assert.equal(cross.status,403);
     assert.equal(JSON.stringify((await call('player')).data).includes('private-test'),false);
+    env.SUPABASE_SECRET_KEY='sb_secret_test';
+    assert.equal((await call('player')).status,200);
+    const modern=db.calls.at(-1);assert.equal(modern.headers.apikey,'sb_secret_test');
+    assert.equal(modern.headers.Authorization,undefined);
   }finally{await new Promise(r=>{server.closeAllConnections();server.close(r);});}
 });

@@ -21,11 +21,11 @@ create table public.solves (
   updated_at timestamptz not null default now()
 );
 create index solves_user_id on public.solves (user_id, id);
-create index solves_best on public.solves (user_id, size, time_ms) where ranked and not deleted and time_ms is not null;
+create index solves_best on public.solves (size, user_id, time_ms) where ranked and not deleted and time_ms is not null;
 
 alter table public.profiles enable row level security;
 alter table public.solves enable row level security;
-revoke all on public.profiles, public.solves from anon, authenticated;
+revoke all on public.profiles, public.solves from public, anon, authenticated;
 grant select on public.profiles, public.solves to authenticated;
 grant all on public.profiles, public.solves to service_role;
 create policy profiles_read_own on public.profiles for select to authenticated using ((select auth.uid()) = id);
@@ -39,11 +39,11 @@ create table public.api_usage (
   primary key (user_id, kind)
 );
 alter table public.api_usage enable row level security;
-revoke all on public.api_usage from anon, authenticated;
+revoke all on public.api_usage from public, anon, authenticated;
 grant all on public.api_usage to service_role;
 
 create function public.consume_quota(p_user uuid, p_kind text)
-returns boolean language plpgsql security definer set search_path = '' as $$
+returns boolean language plpgsql security invoker set search_path = '' as $$
 declare count_used integer;
 begin
   insert into public.api_usage as usage(user_id,kind,window_start,used)
@@ -57,7 +57,7 @@ end;
 $$;
 
 create function public.save_solve(p_user uuid, p_solve jsonb, p_override text, p_deleted boolean, p_ranked boolean, p_expected bigint default null)
-returns setof public.solves language plpgsql security definer set search_path = '' as $$
+returns setof public.solves language plpgsql security invoker set search_path = '' as $$
 declare previous public.solves; effective_time bigint; result public.solves;
 begin
   -- One account's concurrent imports cannot bypass the record limit.
@@ -90,7 +90,7 @@ $$;
 
 create function public.leaderboard(p_size integer)
 returns table(id uuid, name text, "timeMs" bigint)
-language sql stable security definer set search_path = '' as $$
+language sql stable security invoker set search_path = '' as $$
   select p.id,p.name,min(s.time_ms) as best
   from public.profiles p join public.solves s on s.user_id=p.id
   where p_size in (2,3) and s.size=p_size and s.ranked and not s.deleted and s.time_ms is not null

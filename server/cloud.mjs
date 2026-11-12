@@ -8,10 +8,10 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
     try{
       const origin=req.headers.origin;
       if(origin&&new URL(origin).host!==req.headers.host)throw new HttpError(403,'Sai nguồn truy cập.');
-      const base=env.SUPABASE_URL,key=env.SUPABASE_ANON_KEY,secret=env.SUPABASE_SERVICE_ROLE_KEY;
+      const base=env.SUPABASE_URL,key=env.SUPABASE_ANON_KEY,secret=env.SUPABASE_SECRET_KEY??env.SUPABASE_SERVICE_ROLE_KEY;
       if(!base||!key||!secret)throw new HttpError(503,'Chưa cấu hình server Supabase.');
       const request=async(path,{method='GET',body,auth=secret}={})=>{
-        const response=await fetcher(base+path,{method,headers:{apikey:auth===secret?secret:key,Authorization:'Bearer '+auth,'Content-Type':'application/json',Prefer:path.startsWith('/rest/v1/profiles?')?'resolution=merge-duplicates,return=representation':'return=representation'},...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(10000)});
+        const response=await fetcher(base+path,{method,headers:{apikey:auth===secret?secret:key,...(auth.startsWith('sb_secret_')?{}:{Authorization:'Bearer '+auth}),'Content-Type':'application/json',Prefer:path.startsWith('/rest/v1/profiles?')?'resolution=merge-duplicates,return=representation':'return=representation'},...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(10000)});
         const value=response.status===204?null:await response.json();
         if(!response.ok){
           if(response.status===401||response.status===403)throw new HttpError(auth===secret?503:401,auth===secret?'Khóa server Supabase chưa được cấu hình đúng.':'Phiên đăng nhập hết hạn; hãy đăng nhập lại.');
