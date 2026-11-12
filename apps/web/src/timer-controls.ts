@@ -1,3 +1,4 @@
+import { newId } from './id.js';
 import { SolveHistory, SolveTimer } from '@rubik/timer';
 import { formatTime } from '@rubik/engine';
 import type { CubeController } from '@rubik/controller';
@@ -6,7 +7,7 @@ import { attachHistory } from './history-controls.js';
 export function attachTimer(controller: CubeController, newScramble: () => void) {
   const history=new SolveHistory();
   const historyUI=attachHistory(history,()=>controller.size);
-  const timer = new SolveTimer({newId: () => crypto.randomUUID(), now: () => new Date()});
+  const timer = new SolveTimer({newId: () => newId(), now: () => new Date()});
   const element = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
   const readout=element('timer-readout'), phaseLabel=element('timer-phase'), message=element('timer-message');
   const start=element<HTMLButtonElement>('timer-start'), cancel=element<HTMLButtonElement>('timer-cancel');
@@ -20,7 +21,7 @@ export function attachTimer(controller: CubeController, newScramble: () => void)
   const running=()=>timer.phase==='inspecting'||timer.phase==='solving';
   const sync=():void=>{
     if(running())controller.unlockInput('timer');else controller.lockInput('timer');
-    for(const node of document.querySelectorAll<HTMLInputElement|HTMLButtonElement|HTMLSelectElement|HTMLTextAreaElement>('#cube-size,#seed,#scramble,#reset,#move-buttons button,#algorithm-form textarea,#algorithm-form button,#burst,#key-settings-open')) node.disabled=running();
+    for(const node of document.querySelectorAll<HTMLInputElement|HTMLButtonElement|HTMLSelectElement|HTMLTextAreaElement>('#cube-size,#seed,#scramble,#reset,#move-buttons button,#algorithm-form textarea,#algorithm-form button,#key-settings-open')) node.disabled=running();
     start.disabled=running();cancel.disabled=!running();
     start.textContent=timer.phase==='finished'||!timer.armed?'Chuẩn bị scramble':'Bắt đầu inspection';
     phaseLabel.textContent={idle:timer.armed?'Sẵn sàng · Space để inspection':'Chờ scramble',inspecting:'Inspection · nước xoay lớp đầu tiên bắt đầu giải',solving:'Đang giải',finished:'Đã kết thúc'}[timer.phase];

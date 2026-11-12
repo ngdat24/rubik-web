@@ -186,12 +186,12 @@ test('touch Start enters inspection without a hardware keyboard',async({browser}
  await expect(page.locator('#timer-phase')).toContainText('Inspection');await expect(page.locator('#key-settings-open')).toBeDisabled();await context.close();
 });
 
-test('Space prepares then starts, Shift+Space regenerates; view keys are opt-in',async({page})=>{
+test('Space prepares then starts, Shift+Space regenerates; view keys default on and fixed keys are opt-in',async({page})=>{
  await page.goto('/');await expect(page.locator('canvas')).toBeVisible();await page.locator('#workspace-tools').evaluate((node:HTMLDetailsElement)=>{node.open=true;});await page.locator('#instant').check();
  await page.locator('#viewport').click({position:{x:5,y:5}});await page.keyboard.press('Space');
  await expect(page.locator('#timer-phase')).toContainText('Sẵn sàng');const first=await page.locator('#seed').inputValue();
  await page.keyboard.press('Shift+Space');await expect(page.locator('#seed')).not.toHaveValue(first);await expect(page.locator('#timer-phase')).toContainText('Sẵn sàng');
- await expect(page.locator('#view-keys')).not.toBeChecked();await page.locator('#view-keys').check();await page.locator('#camera-back').click();
+ await expect(page.locator('#view-keys')).not.toBeChecked();await page.locator('#view-keys').check();await expect(page.locator('#view-key-map')).toContainText('hệ trục');await page.locator('#view-keys').uncheck();await page.locator('#camera-back').click();
  await expect(page.locator('#view-key-map')).toContainText('F → B');await expect(page.locator('#view-key-map')).toContainText('R → L');
  await page.locator('#viewport').click({position:{x:5,y:5}});await page.keyboard.press('Space');await expect(page.locator('#timer-phase')).toContainText('Inspection');
  await page.keyboard.press('r');await expect(page.locator('#move-status')).toContainText('L');await expect(page.locator('#timer-phase')).toContainText('Đang giải');

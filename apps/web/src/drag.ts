@@ -38,7 +38,8 @@ export function attachDrag(renderer: CubeRenderer, controller: CubeController, c
     if(g.axis===undefined){g.axis=turn.axis;g.layer=turn.layer;renderer.beginDrag(turn.move);}
     const n=g.hit.slot.normal,d=delta;
     const cross=[n[1]*d[2]!-n[2]*d[1]!,n[2]*d[0]!-n[0]*d[2]!,n[0]*d[1]!-n[1]*d[0]!];
-    g.angle=Math.max(-Math.PI,Math.min(Math.PI,cross[g.axis]!*Math.PI/1.5));renderer.updateDrag(g.angle);
+    const sensitivity=e.pointerType==='mouse'?0.675:1;
+    g.angle=Math.max(-Math.PI,Math.min(Math.PI,cross[g.axis]!*Math.PI/1.5*sensitivity));renderer.updateDrag(g.angle);
   };
   const up=(e:PointerEvent):void=>{
     if(!points.has(e.pointerId))return;
