@@ -6,3 +6,8 @@ test-results/
 playwright-report/
 
 lan-data/
+.env
+.env.*
+!.env.example
+.vercel/
+supabase/.temp/

@@ -4,11 +4,16 @@ import { SolveHistory, SolveTimer } from '@rubik/timer';
 import { formatTime } from '@rubik/engine';
 import type { CubeController } from '@rubik/controller';
 import { attachHistory } from './history-controls.js';
+import {scopeHistory} from './history-storage.js';
+import {attachCloudHistory} from './cloud-controls.js';
+import type {CloudAccount} from './account.js';
 
-export function attachTimer(controller: CubeController, newScramble: () => void) {
+export function attachTimer(controller: CubeController, newScramble: () => void,account?:CloudAccount) {
+  scopeHistory(account?.id);
   const history=new SolveHistory();
-  const leaderboard=attachLeaderboard();
-  const historyUI=attachHistory(history,()=>controller.size);
+  let cloud:ReturnType<typeof attachCloudHistory>|undefined;
+  const historyUI=attachHistory(history,()=>controller.size,(entry,deleted)=>cloud?.mutated(entry,deleted));
+  const leaderboard=import.meta.env.VITE_SUPABASE_URL&&import.meta.env.VITE_SUPABASE_ANON_KEY?(cloud=attachCloudHistory(account,history,historyUI)):attachLeaderboard();
   const timer = new SolveTimer({newId: () => newId(), now: () => new Date()});
   const element = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
   const readout=element('timer-readout'), phaseLabel=element('timer-phase'), message=element('timer-message');
