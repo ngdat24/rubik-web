@@ -1,6 +1,6 @@
 import {scrambleAt,invert,ENGINE_VERSION} from '../packages/engine/dist/index.js';
 export function fakeDatabase(){
-  const profiles=new Map(),solves=new Map(),calls=[];let denyQuota=false;
+  const profiles=new Map(),solves=new Map(),calls=[];let denyQuota=false,version=0;
   const fetcher=async(input,options={})=>{
     const url=new URL(input),body=options.body?JSON.parse(options.body):undefined,headers=options.headers??{};
     calls.push({url,body,headers,method:options.method});
@@ -23,10 +23,14 @@ export function fakeDatabase(){
       if(previous&&(previous.user_id!==body.p_user||JSON.stringify(previous.solve)!==JSON.stringify(body.p_solve)))return response({code:'23505'},409);
       if(previous&&(previous.penalty_override!==body.p_override||previous.deleted!==body.p_deleted)&&previous.revision!==body.p_expected)return response({code:'40001'},409);
       const changed=previous&&(previous.penalty_override!==body.p_override||previous.deleted!==body.p_deleted);
-      const row={id:body.p_solve.id,user_id:body.p_user,solve:body.p_solve,penalty_override:body.p_override,deleted:body.p_deleted,ranked:previous?.ranked??body.p_ranked,revision:previous?previous.revision+Number(!!changed):1};
+      const row={id:body.p_solve.id,user_id:body.p_user,solve:body.p_solve,penalty_override:body.p_override,deleted:body.p_deleted,ranked:previous?.ranked??body.p_ranked,revision:previous?previous.revision+Number(!!changed):1,sync_version:!previous||changed?++version:previous.sync_version};
       solves.set(row.id,row);return response([row]);
     }
-    if(url.pathname==='/rest/v1/solves')return response([...solves.values()].filter(s=>'eq.'+s.user_id===url.searchParams.get('user_id')).sort((a,b)=>a.id.localeCompare(b.id)).slice(Number(url.searchParams.get('offset')),Number(url.searchParams.get('offset'))+500));
+    if(url.pathname==='/rest/v1/solves'){
+      const rows=[...solves.values()].filter(s=>'eq.'+s.user_id===url.searchParams.get('user_id'));
+      if(url.searchParams.has('sync_version'))return response(rows.filter(s=>s.sync_version>Number(url.searchParams.get('sync_version').slice(3))).sort((a,b)=>a.sync_version-b.sync_version).slice(0,500));
+      return response(rows.sort((a,b)=>a.id.localeCompare(b.id)).slice(Number(url.searchParams.get('offset')),Number(url.searchParams.get('offset'))+500));
+    }
     if(url.pathname.endsWith('/leaderboard')){
       const best=new Map();for(const row of solves.values()){if(!row.ranked||row.deleted||row.solve.size!==body.p_size||row.solve.penalty==='DNF'||!profiles.has(row.user_id))continue;const timeMs=row.solve.timeMs+(row.solve.penalty==='+2'?2000:0);if(!best.has(row.user_id)||timeMs<best.get(row.user_id))best.set(row.user_id,timeMs);}
       return response([...best].map(([id,timeMs])=>({id,name:profiles.get(id).name,timeMs})).sort((a,b)=>a.timeMs-b.timeMs));

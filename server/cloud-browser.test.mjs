@@ -33,6 +33,10 @@ test('cloud account login, auto upload, cross-device history and logout isolatio
     browser=await chromium.launch({channel:'chrome',headless:true,args:['--enable-webgl','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
     const create=async(email)=>{
       const context=await browser.newContext({viewport:{width:1440,height:1000}});
+      await context.addInitScript(()=>{
+        const original=window.setInterval;window.rubikPollers=[];
+        window.setInterval=function(callback,delay,...args){if(delay===30000)window.rubikPollers.push(()=>callback(...args));return original.call(window,callback,delay,...args);};
+      });
       await context.route('https://cloud-test.supabase.co/**',async route=>{
         const path=new URL(route.request().url()).pathname;
         if(path.endsWith('/logout'))return route.fulfill({status:204});
@@ -59,8 +63,23 @@ test('cloud account login, auto upload, cross-device history and logout isolatio
     await page.locator('#solve-history li').getByRole('button',{name:'+2',exact:true}).click();await expect.poll(()=>[...db.solves.values()][0]?.penalty_override).toBe('+2');
     const second=await create('a@example.test');await expect(second.page.locator('#player-label')).toHaveText('An online');await second.page.selectOption('#cube-size','2');await expect(second.page.locator('#solve-history li')).toHaveCount(1);await expect(second.page.locator('#solve-history li')).toContainText('đã chỉnh');
     await second.page.selectOption('#leaderboard-size','2');await expect(second.page.locator('#leaderboard-rows')).toContainText('An online');
+    await expect(second.page.locator('#cloud-sync')).toBeEnabled();
+    const unchanged=second.page.waitForResponse(r=>r.url().includes('/api/solves?since=')&&r.request().method()==='GET');await second.page.locator('#cloud-sync').click();
+    const delta=await (await unchanged).json();assert.equal(delta.rows.length,0);assert.ok(delta.cursor>0);
+    await expect(second.page.locator('#cloud-sync')).toBeEnabled();
+    const requests=[];second.page.on('request',r=>{if(r.url().startsWith(base+'/api/'))requests.push(r.url());});
+    await second.page.evaluate(async()=>{Object.defineProperty(document,'hidden',{get:()=>true,configurable:true});for(const tick of window.rubikPollers)tick();window.dispatchEvent(new Event('online'));await new Promise(r=>setTimeout(r,100));});
+    assert.equal(requests.length,0);
+    const resumed=second.page.waitForResponse(r=>r.url().includes('/api/solves?since='));
+    await second.page.evaluate(()=>{delete document.hidden;document.dispatchEvent(new Event('visibilitychange'));});await resumed;
+    await page.bringToFront();await page.locator('#solve-history li').getByRole('button',{name:'DNF',exact:true}).click();await expect.poll(()=>[...db.solves.values()][0]?.penalty_override).toBe('DNF');
+    const changed=second.page.waitForResponse(r=>r.url().includes('/api/solves?since='+delta.cursor));await second.page.bringToFront();await second.page.locator('#cloud-sync').click();
+    const changedRows=(await (await changed).json()).rows;assert.equal(changedRows.length,1);assert.equal(changedRows[0].penalty_override,'DNF');
+    await expect(second.page.locator('#solve-history li')).toContainText('phạt DNF');
+    await page.bringToFront();
     await page.locator('#account-open').click();await page.locator('#account-signout').click();await expect(page.locator('#account-open')).toHaveText('Đăng nhập');await expect(page.locator('#solve-history li')).toHaveCount(0);
     await page.selectOption('#leaderboard-size','2');await expect(page.locator('#leaderboard-rows')).toContainText('An online');
+    await second.page.bringToFront();await second.page.locator('#solve-history li').getByRole('button',{name:'Xóa',exact:true}).click();await expect.poll(()=>[...db.solves.values()][0]?.deleted).toBe(true);
     const third=await create('b@example.test');await expect(third.page.locator('#player-dialog')).toBeVisible();await third.page.locator('#player-close').click();await third.page.selectOption('#cube-size','2');await expect(third.page.locator('#solve-history li')).toHaveCount(0);
     await third.page.locator('#account-open').click();await third.page.locator('#account-signout').click();await expect(third.page.locator('#account-open')).toHaveText('Đăng nhập');
     await third.page.locator('#account-open').click();await third.page.selectOption('#account-mode','signup');await third.page.locator('#account-email').fill('b@example.test');await third.page.locator('#account-password').fill('test-password');await third.page.locator('#account-form button[type=submit]').click();await expect(third.page.locator('#account-message')).toContainText('Kiểm tra email');

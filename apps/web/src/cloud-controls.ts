@@ -4,7 +4,7 @@ import type {HistoryEntry,Solve,SolveHistory} from '@rubik/timer';
 import type {CloudAccount} from './account.js';
 import {newId} from './id.js';
 
-interface Row {id:string;solve:Solve;penalty_override:HistoryEntry['penaltyOverride'];deleted:boolean;revision:number}
+interface Row {id:string;solve:Solve;penalty_override:HistoryEntry['penaltyOverride'];deleted:boolean;revision:number;sync_version:number}
 interface Pending {entry:HistoryEntry;deleted:boolean;ranked:boolean;revision:number|null;nonce:string;error?:string;conflict?:boolean}
 class ApiError extends Error {constructor(message:string,readonly status:number){super(message);}}
 
@@ -19,6 +19,8 @@ export function attachCloudHistory(account:CloudAccount|undefined,history:SolveH
   const abort=new AbortController(),pending=new Map<string,Pending>(),revisions=new Map<string,number>();
   const prefix='rubik.cloud.pending.'+account?.id+'.',revisionPrefix='rubik.cloud.revision.'+account?.id+'.';
   let disposed=false,busy=false,syncAgain=false,profileName='',storageError=false,prompted=false;
+  // Reset on reload: never persist a cursor ahead of a failed IndexedDB write.
+  let cursor=0;
   const store=(id:string,item:Pending)=>{pending.set(id,item);try{localStorage.setItem(prefix+id,JSON.stringify(item));}catch{storageError=true;status.textContent='Không lưu được hàng đợi; giữ trang mở để gửi lại.';}};
   const load=()=>{
     if(!account)return;
@@ -44,14 +46,17 @@ export function attachCloudHistory(account:CloudAccount|undefined,history:SolveH
     message.textContent='Thành tích tốt nhất mỗi người · 2×2 / 3×3.';
   };
   const pull=async()=>{
-    const downloaded:Row[]=[];
-    for(let offset=0;offset<=10000;offset+=500){
-      const {rows}:{rows:Row[]}=await api('solves?offset='+offset);if(disposed)return;
-      downloaded.push(...rows);if(rows.length<500)break;
+    const downloaded=new Map<string,Row>();let nextCursor=cursor;
+    for(let page=0;page<21;page++){
+      if(document.hidden) return;
+      const data:{rows:Row[];cursor:number;hasMore:boolean}=await api('solves?since='+nextCursor);if(disposed)return;
+      if(!Number.isSafeInteger(data.cursor)||data.cursor<nextCursor||data.rows.length>500||(data.hasMore&&data.cursor===nextCursor))throw new Error('Mốc đồng bộ server không hợp lệ.');
+      for(const row of data.rows){if(!Number.isSafeInteger(row.sync_version)||row.sync_version<=nextCursor||row.sync_version>data.cursor)throw new Error('Thứ tự thay đổi không hợp lệ.');downloaded.set(row.id,row);}
+      nextCursor=data.cursor;if(!data.hasMore)break;
     }
-    validateHistoryBackup({version:1,entries:downloaded.map(row=>({solve:row.solve,penaltyOverride:row.penalty_override}))});
+    validateHistoryBackup({version:1,entries:[...downloaded.values()].map(row=>({solve:row.solve,penaltyOverride:row.penalty_override}))});
     const local=new Map(history.entries().map(entry=>[entry.solve.id,entry]));let changed=false;
-    for(const row of downloaded){
+    for(const row of downloaded.values()){
         remember(row);if(pending.has(row.id))continue;
         const old=local.get(row.id);
         if(row.deleted){if(history.delete(row.id))changed=true;continue;}
@@ -62,14 +67,16 @@ export function attachCloudHistory(account:CloudAccount|undefined,history:SolveH
         }else if(old.penaltyOverride!==row.penalty_override){history.edit(row.id,row.penalty_override);changed=true;}
     }
     if(changed)ui.changed();
+    cursor=nextCursor;
   };
   const sync=async()=>{
-    if(disposed)return;if(busy){syncAgain=true;return;}busy=true;syncButton.disabled=true;
+    if(disposed||document.hidden)return;if(busy){syncAgain=true;return;}busy=true;syncButton.disabled=true;
     try{
-      await ui.loaded;await board();if(!account){status.textContent='Đăng nhập để đồng bộ lịch sử riêng giữa các thiết bị.';return;}
+      await ui.loaded;if(disposed||document.hidden)return;if(!account){await board();status.textContent='Đăng nhập để đồng bộ lịch sử riêng giữa các thiết bị.';return;}
       load();const profile=await api('player');if(disposed)return;
       profileName=profile.name??'';label.textContent=profileName||'Chưa đặt tên';if(!profileName&&!prompted&&!document.querySelector('dialog[open]')){prompted=true;showName();}
       for(const [id,item] of [...pending]){
+        if(document.hidden)return;
         if(item.error)continue;
         try{
           const {row}:{row:Row}=await api('solves',{solve:item.entry.solve,penaltyOverride:item.entry.penaltyOverride,deleted:item.deleted,ranked:item.ranked,revision:item.revision});remember(row);
@@ -86,7 +93,7 @@ export function attachCloudHistory(account:CloudAccount|undefined,history:SolveH
           pending.delete(id);try{localStorage.removeItem(prefix+id);}catch{storageError=true;}
         }catch(error){if(error instanceof ApiError&&[400,409,413].includes(error.status)){store(id,{...item,error:error.message,conflict:error.status===409});continue;}throw error;}
       }
-      await pull();await board();
+      await pull();if(disposed||document.hidden)return;await board();
       const failed=[...pending.values()].find(item=>item.error);resolveButton.hidden=![...pending.values()].some(item=>item.conflict);
       status.textContent=failed?`Một thay đổi chưa đồng bộ: ${failed.error}`:storageError?'Đã gửi; lưu hàng đợi trên thiết bị gặp lỗi.':'Đã đồng bộ lịch sử tài khoản.';
     }catch(error){if(!disposed)status.textContent=error instanceof Error?error.message:'Chưa kết nối được server; kết quả vẫn ở thiết bị.';}
@@ -100,10 +107,11 @@ export function attachCloudHistory(account:CloudAccount|undefined,history:SolveH
   const submitName=async(event:SubmitEvent)=>{event.preventDefault();const button=form.querySelector<HTMLButtonElement>('button[type=submit]')!;button.disabled=true;try{const profile=await api('player',{name:name.value});profileName=profile.name;label.textContent=profile.name;dialog.close();void sync();}catch(error){nameError.textContent=error instanceof Error?error.message:'Không lưu được tên.';}finally{button.disabled=false;}};
   const change=()=>{void sync();};
   const importHistory=()=>{if(!account)return;for(const entry of history.entries())if(revision(entry.solve.id)===null)queue(entry,false,false);void sync();};
-  const useServer=()=>{for(const [id,item] of pending)if(item.conflict){pending.delete(id);try{localStorage.removeItem(prefix+id);}catch{storageError=true;}}resolveButton.hidden=true;void sync();};
+  const useServer=()=>{for(const [id,item] of pending)if(item.conflict){pending.delete(id);try{localStorage.removeItem(prefix+id);}catch{storageError=true;}}cursor=0;resolveButton.hidden=true;void sync();};
   const close=()=>dialog.close();
   label.textContent=account?'Đang tải tên…':'Khách';edit.textContent=account?'Đổi tên':'Đăng nhập';syncButton.hidden=importButton.hidden=!account;
   edit.addEventListener('click',showName);form.addEventListener('submit',submitName);document.querySelector('#player-close')!.addEventListener('click',close);size.addEventListener('change',change);syncButton.addEventListener('click',change);importButton.addEventListener('click',importHistory);resolveButton.addEventListener('click',useServer);window.addEventListener('online',change);
   void sync();const interval=window.setInterval(change,30000);
-  return {completed(solve:Solve){queue({solve,penaltyOverride:null},false,true);},mutated:queue,dispose(){disposed=true;abort.abort();clearInterval(interval);edit.removeEventListener('click',showName);form.removeEventListener('submit',submitName);document.querySelector('#player-close')!.removeEventListener('click',close);size.removeEventListener('change',change);syncButton.removeEventListener('click',change);importButton.removeEventListener('click',importHistory);resolveButton.removeEventListener('click',useServer);window.removeEventListener('online',change);dialog.close();}};
+  const visible=()=>{if(!document.hidden)change();};document.addEventListener('visibilitychange',visible);
+  return {completed(solve:Solve){queue({solve,penaltyOverride:null},false,true);},mutated:queue,dispose(){disposed=true;abort.abort();clearInterval(interval);document.removeEventListener('visibilitychange',visible);edit.removeEventListener('click',showName);form.removeEventListener('submit',submitName);document.querySelector('#player-close')!.removeEventListener('click',close);size.removeEventListener('change',change);syncButton.removeEventListener('click',change);importButton.removeEventListener('click',importHistory);resolveButton.removeEventListener('click',useServer);window.removeEventListener('online',change);dialog.close();}};
 }

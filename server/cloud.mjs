@@ -54,6 +54,14 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
         return send(200,profiles[0]??{id:user.id,name:null});
       }
       if(route==='solves'&&req.method==='GET'){
+        if(url.searchParams.has('since')){
+          const since=Number(url.searchParams.get('since'));
+          if(!Number.isSafeInteger(since)||since<0)throw new HttpError(400,'Mốc đồng bộ không hợp lệ.');
+          const rows=await request('/rest/v1/solves?user_id=eq.'+encodeURIComponent(user.id)+'&select=id,solve,penalty_override,deleted,revision,sync_version&sync_version=gt.'+since+'&order=sync_version.asc&limit=500');
+          const cursor=rows.at(-1)?.sync_version??since;
+          return send(200,{rows,cursor,hasMore:rows.length===500});
+        }
+        // Old deployed clients retain the full-history endpoint during rollout.
         const offset=Number(url.searchParams.get('offset')??0);if(!Number.isInteger(offset)||offset<0||offset>10000)throw new HttpError(400,'Trang không hợp lệ.');
         const rows=await request('/rest/v1/solves?user_id=eq.'+encodeURIComponent(user.id)+'&select=id,solve,penalty_override,deleted,revision&order=id.asc&limit=500&offset='+offset);
         return send(200,{rows});

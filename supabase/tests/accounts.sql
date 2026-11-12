@@ -30,6 +30,20 @@ do $$ begin
   exception when unique_violation then null; end;
 end $$;
 
+do $$ declare before_version bigint; after_version bigint;
+begin
+  select sync_version into before_version from public.solves where id='rls-a';
+  perform public.save_solve('f1111111-1111-4111-8111-111111111111',
+    '{"id":"rls-a","size":3,"timeMs":1000,"penalty":"none"}','+2',false,true,2);
+  if (select sync_version from public.solves where id='rls-a')<>before_version then raise exception 'Idempotent retry changed cursor'; end if;
+  perform public.save_solve('f1111111-1111-4111-8111-111111111111',
+    '{"id":"rls-a","size":3,"timeMs":1000,"penalty":"none"}','DNF',true,true,2);
+  select sync_version into after_version from public.solves where id='rls-a';
+  if after_version<=before_version then raise exception 'Change cursor did not advance'; end if;
+  if (select count(*) from public.solves where user_id='f1111111-1111-4111-8111-111111111111' and sync_version>before_version)<>1 then raise exception 'Delta missing deleted row'; end if;
+  if not (select deleted from public.solves where id='rls-a') then raise exception 'Missing deletion tombstone'; end if;
+end $$;
+
 set local role authenticated;
 select set_config('request.jwt.claim.sub','f1111111-1111-4111-8111-111111111111',true);
 select set_config('request.jwt.claims','{"sub":"f1111111-1111-4111-8111-111111111111","role":"authenticated"}',true);

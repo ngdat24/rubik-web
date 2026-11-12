@@ -10,3 +10,4 @@ lan-data/
 .env.*
 !.env.example
 .vercel/
+supabase/.temp/
