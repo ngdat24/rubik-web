@@ -117,3 +117,26 @@
 ## D-021 | 2026-11-12 | I3–I6 picking, kéo lớp và cảm ứng
 - **Quyết định**: Slot/instanceId lấy từ E2; hit nhựa không chọn. Kéo chỉ bắt đầu khi queue rỗng; khóa input trong gesture. Ngưỡng 8px, khóa trục theo normal cross displacement, lớp từ cubie engine. Thả làm tròn 90 độ, tối đa 180; timestamp pointerup. Renderer preview transform và nối animation phần còn lại; không áp nước engine.
 - **Vòng đời**: Pointer Events chung chuột/touch; nền orbit, hai ngón pinch hủy preview; blur/cancel/lost capture/context loss hủy gesture. Chi tiết và giới hạn tại 11-input.md. Người dùng cho phép tự kiểm tra và merge toàn bộ phần còn lại.
+
+## D-022 | 2026-11-12 | Timer/inspection và 11 lựa chọn Giai đoạn 5 đã chốt
+1. Giữ origin thập phân, floor(stamp-origin) khi lưu; không làm tròn hai lần.
+2. inspectionMs <=15000 none, 15001..17000 +2, >17000 DNF; 17000,9 thô vẫn +2 sau floor.
+3. Auto-DNF ghi inspectionMs đo tại phát hiện, timeMs=0, events=[], giữ preEvents; kiểm tra theo timestamp, không tick.
+4. IDLE/FINISHED chặn mọi nước, camera/zoom tự do.
+5. Quyết định cập nhật của người dùng: Space khi chưa scramble tự chuẩn bị scramble và ở IDLE, không vào inspection ngay.
+6. Space sau FINISHED tạo seed mới/k=0 rồi ở IDLE; Space tiếp theo mới inspection. Shift+Space đổi scramble trong IDLE/FINISHED.
+7. Hủy mở dialog có cảnh báo đồng hồ vẫn chạy; xác nhận khi còn chạy bỏ lượt, khôi phục cùng scramble, về IDLE và không lưu. Nếu timeout trong dialog thì giữ DNF đã chốt.
+8. Đổi tab/mất focus không dừng thời gian; quay lại advance theo timestamp.
+9. Giữ nguyên Solve.penalty gốc, lưu penaltyOverride local riêng, có khôi phục gốc; xóa/chỉnh cập nhật thống kê, không sửa timeMs gốc.
+10. Thống kê dùng engine statistic() theo size/thứ tự phiên, bộ nhớ trang, reload mất lịch sử.
+11. Có Start/Cancel cảm ứng tương đương Space/Escape, timestamp từ click event.timeStamp.
+- **Nguồn thời gian**: controller nhận timestamp bàn phím keydown/kéo pointerup, input không có DOM event dùng performance.now; Date chỉ cho metadata startedAt. Renderer callback không làm mốc solve.
+- **Ảnh hưởng**: packages/timer, controller gate/named locks, web timer/history, 04/06/09/11/12.
+
+## D-023 | 2026-11-12 | Tùy chọn phím theo góc nhìn
+- **Quyết định**: Mặc định tắt. Dựa diện tích chiếu mặt; hòa ưu tiên tâm trên rồi trái. Suy một hệ trục sáu mặt nhất quán, hiển thị mapping. Chuyển face/inner/wide/slice/rotation tại keydown trước controller, giữ timestamp và ghi nước engine thực tế; orbit không tạo x/y/z. Không lưu tùy chọn qua reload, chưa dùng hysteresis.
+- **Ảnh hưởng**: renderer/view.ts, getViewFaces, keyboard web và 06 mục 7. Theo lựa chọn trực tiếp của người dùng.
+
+## D-024 | 2026-11-12 | Giao diện ưu tiên Rubik và quy trình nghiệm thu
+- **Quyết định**: Theo ảnh tham chiếu người dùng, Rubik lớn ở giữa, timer gọn dưới, scramble trên, sidebar lịch sử/thống kê; công cụ nâng cao thu gọn, mobile ưu tiên khối/timer. Giữ logic và ID điều khiển, không thêm dependency.
+- **Nghiệm thu**: T0..T4 và UI đã được người dùng cho merge từng PR; T5 hoàn tất tài liệu và chờ duyệt. Kiểm thử tự động không thay thế điện thoại/GPU thật. Không suy ủy quyền tự merge Giai đoạn 4 thành ủy quyền Giai đoạn 5.

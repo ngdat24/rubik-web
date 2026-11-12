@@ -32,11 +32,12 @@ Nhận diện theo vị trí vật lý `event.code`, không theo ký tự hay Ca
 - `resolveKey(code, modifiers, keymap, N)` là hàm thuần; modifiers gồm Ctrl/Alt/Meta/Shift, `wide` và `layer`. JSON bindings lưu nước cơ sở; biến thể do bộ phân giải tạo.
 
 ## 3. Phím hệ thống và phím chọn lớp bị khóa (Không cho phép gán)
-- **Space**: Bắt đầu Inspection (khi ở IDLE) và chuyển sang lượt mới (khi ở FINISHED).
+- **Space**: Nếu chưa có scramble hoặc đang FINISHED, chuẩn bị scramble rồi về IDLE; nếu IDLE đã có scramble thì bắt đầu inspection. Bỏ qua repeat; trong inspection/solve không bắt đầu lại.
+- **Shift+Space**: Đổi scramble khi IDLE/FINISHED, không vào inspection.
 - **Escape**: Mở menu / Hủy lượt giải đang chạy (có xác nhận).
 - **Tab**: Duyệt focus trên giao diện.
 - **KeyW, Digit0..Digit9**: Phím chọn wide/lớp, không gán thành nước.
-- Khi chưa làm timer, Space không tạo nước; chặn cuộn trên vùng chơi, vẫn giữ kích hoạt nút/link đang focus bằng Space.
+- Timer xử lý Space độc lập với khóa input, chặn mặc định cả keydown và keyup ngoài vùng nhập/dialog để tránh kích hoạt nút đang focus. Khi bắt đầu inspection, bỏ focus phần tử hiện tại. Tab vẫn duyệt giao diện; Space trong ô nhập/dialog giữ tương tác của chúng.
 
 ## 4. Quy tắc gán phím và Xử lý xung đột
 Mỗi phím chỉ gán cho tối đa 1 nước đi. Mỗi nước đi có tối đa 2 phím (hoặc 0 phím, vẫn bấm được trên màn hình).
@@ -64,3 +65,9 @@ Khi người dùng nhập file JSON: kiểm tra đúng cấu trúc bằng schema
 - Lưu duy nhất cấu hình phím tại localStorage `rubik.keymap.v1`, schema version=1 theo mục 5. Không lưu dữ liệu nhạy cảm. Đọc/ghi đều try/catch; hỏng, phiên bản không hỗ trợ hoặc bị chặn đọc thì dùng mặc định và báo. Ghi bị chặn vẫn dùng cấu hình trong phiên, có thể xuất JSON.
 - Nhập tối đa 100 KB, kiểm tra toàn bộ trước khi thay cấu hình: schema, hồ sơ đang chọn tồn tại, tên hợp lệ, phím được phép, ký hiệu nước chuẩn, tối đa hai phím/nước. Thiếu hồ sơ default thì bổ sung; cố sửa default thì từ chối. Nhập lỗi giữ nguyên cấu hình đang dùng. Phiên bản cũ/chưa hỗ trợ bị từ chối, không tự đoán cách chuyển đổi.
 - Xuất JSON bao gồm mọi hồ sơ và activeProfile, nhập lại để khôi phục. Đồng bộ nhiều tab/đám mây chưa triển khai.
+
+## 7. Phím theo góc nhìn (tùy chọn)
+
+Mặc định tắt: tên nước theo hệ trục khối; orbit camera không tạo x/y/z. Khi bật, renderer chiếu các mặt nhìn thấy lên màn hình và chọn mặt có diện tích chiếu lớn nhất làm F của người chơi. Hòa trong sai số 1e-9 thì ưu tiên tâm chiếu trên, rồi trái. Chọn U từ các mặt kề theo tâm chiếu cao nhất, hòa chọn trái; R được suy ra bằng tích có hướng để giữ một hệ trục quay hợp lệ, các mặt đối diện nhất quán.
+
+Dòng ánh xạ hiển thị sáu mặt (ví dụ R → L). Ánh xạ được lấy tại mỗi keydown, không lưu vào hồ sơ và không tự tạo move khi đổi camera. Chuyển đổi nước chuẩn sau resolveKey: mặt/inner/wide đổi tên mặt; x/y/z và M/E/S đổi trục, đảo dấu khi cần. Controller nhận nước engine thực tế và timestamp gốc, nên replay không cần tái lập camera. Tùy chọn hiện không lưu qua reload. Khi camera qua ranh giới, ánh xạ có thể đổi; chưa thêm vùng trễ/hysteresis.
