@@ -39,7 +39,7 @@ export function attachTimer(controller: CubeController, newScramble: () => void)
     if(timer.phase==='inspecting')wake=window.setTimeout(wakeUp,Math.max(1,17001-timer.elapsed(performance.now())));
   };
   const refresh=():void=>{if(disposed)return;timer.advance(performance.now());show();frame=requestAnimationFrame(refresh);};
-  const unchange=timer.onChange(()=>{if(timer.phase==='finished'){history.add(timer.result!);historyUI.render();}clearTimeout(wake);sync();show();});
+  const unchange=timer.onChange(()=>{if(timer.phase==='finished'){history.add(timer.result!);historyUI.changed();}clearTimeout(wake);sync();show();});
   const unreplaced=controller.onStateReplaced(()=>{context=undefined;timer.disarm();sync();show();historyUI.render();});
   const unmove=controller.onMoveApplied(e=>timer.recordMove(e.move,e.stateAfter,e.t));
   controller.setMoveGate((move,stamp)=>timer.canApply(move,stamp));
