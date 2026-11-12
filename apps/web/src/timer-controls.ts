@@ -1,8 +1,11 @@
-import { SolveTimer } from '@rubik/timer';
+import { SolveHistory, SolveTimer } from '@rubik/timer';
 import { formatTime } from '@rubik/engine';
 import type { CubeController } from '@rubik/controller';
+import { attachHistory } from './history-controls.js';
 
 export function attachTimer(controller: CubeController, newScramble: () => void) {
+  const history=new SolveHistory();
+  const historyUI=attachHistory(history,()=>controller.size);
   const timer = new SolveTimer({newId: () => crypto.randomUUID(), now: () => new Date()});
   const element = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
   const readout=element('timer-readout'), phaseLabel=element('timer-phase'), message=element('timer-message');
@@ -26,8 +29,8 @@ export function attachTimer(controller: CubeController, newScramble: () => void)
     const elapsed=timer.elapsed(performance.now());
     if(timer.phase==='inspecting')readout.textContent=elapsed<=15000?String(Math.max(0,Math.ceil((15000-elapsed)/1000))):'+2';
     else if(timer.phase==='finished'){
-      const result=timer.result!;
-      readout.textContent=result.penalty==='DNF'?'DNF':formatTime(result.timeMs+(result.penalty==='+2'?2000:0))+(result.penalty==='+2'?' (+2)':'');
+      const result=timer.result!,penalty=history.penalty(result.id)??result.penalty;
+      readout.textContent=penalty==='DNF'?'DNF':formatTime(result.timeMs+(penalty==='+2'?2000:0))+(penalty==='+2'?' (+2)':'');
     }else readout.textContent=formatTime(elapsed);
   };
   const wakeUp=():void=>{
@@ -35,8 +38,8 @@ export function attachTimer(controller: CubeController, newScramble: () => void)
     if(timer.phase==='inspecting')wake=window.setTimeout(wakeUp,Math.max(1,17001-timer.elapsed(performance.now())));
   };
   const refresh=():void=>{if(disposed)return;timer.advance(performance.now());show();frame=requestAnimationFrame(refresh);};
-  const unchange=timer.onChange(()=>{clearTimeout(wake);sync();show();});
-  const unreplaced=controller.onStateReplaced(()=>{context=undefined;timer.disarm();sync();show();});
+  const unchange=timer.onChange(()=>{if(timer.phase==='finished'){history.add(timer.result!);historyUI.render();}clearTimeout(wake);sync();show();});
+  const unreplaced=controller.onStateReplaced(()=>{context=undefined;timer.disarm();sync();show();historyUI.render();});
   const unmove=controller.onMoveApplied(e=>timer.recordMove(e.move,e.stateAfter,e.t));
   controller.setMoveGate((move,stamp)=>timer.canApply(move,stamp));
   const begin=(stamp:number):void=>{
@@ -70,6 +73,6 @@ export function attachTimer(controller: CubeController, newScramble: () => void)
   sync();frame=requestAnimationFrame(refresh);
   return {
     scrambled(seed:string):void {context={size:controller.size,seed,scrambleIndex:0};timer.arm(context);sync();show();},
-    dispose():void {disposed=true;cancelAnimationFrame(frame);clearTimeout(wake);for(const off of listeners)off();unchange();unreplaced();unmove();controller.setMoveGate(undefined);controller.unlockInput('timer');dialog.close();}
+    dispose():void {historyUI.dispose();disposed=true;cancelAnimationFrame(frame);clearTimeout(wake);for(const off of listeners)off();unchange();unreplaced();unmove();controller.setMoveGate(undefined);controller.unlockInput('timer');dialog.close();}
   };
 }

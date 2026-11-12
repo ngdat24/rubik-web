@@ -9,7 +9,7 @@
   </head>
   <body>
     <main>
-      <header><a class="brand" href="/">RUBIK<span> / LAB</span></a><span class="stage">GIAI ĐOẠN 5 · T2</span></header>
+      <header><a class="brand" href="/">RUBIK<span> / LAB</span></a><span class="stage">GIAI ĐOẠN 5 · T3</span></header>
       <section class="intro"><p class="eyebrow">KHÔNG GIAN THỬ NGHIỆM</p><h1>Khám phá góc nhìn.</h1><p>Kéo trên sticker để xoay lớp; kéo trên nền để xoay camera. Cuộn hoặc chụm hai ngón tay để thu phóng. Khi khối đang xoay, hãy chờ hết animation trước khi kéo lớp.</p></section>
       <div class="toolbar"><label for="cube-size">Kích thước khối</label><select id="cube-size">
         <option value="2">2×2</option><option value="3" selected>3×3</option><option value="4">4×4</option>
@@ -38,6 +38,10 @@
         <div class="toolbar queue-toolbar"><button id="burst" type="button">Thử chuỗi nhanh (24 nước)</button><button id="catch-up" type="button">Bắt kịp ngay</button><span id="queue-status" role="status">Chờ hiển thị: 0 nước</span></div>
         <p id="move-status" role="status"></p></fieldset>
       <section class="scramble-panel" aria-label="Chuỗi scramble"><h2>Scramble</h2><p id="scramble-text" aria-live="polite">Chưa có scramble.</p></section>
+      <section class="history-panel" aria-labelledby="history-title">
+        <h2 id="history-title">Lịch sử phiên</h2><p>Lưu trong phiên trang này; tải lại sẽ mất lịch sử. Phạt chỉnh được lưu riêng với phạt gốc.</p>
+        <p id="solve-stats" aria-label="Thống kê"></p><p id="history-empty"></p><ol id="solve-history" reversed></ol><p id="history-message" role="status"></p>
+      </section>
       <footer><span id="cube-description" aria-live="polite">Rubik 3×3 · Trạng thái đã giải</span><span id="engine-version"></span></footer>
     </main>
     <dialog id="key-settings" aria-labelledby="key-settings-title">

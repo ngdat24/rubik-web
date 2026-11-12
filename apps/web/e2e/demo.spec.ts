@@ -196,3 +196,15 @@ test('Space prepares then starts, Shift+Space regenerates; view keys are opt-in'
  await page.locator('#viewport').click({position:{x:5,y:5}});await page.keyboard.press('Space');await expect(page.locator('#timer-phase')).toContainText('Inspection');
  await page.keyboard.press('r');await expect(page.locator('#move-status')).toContainText('L');await expect(page.locator('#timer-phase')).toContainText('Đang giải');
 });
+
+test('history adds each result once, preserves original penalties and recomputes per size',async({page})=>{
+ await page.clock.install();await page.goto('/');await expect(page.locator('canvas')).toBeVisible();
+ await page.locator('#scramble').click();await page.locator('#timer-start').click();await page.clock.runFor(17100);
+ const row=page.locator('#solve-history li').first();await expect(page.locator('#solve-history li')).toHaveCount(1);
+ await expect(row.locator('.solve-time')).toContainText('gốc DNF');await expect(page.locator('#solve-stats')).toContainText('single: -');
+ await row.getByRole('button',{name:'Không phạt',exact:true}).click();await expect(row.locator('.solve-time')).toContainText('đã chỉnh');await expect(row.locator('.solve-time')).toContainText('gốc DNF');await expect(page.locator('#solve-stats')).toContainText('single: 0.00');
+ await row.getByRole('button',{name:'+2',exact:true}).click();await expect(page.locator('#solve-stats')).toContainText('single: 2.00');
+ await row.getByRole('button',{name:'Phạt gốc',exact:true}).click();await expect(page.locator('#solve-stats')).toContainText('single: -');
+ await page.selectOption('#cube-size','7');await expect(page.locator('#solve-history li')).toHaveCount(0);await page.selectOption('#cube-size','3');await expect(page.locator('#solve-history li')).toHaveCount(1);
+ await row.getByRole('button',{name:'Xóa',exact:true}).click();await expect(page.locator('#solve-history li')).toHaveCount(0);await expect(page.locator('#solve-stats')).toContainText('ao5: -');
+});
