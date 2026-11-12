@@ -1,3 +1,4 @@
+import { attachLeaderboard } from './leaderboard.js';
 import { newId } from './id.js';
 import { SolveHistory, SolveTimer } from '@rubik/timer';
 import { formatTime } from '@rubik/engine';
@@ -6,6 +7,7 @@ import { attachHistory } from './history-controls.js';
 
 export function attachTimer(controller: CubeController, newScramble: () => void) {
   const history=new SolveHistory();
+  const leaderboard=attachLeaderboard();
   const historyUI=attachHistory(history,()=>controller.size);
   const timer = new SolveTimer({newId: () => newId(), now: () => new Date()});
   const element = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
@@ -39,7 +41,7 @@ export function attachTimer(controller: CubeController, newScramble: () => void)
     if(timer.phase==='inspecting')wake=window.setTimeout(wakeUp,Math.max(1,17001-timer.elapsed(performance.now())));
   };
   const refresh=():void=>{if(disposed)return;timer.advance(performance.now());show();frame=requestAnimationFrame(refresh);};
-  const unchange=timer.onChange(()=>{if(timer.phase==='finished'){history.add(timer.result!);historyUI.changed();}clearTimeout(wake);sync();show();});
+  const unchange=timer.onChange(()=>{if(timer.phase==='finished'){if(history.add(timer.result!))leaderboard.completed(timer.result!);historyUI.changed();}clearTimeout(wake);sync();show();});
   const unreplaced=controller.onStateReplaced(()=>{context=undefined;timer.disarm();sync();show();historyUI.render();});
   const unmove=controller.onMoveApplied(e=>timer.recordMove(e.move,e.stateAfter,e.t));
   controller.setMoveGate((move,stamp)=>timer.canApply(move,stamp));
@@ -74,6 +76,6 @@ export function attachTimer(controller: CubeController, newScramble: () => void)
   sync();frame=requestAnimationFrame(refresh);
   return {
     scrambled(seed:string):void {context={size:controller.size,seed,scrambleIndex:0};timer.arm(context);sync();show();},
-    dispose():void {historyUI.dispose();disposed=true;cancelAnimationFrame(frame);clearTimeout(wake);for(const off of listeners)off();unchange();unreplaced();unmove();controller.setMoveGate(undefined);controller.unlockInput('timer');dialog.close();}
+    dispose():void {leaderboard.dispose();historyUI.dispose();disposed=true;cancelAnimationFrame(frame);clearTimeout(wake);for(const off of listeners)off();unchange();unreplaced();unmove();controller.setMoveGate(undefined);controller.unlockInput('timer');dialog.close();}
   };
 }

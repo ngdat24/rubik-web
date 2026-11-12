@@ -33,7 +33,7 @@
 <p class="gesture-hint">Kéo lớp để xoay <span>·</span> Kéo nền để đổi góc nhìn <span>·</span> Cuộn để thu phóng</p><p id="context-message" role="status" hidden></p>
 <section class="timer-panel" aria-label="Đồng hồ giải"><div class="time-display"><span class="eyebrow">THỜI GIAN</span><output id="timer-readout" aria-label="Thời gian">0.00</output></div><div class="timer-actions"><p id="timer-phase" role="status" aria-live="polite">Chờ scramble</p><div><button id="scramble" type="button">↝ &nbsp; Xáo trộn</button><button id="timer-start" type="button">Chuẩn bị scramble</button><button id="timer-cancel" type="button" disabled>Hủy lượt</button></div><p id="timer-message" role="status"></p></div></section>
 <div class="shortcut-strip"><span><kbd>Space</kbd> chuẩn bị / bắt đầu</span><span><kbd>Shift</kbd> + <kbd>Space</kbd> đổi scramble</span><span><kbd>Esc</kbd> hủy lượt</span></div>
-</section></div>
+</section><aside class="leaderboard-panel" aria-label="Bảng xếp hạng LAN"><span class="eyebrow">CÙNG PHÒNG · LAN</span><h2>Bảng xếp hạng</h2><div class="leaderboard-profile"><span id="player-label">Chưa đặt tên</span><button id="player-edit" type="button">Đặt / đổi tên</button></div><label for="leaderboard-size">Khối</label> <select id="leaderboard-size"><option value="2">2×2</option><option value="3" selected>3×3×3</option></select><table class="leaderboard-table"><thead><tr><th scope="col">Hạng</th><th scope="col">Tên</th><th scope="col">Thời gian</th></tr></thead><tbody id="leaderboard-rows"></tbody></table><p id="leaderboard-message" role="status">Đang kết nối phòng…</p><p class="hint">Mỗi người một thành tích tốt nhất. +2 được cộng vào thời gian; DNF không xếp hạng. Chỉnh phạt local không đổi kết quả trên bảng.</p></aside></div>
 <footer><span id="cube-description" aria-live="polite">Rubik 3×3 · Trạng thái đã giải</span><span id="engine-version"></span></footer>
     </main>
     <dialog id="key-settings" aria-labelledby="key-settings-title">
@@ -52,6 +52,7 @@
       <p>Đồng hồ vẫn chạy khi hộp thoại mở. Hết inspection vẫn bị DNF. Hủy sẽ bỏ lượt và khôi phục scramble cũ.</p>
       <button id="timer-keep" type="button">Tiếp tục lượt</button><button id="timer-confirm-cancel" type="button">Xác nhận hủy</button>
     </dialog>
+    <dialog id="player-dialog" aria-labelledby="player-title"><h2 id="player-title">Tên của bạn trong phòng</h2><p>Tên và kết quả được lưu trên máy chạy server LAN. Mỗi trình duyệt nhớ một hồ sơ riêng.</p><form id="player-form"><label for="player-name">Tên hiển thị</label><input id="player-name" maxlength="30" required autocomplete="nickname" /><p id="player-error" role="alert"></p><div class="toolbar"><button type="submit">Lưu tên</button><button id="player-close" type="button">Để sau</button></div></form></dialog>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

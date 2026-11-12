@@ -12,6 +12,9 @@
     "build": "npm run build --workspace=@rubik/engine && npm run build --workspace=@rubik/renderer && npm run build --workspace=@rubik/controller && npm run build --workspace=@rubik/timer && npm run build --workspace=@rubik/web",
     "dev": "npm run build --workspace=@rubik/engine && npm run build --workspace=@rubik/renderer && npm run build --workspace=@rubik/controller && npm run build --workspace=@rubik/timer && npm run dev --workspace=@rubik/web",
     "benchmark": "npm run benchmark --workspace=@rubik/engine",
-    "test:e2e": "npm run test:e2e --workspace=@rubik/web"
+    "test:e2e": "npm run test:e2e --workspace=@rubik/web",
+    "lan": "npm run build && node tools/lan/server.mjs",
+    "start:lan": "node tools/lan/server.mjs",
+    "test:lan": "node --test tools/lan/server.test.mjs tools/lan/browser.test.mjs"
   }
 }
