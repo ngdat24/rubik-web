@@ -57,3 +57,9 @@ canvas { touch-action: none; }
 
 .timer-panel { margin: 16px 0; padding: 20px; border: 1px solid #b5c3ae; border-radius: 12px; text-align: center; background: white; }
 #timer-readout { display:block; font: 48px ui-monospace,monospace; font-variant-numeric:tabular-nums; }
+
+.history-panel { margin-top:20px; padding:20px; border:1px solid #b5c3ae; border-radius:12px; background:white; }
+#solve-history li { padding:10px 0; border-bottom:1px solid #d7e0d1; }
+#solve-history button { margin:4px; }
+.solve-time { display:block; font-variant-numeric:tabular-nums; }
+#solve-stats { font:16px ui-monospace,monospace; }

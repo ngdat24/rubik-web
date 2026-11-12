@@ -97,3 +97,6 @@ export class SolveTimer {
 }
 
 function copySolve(solve: Solve): Solve { return {...solve,preEvents:solve.preEvents.map(e=>({...e})),events:solve.events.map(e=>({...e}))}; }
+
+export { SolveHistory } from './history.js';
+export type { HistoryEntry } from './history.js';
