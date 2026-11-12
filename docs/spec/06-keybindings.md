@@ -57,7 +57,7 @@ Hỗ trợ tạo nhiều hồ sơ phím (profile), nút "Khôi phục mặc đ�
 Khi người dùng nhập file JSON: kiểm tra đúng cấu trúc bằng schema, từ chối và giữ nguyên cấu hình cũ nếu file hỏng, chứa phím bị cấm hoặc gán quá 2 phím cho 1 nước.
 ## 6. Triển khai I2: hồ sơ, lưu trữ và an toàn khi nhập
 
-- Cài đặt phím mở trong dialog, tạm ngưng mọi phím chơi khi mở. Chọn Gán phím rồi nhấn một phím vật lý không kèm modifier. Esc hủy việc gán đang chờ, hoặc đóng dialog khi không gán. Tab vẫn duyệt focus.
+- Nhóm Khôi phục mặc định/Xuất JSON/Nhập JSON/Đóng nằm ngay dưới tiêu đề và giữ ở đầu khi cuộn. Cài đặt phím mở trong dialog, tạm ngưng mọi phím chơi khi mở. Chọn Gán phím rồi nhấn một phím vật lý không kèm modifier. Esc hủy việc gán đang chờ, hoặc đóng dialog khi không gán. Tab vẫn duyệt focus.
 - Chỉ cho gán chữ A..Z trừ W, và các phím dấu Semicolon/Quote/Comma/Period/Slash/BracketLeft/BracketRight/Backslash/Minus/Equal/Backquote. Phím chức năng, điều hướng, W, hàng số và modifier bị khóa. Ctrl/Meta/AltGr không được dùng làm tổ hợp gán.
 - Danh sách hiển thị nước cơ sở và các nước đã gán; có thể thêm nước chuẩn (Rw, 3R, R'...) để gán. Modifier Shift/Alt tiếp tục áp dụng lên nước đã gán; lớp/W chỉ kết hợp với nước cơ sở mặt U/R/F/D/L/B. Nước không hợp lệ cho N hiện tại bị bỏ qua khi chơi.
 - Tối đa 20 hồ sơ, tên 1..40 ký tự, mỗi nước tối đa hai phím. Hồ sơ `default` bất biến: sửa/gỡ phím trên mặc định tạo hồ sơ `custom` mới. Tạo bản sao, chuyển hoặc xóa hồ sơ cá nhân được hỗ trợ. Khôi phục mặc định chỉ đặt lại hồ sơ đang chọn, không xóa các hồ sơ khác.
@@ -66,8 +66,8 @@ Khi người dùng nhập file JSON: kiểm tra đúng cấu trúc bằng schema
 - Nhập tối đa 100 KB, kiểm tra toàn bộ trước khi thay cấu hình: schema, hồ sơ đang chọn tồn tại, tên hợp lệ, phím được phép, ký hiệu nước chuẩn, tối đa hai phím/nước. Thiếu hồ sơ default thì bổ sung; cố sửa default thì từ chối. Nhập lỗi giữ nguyên cấu hình đang dùng. Phiên bản cũ/chưa hỗ trợ bị từ chối, không tự đoán cách chuyển đổi.
 - Xuất JSON bao gồm mọi hồ sơ và activeProfile, nhập lại để khôi phục. Đồng bộ nhiều tab/đám mây chưa triển khai.
 
-## 7. Phím theo góc nhìn (tùy chọn)
+## 7. Phím theo góc nhìn và Khóa xoay phím
 
-Mặc định tắt: tên nước theo hệ trục khối; orbit camera không tạo x/y/z. Khi bật, renderer chiếu các mặt nhìn thấy lên màn hình và chọn mặt có diện tích chiếu lớn nhất làm F của người chơi. Hòa trong sai số 1e-9 thì ưu tiên tâm chiếu trên, rồi trái. Chọn U từ các mặt kề theo tâm chiếu cao nhất, hòa chọn trái; R được suy ra bằng tích có hướng để giữ một hệ trục quay hợp lệ, các mặt đối diện nhất quán.
+Phím theo góc nhìn mặc định bật. Checkbox “Khóa xoay phím” mặc định bỏ chọn; chọn ô này để dùng hệ trục cố định của khối. Orbit camera không tạo x/y/z. Trong chế độ theo góc nhìn, renderer chiếu các mặt nhìn thấy lên màn hình và chọn mặt có diện tích chiếu lớn nhất làm F của người chơi. Hòa trong sai số 1e-9 thì ưu tiên tâm chiếu trên, rồi trái. Chọn U từ các mặt kề theo tâm chiếu cao nhất, hòa chọn trái; R được suy ra bằng tích có hướng để giữ một hệ trục quay hợp lệ, các mặt đối diện nhất quán.
 
 Dòng ánh xạ hiển thị sáu mặt (ví dụ R → L). Ánh xạ được lấy tại mỗi keydown, không lưu vào hồ sơ và không tự tạo move khi đổi camera. Chuyển đổi nước chuẩn sau resolveKey: mặt/inner/wide đổi tên mặt; x/y/z và M/E/S đổi trục, đảo dấu khi cần. Controller nhận nước engine thực tế và timestamp gốc, nên replay không cần tái lập camera. Tùy chọn hiện không lưu qua reload. Khi camera qua ranh giới, ánh xạ có thể đổi; chưa thêm vùng trễ/hysteresis.

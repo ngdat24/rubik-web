@@ -147,3 +147,21 @@ it('keeps lock ownership, rejects gated batches atomically and reports replaceme
  c.reset();c.scramble('test');c.setSize(7);expect(replaced).toHaveBeenCalledTimes(3);expect(c.size).toBe(7);
  c.dispose();c.unlockInput('disposed');expect(c.inputEnabled).toBe(false);
 });
+
+it('rejects multi-move batches under a stateful gate before the solve can end halfway',()=>{
+ const display={isAnimating:false,enqueueMove:vi.fn(),enqueueMoves:vi.fn(),setSize:vi.fn(),setState:vi.fn(),dispose:vi.fn()};
+ const c=new CubeController(display);c.applyMove('R',1);
+ let finished=false;
+ c.setMoveGate(()=>!finished);
+ const listener=vi.fn(event=>{if(new Cube().state.every((color,i)=>color===event.stateAfter[i])){finished=true;c.lockInput('timer');}});
+ c.onMoveApplied(listener);
+ const before=c.cube.state;
+ expect(c.moves(["R'",'U'],2)).toBe(false);
+ expect(c.sequence("R' U",2)).toBe(0);
+ expect(c.cube.state).toEqual(before);expect(c.lastInput).toEqual({m:'R',timeStamp:1});
+ expect(listener).not.toHaveBeenCalled();expect(display.enqueueMoves).not.toHaveBeenCalled();
+ expect(c.moves(["R'"],3)).toBe(true);expect(finished).toBe(true);expect(c.isSolved()).toBe(true);
+ expect(c.applyMove('U',4)).toBe(false);expect(listener).toHaveBeenCalledOnce();
+ c.unlockInput('timer');c.setMoveGate(undefined);
+ expect(c.sequence('R U',5)).toBe(2);expect(c.cube.state).toEqual(new Cube().applyMoves('R U').state);
+});

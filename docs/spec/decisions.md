@@ -140,3 +140,14 @@
 ## D-024 | 2026-11-12 | Giao diện ưu tiên Rubik và quy trình nghiệm thu
 - **Quyết định**: Theo ảnh tham chiếu người dùng, Rubik lớn ở giữa, timer gọn dưới, scramble trên, sidebar lịch sử/thống kê; công cụ nâng cao thu gọn, mobile ưu tiên khối/timer. Giữ logic và ID điều khiển, không thêm dependency.
 - **Nghiệm thu**: T0..T4 và UI đã được người dùng cho merge từng PR; T5 hoàn tất tài liệu và chờ duyệt. Kiểm thử tự động không thay thế điện thoại/GPU thật. Không suy ủy quyền tự merge Giai đoạn 4 thành ủy quyền Giai đoạn 5.
+
+## D-025 | 2026-11-13 | Chốt default và persistence sau nghiệm thu nhóm
+- **Quyết định**: Theo yêu cầu người dùng sau D-023, phím theo góc nhìn mặc định bật; checkbox “Khóa xoay phím” bật hệ trục cố định. Web 40 ms/nước, thanh 30–100 ms; API renderer vẫn 150 ms, nước đôi ×1,5. Chuột kéo sticker hệ số 0,675, touch/camera giữ riêng. Scramble lớn căn giữa; Xáo trộn cạnh Start; bỏ Burst/Catch-up; nhóm JSON phím ở đầu dialog.
+- **Lưu trữ**: Thay giới hạn memory-only của D-022.10 bằng IndexedDB tự lưu theo origin, backup JSON version=1 và CSV, giữ Solve gốc/override riêng; validate toàn bộ khi nhập, dedup và revision chống ghi đè từ tab cũ. Backup không là thao tác bắt buộc sau mỗi lượt.
+- **Ảnh hưởng**: 04/06/09/11/12, AGENTS, STATUS. Người dùng đã thử điện thoại/nhiều máy cùng mạng, báo ổn; chưa có số đo FPS/latency để khẳng định ngưỡng hiệu năng.
+
+## D-026 | 2026-11-13 | LAN giao lưu và cổng an toàn trước Sandbox
+- **Quyết định**: Server Node LAN cùng nguồn phục vụ web/API, lưu tên và Solve gốc; bảng hai mục 2×2/3×3, personal best/người, cộng +2, loại DNF. Local outbox gửi lại và server dedup/replay; không tự gửi backup nhập hay override. Vercel/hosting công khai tạm hoãn theo người dùng.
+- **Gate/batch**: Khi controller có move gate, từ chối nguyên tử batch nhiều hơn một nước; từng nước kiểm gate như cũ. Batch chỉ chạy khi không có gate. Tránh áp toàn batch rồi timer kết thúc ở giữa; không đưa timer vào controller hoặc sửa engine.
+- **Giới hạn**: Replay kiểm trạng thái, thời gian vẫn do client cung cấp; chưa phải leaderboard chống gian lận Internet. Lưu file dành cho nhóm LAN, chưa phải hạ tầng quy mô lớn.
+- **Ảnh hưởng**: controller, web storage/input tests, server LAN và đặc tả liên quan. PR #21/#22 và PR khép Giai đoạn 6 còn chờ review/merge; không tự merge khi chưa được duyệt.

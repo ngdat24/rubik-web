@@ -44,10 +44,10 @@ interface HistoryEntry {
 }
 ```
 
-- Wrapper này chỉ dùng trong bộ nhớ phiên web, không phải trường mới của Solve schemaVersion=1 và không được gửi nguyên wrapper vào endpoint xác minh Solve.
+- Wrapper này dùng cho lịch sử local và backup JSON, không phải trường mới của Solve schemaVersion=1 và không được gửi nguyên wrapper vào endpoint xác minh Solve.
 - Phạt hiệu dụng = penaltyOverride ?? solve.penalty. Chỉnh phạt không sửa timeMs, inspectionMs, sự kiện hoặc phạt gốc. Khôi phục phạt gốc đặt override=null.
 - Một id chỉ thêm một lần; đọc ra bản sao độc lập. Xóa chỉ loại mục khỏi lịch sử/thống kê, không hoàn tác trạng thái khối. Thống kê lọc theo size và dùng thứ tự giải, dù danh sách hiển thị mới nhất trước.
-- Phiên hiện tại không lưu qua reload, không đồng bộ server/tab. Chỉnh nhẹ hơn phạt gốc chỉ ảnh hưởng thống kê local; quy tắc xác minh tối thiểu trên server tại mục 4 vẫn giữ nguyên.
+- Lịch sử tự lưu IndexedDB, envelope lưu trữ có revision riêng, không thêm trường vào Solve. Tab cũ không được ghi đè revision mới; chưa có tự hợp nhất nhiều tab. Backup JSON version=1 gồm entries, tối đa 10 MB/10.000 bản ghi; validate toàn bộ trước merge, giữ bản hiện tại khi lỗi, ID đã có không bị ghi đè. CSV chỉ xuất để xem, không dùng nhập khôi phục. Server LAN chỉ nhận Solve gốc của lượt mới 2×2/3×3 qua luồng gửi riêng, không nhận wrapper hoặc backup nhập. Chỉnh nhẹ hơn phạt gốc chỉ ảnh hưởng thống kê local; quy tắc xác minh tối thiểu trên server tại mục 4 vẫn giữ nguyên.
 
 ### 2.3. Bản ghi Khối trong trận (`CubeRun`)
 - `index`: number (`k = 0, 1, 2...`)

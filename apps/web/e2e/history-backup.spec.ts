@@ -25,3 +25,33 @@ test('another tab cannot silently overwrite a newer durable history',async({cont
  await b.bringToFront();await b.locator('#history-import').setInputFiles(file('second'));await expect(b.locator('#history-storage-status')).toContainText('Không lưu');
  await b.reload();await expect(b.locator('#solve-history li')).toHaveCount(1);await expect(b.locator('#solve-history li')).toHaveAttribute('data-solve-id','first');
 });
+
+test('a storage quota error keeps the new result usable and exportable',async({page})=>{
+ const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.addInitScript(()=>{
+  const original=IDBObjectStore.prototype.put;
+  IDBObjectStore.prototype.put=function(value,key){if(this.name==='history'&&key==='backup')throw new DOMException('Full','QuotaExceededError');return original.call(this,value,key);};
+ });
+ await page.clock.install();await page.goto('/');await expect(page.locator('#history-storage-status')).toContainText('Đã tải');
+ await page.locator('#scramble').click();await page.locator('#timer-start').click();await page.clock.runFor(17100);
+ await expect(page.locator('#solve-history li')).toHaveCount(1);await expect(page.locator('#history-storage-status')).toContainText('Không lưu');
+ const exported=page.waitForEvent('download');await page.locator('#history-export').click();
+ const fs=await import('node:fs/promises'),data=JSON.parse(await fs.readFile((await (await exported).path())!,'utf8'));
+ expect(data.entries).toHaveLength(1);expect(data.entries[0].solve.penalty).toBe('DNF');
+ expect(errors).toEqual([]);
+});
+
+test('an unreadable saved history is preserved while the current session remains playable',async({page})=>{
+ await page.clock.install();await page.goto('/');await expect(page.locator('#history-storage-status')).toContainText('Đã tải');
+ await page.evaluate(()=>new Promise<void>((resolve,reject)=>{
+  const request=indexedDB.open('rubik-history-v1',1);request.onerror=()=>reject(request.error);
+  request.onsuccess=()=>{const db=request.result,tx=db.transaction('history','readwrite');tx.objectStore('history').put({revision:5,backup:{version:999,entries:[]}},'backup');tx.oncomplete=()=>{db.close();resolve();};tx.onabort=()=>reject(tx.error);};
+ }));
+ await page.reload();await expect(page.locator('#history-storage-status')).toContainText('Không đọc');
+ await page.locator('#scramble').click();await page.locator('#timer-start').click();await page.clock.runFor(17100);
+ await expect(page.locator('#solve-history li')).toHaveCount(1);await expect(page.locator('#history-export')).toBeEnabled();
+ const saved=await page.evaluate(()=>new Promise(resolve=>{
+  const request=indexedDB.open('rubik-history-v1',1);request.onsuccess=()=>{const db=request.result,tx=db.transaction('history','readonly'),read=tx.objectStore('history').get('backup');tx.oncomplete=()=>{resolve(read.result);db.close();};};
+ }));
+ expect(saved).toEqual({revision:5,backup:{version:999,entries:[]}});
+});
