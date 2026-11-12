@@ -18,7 +18,7 @@ export function attachCloudHistory(account:CloudAccount|undefined,history:SolveH
   const resolveButton=document.querySelector<HTMLButtonElement>('#cloud-use-server')!;
   const abort=new AbortController(),pending=new Map<string,Pending>(),revisions=new Map<string,number>();
   const prefix='rubik.cloud.pending.'+account?.id+'.',revisionPrefix='rubik.cloud.revision.'+account?.id+'.';
-  let disposed=false,busy=false,profileName='',storageError=false,prompted=false;
+  let disposed=false,busy=false,syncAgain=false,profileName='',storageError=false,prompted=false;
   const store=(id:string,item:Pending)=>{pending.set(id,item);try{localStorage.setItem(prefix+id,JSON.stringify(item));}catch{storageError=true;status.textContent='Không lưu được hàng đợi; giữ trang mở để gửi lại.';}};
   const load=()=>{
     if(!account)return;
@@ -64,7 +64,7 @@ export function attachCloudHistory(account:CloudAccount|undefined,history:SolveH
     if(changed)ui.changed();
   };
   const sync=async()=>{
-    if(busy||disposed)return;busy=true;syncButton.disabled=true;
+    if(disposed)return;if(busy){syncAgain=true;return;}busy=true;syncButton.disabled=true;
     try{
       await ui.loaded;await board();if(!account){status.textContent='Đăng nhập để đồng bộ lịch sử riêng giữa các thiết bị.';return;}
       load();const profile=await api('player');if(disposed)return;
@@ -90,7 +90,7 @@ export function attachCloudHistory(account:CloudAccount|undefined,history:SolveH
       const failed=[...pending.values()].find(item=>item.error);resolveButton.hidden=![...pending.values()].some(item=>item.conflict);
       status.textContent=failed?`Một thay đổi chưa đồng bộ: ${failed.error}`:storageError?'Đã gửi; lưu hàng đợi trên thiết bị gặp lỗi.':'Đã đồng bộ lịch sử tài khoản.';
     }catch(error){if(!disposed)status.textContent=error instanceof Error?error.message:'Chưa kết nối được server; kết quả vẫn ở thiết bị.';}
-    finally{busy=false;if(!disposed)syncButton.disabled=!account;}
+    finally{busy=false;if(!disposed){syncButton.disabled=!account;if(syncAgain){syncAgain=false;queueMicrotask(()=>{void sync();});}}}
   };
   const queue=(entry:HistoryEntry,deleted:boolean,ranked=false)=>{
     if(!account||disposed)return;load();const old=pending.get(entry.solve.id);
