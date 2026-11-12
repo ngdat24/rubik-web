@@ -39,15 +39,18 @@ test('cloud account login, auto upload, cross-device history and logout isolatio
       });
       await context.route('https://cloud-test.supabase.co/**',async route=>{
         const path=new URL(route.request().url()).pathname;
-        if(path.endsWith('/logout'))return route.fulfill({status:204});
-        if(path.endsWith('/recover'))return route.fulfill({json:{}});
+        const headers={'access-control-allow-origin':base,'access-control-allow-methods':'GET, POST, PUT, DELETE, OPTIONS','access-control-allow-headers':route.request().headers()['access-control-request-headers']??'authorization, apikey, content-type, x-client-info, x-supabase-api-version'};
+        const fulfill=options=>route.fulfill({...options,headers});
+        if(route.request().method()==='OPTIONS')return fulfill({status:204});
+        if(path.endsWith('/logout'))return fulfill({status:204});
+        if(path.endsWith('/recover'))return fulfill({json:{}});
         const id=email==='a@example.test'?idA:idB;
         const user={id,email,aud:'authenticated',role:'authenticated',email_confirmed_at:'2026-11-13T00:00:00Z',app_metadata:{provider:'email'},user_metadata:{},created_at:'2026-11-13T00:00:00Z'};
         const exp=Math.floor(Date.now()/1000)+3600;
         const token=[{alg:'HS256',typ:'JWT'},{sub:id,aud:'authenticated',role:'authenticated',email,exp,iat:exp-3600},'c2lnbmF0dXJl'].map(v=>typeof v==='string'?v:Buffer.from(JSON.stringify(v)).toString('base64url')).join('.');tokens.set(token,id===idA?'token-a':'token-b');
-        if(path.endsWith('/user'))return route.fulfill({json:user});
-        if(path.endsWith('/signup'))return route.fulfill({json:user});
-        return route.fulfill({json:{access_token:token,refresh_token:'refresh-'+id,expires_in:3600,expires_at:exp,token_type:'bearer',user}});
+        if(path.endsWith('/user'))return fulfill({json:user});
+        if(path.endsWith('/signup'))return fulfill({json:user});
+        return fulfill({json:{access_token:token,refresh_token:'refresh-'+id,expires_in:3600,expires_at:exp,token_type:'bearer',user}});
       });
       const page=await context.newPage();await page.goto(base);await expect(page.locator('canvas')).toBeVisible();await page.locator('#account-open').click();
       await page.locator('#account-email').fill(email);await page.locator('#account-password').fill('test-password');await page.locator('#account-form button[type=submit]').click();
