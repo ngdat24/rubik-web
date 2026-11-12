@@ -4,45 +4,37 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23526f40'/%3E%3C/svg%3E" />
-    <meta name="description" content="Demo nền tảng camera và hiển thị Rubik 3D." />
-    <title>Rubik — Demo 3D</title>
+    <meta name="description" content="Không gian luyện giải Rubik 3D, bấm giờ và theo dõi tiến bộ." />
+    <title>Rubik Lab — Không gian luyện tập</title>
   </head>
   <body>
     <main>
-      <header><a class="brand" href="/">RUBIK<span> / LAB</span></a><span class="stage">GIAI ĐOẠN 5 · T3</span></header>
-      <section class="intro"><p class="eyebrow">KHÔNG GIAN THỬ NGHIỆM</p><h1>Khám phá góc nhìn.</h1><p>Kéo trên sticker để xoay lớp; kéo trên nền để xoay camera. Cuộn hoặc chụm hai ngón tay để thu phóng. Khi khối đang xoay, hãy chờ hết animation trước khi kéo lớp.</p></section>
-      <div class="toolbar"><label for="cube-size">Kích thước khối</label><select id="cube-size">
+<header><a class="brand" href="/" aria-label="Rubik Lab"><span class="brand-cube" aria-hidden="true">▦</span> rubik<span class="brand-light">lab</span><span class="brand-period">.</span></a><span class="header-mode">Không gian luyện tập <span class="live-dot"></span></span><span class="stage">XOAY. TẬP TRUNG. TIẾN BỘ.</span></header>
+<section class="scramble-panel" aria-label="Chuỗi scramble"><div class="scramble-heading"><span class="eyebrow">SCRAMBLE</span><button id="scramble" type="button">↝ &nbsp; Xáo trộn</button></div><p id="scramble-text" aria-live="polite">Chưa có scramble.</p></section>
+<div class="workspace"><aside aria-label="Phiên giải và cài đặt"><section class="history-panel" aria-labelledby="history-title"><div class="section-heading"><span class="eyebrow">PHIÊN HIỆN TẠI</span><span class="session-dot" aria-hidden="true"></span></div><h2 id="history-title">Lịch sử giải</h2><p id="solve-stats" aria-label="Thống kê"></p><p id="history-empty"></p><ol id="solve-history" reversed></ol><p id="history-message" role="status"></p><p class="session-note">Lịch sử chỉ lưu trong phiên này. Phạt chỉnh được giữ riêng với phạt gốc.</p></section><fieldset id="move-controls" disabled><legend>Điều khiển</legend>
+<button id="key-settings-open" type="button">⌘ &nbsp; Cài đặt phím</button><p id="key-storage-status" role="status"></p>
+<label class="view-toggle"><input id="view-keys" type="checkbox" /> Phím theo góc nhìn</label><p id="view-key-map" role="status">Phím theo hệ trục khối</p>
+<details id="workspace-tools"><summary>Điều khiển nâng cao</summary>
+<div class="seed-toolbar"><label for="seed">Seed</label><input id="seed" type="text" maxlength="256" aria-describedby="seed-help" /></div>
+<p id="seed-help" class="hint">Cùng seed và kích thước cho cùng scramble.</p>
+        <div class="toolbar"><label for="speed">Thời gian/nước</label><input id="speed" type="range" min="30" max="500" value="150" step="10" /><output id="speed-value" for="speed">150 ms</output>
+        <label><input id="instant" type="checkbox" /> Tức thì</label></div>
+<p class="hint">U/R/F/D/L/B · Shift: nghịch · Alt: đôi · W: wide · số: lớp · X/Y/Z: quay khối.</p>        <div id="move-buttons"></div>
+        <form id="algorithm-form"><label for="algorithm">Chuỗi nước đi</label><textarea id="algorithm" rows="2" maxlength="16000" placeholder="R U R' U'" aria-describedby="algorithm-error"></textarea><button type="submit">Chạy chuỗi</button><p id="algorithm-error" role="alert"></p></form>
+        <div class="toolbar queue-toolbar"><button id="burst" type="button">Thử chuỗi nhanh (24 nước)</button><button id="catch-up" type="button">Bắt kịp ngay</button><span id="queue-status" role="status">Chờ hiển thị: 0 nước</span></div>
+        <p id="move-status" role="status"></p></details></fieldset></aside>
+<section class="solve-space" aria-label="Không gian giải Rubik">
+<div class="cube-toolbar"><div class="size-control"><label for="cube-size">Khối</label><select id="cube-size">
         <option value="2">2×2</option><option value="3" selected>3×3</option><option value="4">4×4</option>
         <option value="5">5×5</option><option value="6">6×6</option><option value="7">7×7</option>
         <option value="8">8×8</option><option value="9">9×9</option><option value="10">10×10</option>
-      </select><button id="reset" type="button">Reset</button><button id="camera-reset" type="button">Góc U/F/R</button><button id="camera-back" type="button">Góc D/B/L</button></div>
-      <div class="toolbar seed-toolbar"><label for="seed">Seed</label><input id="seed" type="text" maxlength="256" aria-describedby="seed-help" /><button id="scramble" type="button">Scramble</button></div>
-      <p id="seed-help" class="hint">Cùng seed và kích thước sẽ cho cùng scramble. Đổi seed để thử lượt khác.</p>
-      <section class="timer-panel" aria-label="Đồng hồ giải">
-        <output id="timer-readout" aria-label="Thời gian">0.00</output>
-        <p id="timer-phase" role="status" aria-live="polite">Chờ scramble</p>
-        <button id="timer-start" type="button">Bắt đầu</button>
-        <button id="timer-cancel" type="button" disabled>Hủy lượt</button>
-        <p id="timer-message" role="status"></p>
-      </section>
-      <section id="viewport" aria-label="Cảnh Rubik 3D"><p id="loading" role="status">Đang khởi tạo cảnh 3D…</p></section>
-      <p id="context-message" role="status" hidden></p>
-      <fieldset id="move-controls" disabled><legend>Nước đi</legend>
-        <div class="toolbar"><label for="speed">Thời gian/nước</label><input id="speed" type="range" min="30" max="500" value="150" step="10" /><output id="speed-value" for="speed">150 ms</output>
-        <label><input id="instant" type="checkbox" /> Tức thì</label></div>
-        <p class="hint">Mặc định: U/R/F/D/L/B: xoay mặt · Shift: đảo chiều · Alt: quay đôi · giữ W: wide · giữ 2–9 hoặc 0 (=10): chọn lớp/độ rộng · X/Y/Z: quay khối · M/E/S: chỉ 3×3. Shift+Alt vẫn quay đôi. Nhả W/số để về nước mặt; phím tắt tạm ngưng khi nhập văn bản.</p>
-        <label><input id="view-keys" type="checkbox" /> Phím theo góc nhìn</label><p id="view-key-map" role="status">Phím theo hệ trục khối</p><p class="hint">Space: chuẩn bị scramble, bấm lần nữa để inspection. Shift+Space: đổi scramble khi chưa giải.</p>
-        <button id="key-settings-open" type="button">Cài đặt phím</button><p id="key-storage-status" role="status"></p>
-        <div id="move-buttons"></div>
-        <form id="algorithm-form"><label for="algorithm">Chuỗi nước đi</label><textarea id="algorithm" rows="2" maxlength="16000" placeholder="R U R' U'" aria-describedby="algorithm-error"></textarea><button type="submit">Chạy chuỗi</button><p id="algorithm-error" role="alert"></p></form>
-        <div class="toolbar queue-toolbar"><button id="burst" type="button">Thử chuỗi nhanh (24 nước)</button><button id="catch-up" type="button">Bắt kịp ngay</button><span id="queue-status" role="status">Chờ hiển thị: 0 nước</span></div>
-        <p id="move-status" role="status"></p></fieldset>
-      <section class="scramble-panel" aria-label="Chuỗi scramble"><h2>Scramble</h2><p id="scramble-text" aria-live="polite">Chưa có scramble.</p></section>
-      <section class="history-panel" aria-labelledby="history-title">
-        <h2 id="history-title">Lịch sử phiên</h2><p>Lưu trong phiên trang này; tải lại sẽ mất lịch sử. Phạt chỉnh được lưu riêng với phạt gốc.</p>
-        <p id="solve-stats" aria-label="Thống kê"></p><p id="history-empty"></p><ol id="solve-history" reversed></ol><p id="history-message" role="status"></p>
-      </section>
-      <footer><span id="cube-description" aria-live="polite">Rubik 3×3 · Trạng thái đã giải</span><span id="engine-version"></span></footer>
+      </select></div><div class="camera-controls"><button id="camera-reset" type="button" title="Góc nhìn U/F/R">U/F/R</button><button id="camera-back" type="button" title="Góc nhìn D/B/L">D/B/L</button><button id="reset" type="button">Đặt lại</button></div></div>
+<section id="viewport" aria-label="Cảnh Rubik 3D"><p id="loading" role="status">Đang khởi tạo cảnh 3D…</p></section>
+<p class="gesture-hint">Kéo lớp để xoay <span>·</span> Kéo nền để đổi góc nhìn <span>·</span> Cuộn để thu phóng</p><p id="context-message" role="status" hidden></p>
+<section class="timer-panel" aria-label="Đồng hồ giải"><div class="time-display"><span class="eyebrow">THỜI GIAN</span><output id="timer-readout" aria-label="Thời gian">0.00</output></div><div class="timer-actions"><p id="timer-phase" role="status" aria-live="polite">Chờ scramble</p><div><button id="timer-start" type="button">Chuẩn bị scramble</button><button id="timer-cancel" type="button" disabled>Hủy lượt</button></div><p id="timer-message" role="status"></p></div></section>
+<div class="shortcut-strip"><span><kbd>Space</kbd> chuẩn bị / bắt đầu</span><span><kbd>Shift</kbd> + <kbd>Space</kbd> đổi scramble</span><span><kbd>Esc</kbd> hủy lượt</span></div>
+</section></div>
+<footer><span id="cube-description" aria-live="polite">Rubik 3×3 · Trạng thái đã giải</span><span id="engine-version"></span></footer>
     </main>
     <dialog id="key-settings" aria-labelledby="key-settings-title">
       <h2 id="key-settings-title">Cài đặt bàn phím</h2>

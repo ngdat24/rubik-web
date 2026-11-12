@@ -2,7 +2,7 @@ import {expect,test} from '@playwright/test';
 
 test('custom keymaps handle conflict cancel/swap, persist, import/export and retain defaults', async ({page}) => {
   await page.goto('/'); await expect(page.locator('canvas')).toBeVisible();
-  await page.locator('#instant').check(); await page.locator('#key-settings-open').click();
+  await page.locator('#workspace-tools').evaluate((node:HTMLDetailsElement)=>{node.open=true;});await page.locator('#instant').check(); await page.locator('#key-settings-open').click();
   const rRow=page.locator('.key-row[data-move="R"]');
   await rRow.getByRole('button',{name:'Gán phím',exact:true}).click();
   await page.keyboard.press('u');
@@ -63,9 +63,9 @@ test('blocked storage does not prevent in-session key configuration', async ({pa
 test('timer flow, focused Space, rotations, solved result and next scramble stays idle',async({page})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/?diagnostics=1');await expect(page.locator('canvas')).toBeVisible();
- await page.locator('#instant').check();await page.locator('#timer-start').click();await expect(page.locator('#timer-phase')).toContainText('Sẵn sàng');
+ await page.locator('#workspace-tools').evaluate((node:HTMLDetailsElement)=>{node.open=true;});await page.locator('#instant').check();await page.locator('#timer-start').click();await expect(page.locator('#timer-phase')).toContainText('Sẵn sàng');
  await page.keyboard.press('r');await expect(page.locator('#timer-phase')).toContainText('Sẵn sàng');
- await page.locator('#seed').fill('timer-e2e');await page.locator('#scramble').click();const scramble=(await page.locator('#scramble-text').textContent())!.trim().split(/\s+/);
+ await page.locator('#workspace-tools').evaluate((node:HTMLDetailsElement)=>{node.open=true;});await page.locator('#seed').fill('timer-e2e');await page.locator('#scramble').click();const scramble=(await page.locator('#scramble-text').textContent())!.trim().split(/\s+/);
  await page.locator('#reset').focus();await page.keyboard.press('Space');await expect(page.locator('#timer-phase')).toContainText('Inspection');
  await expect(page.locator('#scramble-text')).not.toContainText('Chưa có');
  await expect(page.locator('#key-settings-open')).toBeDisabled();await expect(page.locator('#algorithm')).toBeDisabled();
@@ -81,7 +81,7 @@ test('timer flow, focused Space, rotations, solved result and next scramble stay
 
 test('cancel restores the same scramble, timeout continues behind the dialog, touch Start works',async({page})=>{
  await page.clock.install();await page.goto('/');await expect(page.locator('canvas')).toBeVisible();
- await page.locator('#seed').fill('cancel-seed');await page.locator('#scramble').click();const original=await page.locator('#scramble-text').textContent();
+ await page.locator('#workspace-tools').evaluate((node:HTMLDetailsElement)=>{node.open=true;});await page.locator('#seed').fill('cancel-seed');await page.locator('#scramble').click();const original=await page.locator('#scramble-text').textContent();
  await page.locator('#timer-start').click();await page.keyboard.press('r');await expect(page.locator('#timer-phase')).toContainText('Đang giải');
  await page.keyboard.press('Escape');await expect(page.locator('#timer-cancel-dialog')).toBeVisible();
  await page.locator('#timer-confirm-cancel').click();await expect(page.locator('#timer-phase')).toContainText('Sẵn sàng');await expect(page.locator('#scramble-text')).toHaveText(original!);
@@ -137,10 +137,10 @@ test('demo renders, runs moves, changes N/camera and frees old geometries', asyn
   const memoryAfter = await memorySession.send('Runtime.getHeapUsage');
   expect(memoryAfter.usedSize - memoryBefore.usedSize).toBeLessThan(8 * 1024 * 1024);
   expect(await page.evaluate(() => (window as any).rubikDiagnostics().geometries)).toBe(2);
-  await page.locator('#algorithm').fill(''); await page.locator('#algorithm-form button').click();
+  await page.locator('#workspace-tools').evaluate((node:HTMLDetailsElement)=>{node.open=true;});await page.locator('#algorithm').fill(''); await page.locator('#algorithm-form button').click();
   await page.screenshot({path: 'test-results/demo-10x10.png', fullPage: true});
   expect((await visiblePixel())[3]).toBeGreaterThan(0);
-  await page.locator('#seed').fill('e2e'); await page.locator('#scramble').click();
+  await page.locator('#workspace-tools').evaluate((node:HTMLDetailsElement)=>{node.open=true;});await page.locator('#seed').fill('e2e'); await page.locator('#scramble').click();
   await expect(page.locator('#scramble-text')).not.toContainText('Chưa có');
   await page.locator('#reset').click();
   await expect(page.locator('#cube-description')).toContainText('đã giải');
@@ -187,7 +187,7 @@ test('touch Start enters inspection without a hardware keyboard',async({browser}
 });
 
 test('Space prepares then starts, Shift+Space regenerates; view keys are opt-in',async({page})=>{
- await page.goto('/');await expect(page.locator('canvas')).toBeVisible();await page.locator('#instant').check();
+ await page.goto('/');await expect(page.locator('canvas')).toBeVisible();await page.locator('#workspace-tools').evaluate((node:HTMLDetailsElement)=>{node.open=true;});await page.locator('#instant').check();
  await page.locator('#viewport').click({position:{x:5,y:5}});await page.keyboard.press('Space');
  await expect(page.locator('#timer-phase')).toContainText('Sẵn sàng');const first=await page.locator('#seed').inputValue();
  await page.keyboard.press('Shift+Space');await expect(page.locator('#seed')).not.toHaveValue(first);await expect(page.locator('#timer-phase')).toContainText('Sẵn sàng');
