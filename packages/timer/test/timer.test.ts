@@ -69,3 +69,8 @@ it.each(['single','mo3','ao5','ao12'] as const)('timer results work with engine 
  const two=[...rows.slice(0,-2),{...t.result!,penalty:'DNF' as const},{...t.result!,penalty:'DNF' as const}];
  expect(statistic(kind,two).resultMs).toBe(kind==='single'?1000:null);
 });
+it('readout elapsed uses exact origins and freezes on the recorded result',()=>{
+ const t=create();expect(t.elapsed(100)).toBe(0);t.startInspection(0.75);expect(t.elapsed(15001.65)).toBe(15000);
+ t.recordMove('R',unsolved,15001.75);expect(t.elapsed(15002.5)).toBe(0);t.recordMove("R'",new Cube().state,15022.8);
+ expect(t.elapsed(999999)).toBe(21);expect(t.elapsed(NaN)).toBe(0);
+});

@@ -54,3 +54,6 @@ dialog h2 { margin-top: 0; }
 #key-settings-message, #key-storage-status { font-size: 13px; }
 
 canvas { touch-action: none; }
+
+.timer-panel { margin: 16px 0; padding: 20px; border: 1px solid #b5c3ae; border-radius: 12px; text-align: center; background: white; }
+#timer-readout { display:block; font: 48px ui-monospace,monospace; font-variant-numeric:tabular-nums; }

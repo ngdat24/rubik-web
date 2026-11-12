@@ -22,6 +22,12 @@ export class SolveTimer {
   #listeners = new Set<(phase: TimerPhase) => void>();
   constructor(private readonly options: {newId: () => string; now: () => Date}) {}
   get phase(): TimerPhase { return this.#phase; }
+  elapsed(stamp: number): number {
+    if (!this.#validStamp(stamp)) return 0;
+    if (this.#phase === 'finished') return this.#result?.timeMs ?? 0;
+    if (this.#phase === 'idle') return 0;
+    return Math.max(0,Math.floor(stamp-(this.#phase === 'inspecting' ? this.#inspectionStart : this.#solveStart)));
+  }
   get armed(): boolean { return this.#context !== undefined; }
   get result(): Solve | undefined { return this.#result && copySolve(this.#result); }
   onChange(listener: (phase: TimerPhase) => void): () => void {
