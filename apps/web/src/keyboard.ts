@@ -28,7 +28,7 @@ export function attachKeyboard(controller: CubeController, onMove: (move: string
     const layer = digits[0] ? Number(digits[0].slice(5)) || 10 : undefined;
     const move = resolveKey(event.code, {ctrlKey:event.ctrlKey, metaKey:event.metaKey,
       shiftKey:event.shiftKey, altKey:event.altKey, wide:held.has('KeyW'),
-      ...(layer === undefined ? {} : {layer})}, getKeymap(), controller.cube.size);
+      ...(layer === undefined ? {} : {layer})}, getKeymap(), controller.size);
     if (!move) return;
     event.preventDefault();
     if (controller.applyMove(move, event.timeStamp)) onMove(move);

@@ -70,7 +70,7 @@ try {
     moveStatus.textContent = `Đang xoay ${move}…`;
   }, keySettings.getKeymap);
   renderer.onContextChange = available => {
-    controller!.inputEnabled = available;
+    if(available) controller!.unlockInput('context'); else controller!.lockInput('context');
     contextMessage.hidden = available;
     contextMessage.textContent = available ? '' : 'Kết nối đồ họa tạm mất. Đang chờ trình duyệt khôi phục; bạn có thể tải lại trang nếu cần.';
     moveControls.disabled = !available;
@@ -81,7 +81,7 @@ try {
   };
   renderer.onIdle = () => {
     updateMoveControls();
-    description.textContent = `Rubik ${sizeSelect.value}×${sizeSelect.value} · ${controller!.cube.isSolved() ? 'Trạng thái đã giải' : 'Đang luyện tập'}`;
+    description.textContent = `Rubik ${sizeSelect.value}×${sizeSelect.value} · ${controller!.isSolved() ? 'Trạng thái đã giải' : 'Đang luyện tập'}`;
   };
   buildMoveButtons(); updateMoveControls();
   loading.remove();

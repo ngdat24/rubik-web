@@ -10,12 +10,12 @@ export function attachDrag(renderer: CubeRenderer, controller: CubeController, c
   let pinching=false, distance=0;
   const pinchDistance=()=>{const p=[...points.values()];return p.length>=2?Math.hypot(p[0]!.x-p[1]!.x,p[0]!.y-p[1]!.y):0;};
   const cancel=():void=>{
-    if(gesture || pinching) {renderer.endDrag();renderer.enableOrbit(true);controller.inputEnabled=true;}
+    if(gesture || pinching) {renderer.endDrag();renderer.enableOrbit(true);controller.unlockInput('drag');}
     for(const id of points.keys()) if(canvas.hasPointerCapture(id))canvas.releasePointerCapture(id);
     points.clear();gesture=undefined;pinching=false;
   };
   const down=(e:PointerEvent):void=>{
-    if(e.button!==0 || !controller.inputEnabled && !gesture && !pinching)return;
+    if(e.button!==0 || [...controller.lockedBy].some(reason=>reason!=='drag'))return;
     if(gesture || pinching){
       e.stopImmediatePropagation();e.preventDefault();points.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.setPointerCapture(e.pointerId);
       renderer.endDrag();gesture=undefined;pinching=true;distance=pinchDistance();return;
@@ -24,7 +24,7 @@ export function attachDrag(renderer: CubeRenderer, controller: CubeController, c
     if(!hit)return;
     e.stopImmediatePropagation();e.preventDefault();canvas.setPointerCapture(e.pointerId);
     points.set(e.pointerId,{x:e.clientX,y:e.clientY});gesture={id:e.pointerId,x:e.clientX,y:e.clientY,hit,angle:0};
-    renderer.enableOrbit(false);controller.inputEnabled=false;
+    renderer.enableOrbit(false);controller.lockInput('drag');
   };
   const move=(e:PointerEvent):void=>{
     if(!points.has(e.pointerId))return;
@@ -34,7 +34,7 @@ export function attachDrag(renderer: CubeRenderer, controller: CubeController, c
     if(g.axis===undefined && Math.hypot(e.clientX-g.x,e.clientY-g.y)<8)return;
     const point=renderer.facePoint(e.clientX,e.clientY,g.hit.slot.normal,g.hit.point);if(!point)return;
     const delta=point.sub(g.hit.point).toArray();
-    const turn=dragTurn(controller.cube.size,g.hit.slot.index,delta);if(!turn)return;
+    const turn=dragTurn(controller.size,g.hit.slot.index,delta);if(!turn)return;
     if(g.axis===undefined){g.axis=turn.axis;g.layer=turn.layer;renderer.beginDrag(turn.move);}
     const n=g.hit.slot.normal,d=delta;
     const cross=[n[1]*d[2]!-n[2]*d[1]!,n[2]*d[0]!-n[0]*d[2]!,n[0]*d[1]!-n[1]*d[0]!];
@@ -47,11 +47,11 @@ export function attachDrag(renderer: CubeRenderer, controller: CubeController, c
     if(pinching){points.delete(e.pointerId);if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId);if(!points.size)cancel();return;}
     const angle=renderer.endDrag();gesture=undefined;points.delete(e.pointerId);
     if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId);
-    renderer.enableOrbit(true);controller.inputEnabled=true;
+    renderer.enableOrbit(true);controller.unlockInput('drag');
     if(!g || g.axis===undefined)return;
     const turns=Math.round(Math.abs(angle)/(Math.PI/2));if(!turns)return;
     const layer=g.layer!;
-    const opposite=controller.cube.size===2 && layer===2;
+    const opposite=controller.size===2 && layer===2;
     const face=(opposite?['L','D','B']:['R','U','F'])[g.axis]!;
     const token=`${layer===1 || opposite?'':layer}${face}${turns===2?'2':(angle>0)!==opposite?"'":''}`;
     if(controller.applyMove(token,timestamp)){renderer.resumeDrag(angle);changed();}

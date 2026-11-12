@@ -108,7 +108,7 @@ it('rejects disabled input through every move entry point', () => {
   const display = {isAnimating: true, enqueueMove: vi.fn(), enqueueMoves: vi.fn(), setSize: vi.fn(), setState: vi.fn(), dispose: vi.fn()};
   const controller = new CubeController(display);
   const listener = vi.fn(); controller.onMoveApplied(listener);
-  controller.inputEnabled = false;
+  controller.lockInput('test');
   expect(controller.applyMove('R', 10)).toBe(false);
   controller.moves(['U'], 11);
   expect(controller.sequence('F', 12)).toBe(0);
@@ -117,7 +117,7 @@ it('rejects disabled input through every move entry point', () => {
   expect(listener).not.toHaveBeenCalled();
   expect(display.enqueueMove).not.toHaveBeenCalled();
   expect(display.enqueueMoves).not.toHaveBeenCalled();
-  controller.inputEnabled = true;
+  controller.unlockInput('test');
   expect(controller.applyMove('R', 13)).toBe(true);
 });
 
@@ -135,4 +135,15 @@ it('rejects invalid moves and timestamps without events or partial state for eve
     expect(controller.cube.state).toEqual(new Cube(n).applyMoves("R U R' U2").state);
   }
   expect(listener).toHaveBeenCalledTimes(36);
+});
+
+it('keeps lock ownership, rejects gated batches atomically and reports replacement',()=>{
+ const display={isAnimating:false,enqueueMove:vi.fn(),enqueueMoves:vi.fn(),setSize:vi.fn(),setState:vi.fn(),dispose:vi.fn()};
+ const c=new CubeController(display), replaced=vi.fn();c.onStateReplaced(replaced);
+ c.lockInput('drag');c.lockInput('context');c.unlockInput('drag');expect(c.inputEnabled).toBe(false);
+ (c.lockedBy as Set<string>).clear();expect(c.inputEnabled).toBe(false);c.unlockInput('context');
+ c.setMoveGate(m=>m.canonical!=='U');expect(c.applyMove('U',1)).toBe(false);
+ expect(c.moves(['R','U'],2)).toBe(false);expect(c.sequence('R U',3)).toBe(0);expect(c.isSolved()).toBe(true);expect(display.enqueueMoves).not.toHaveBeenCalled();
+ c.reset();c.scramble('test');c.setSize(7);expect(replaced).toHaveBeenCalledTimes(3);expect(c.size).toBe(7);
+ c.dispose();c.unlockInput('disposed');expect(c.inputEnabled).toBe(false);
 });
