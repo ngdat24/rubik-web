@@ -44,7 +44,7 @@ test('cloud account login, auto upload, cross-device history and logout isolatio
         const id=email==='a@example.test'?idA:idB;
         const user={id,email,aud:'authenticated',role:'authenticated',email_confirmed_at:'2026-11-13T00:00:00Z',app_metadata:{provider:'email'},user_metadata:{},created_at:'2026-11-13T00:00:00Z'};
         const exp=Math.floor(Date.now()/1000)+3600;
-        const token=[{alg:'HS256',typ:'JWT'},{sub:id,aud:'authenticated',role:'authenticated',email,exp},'signature'].map(v=>typeof v==='string'?v:Buffer.from(JSON.stringify(v)).toString('base64url')).join('.');tokens.set(token,id===idA?'token-a':'token-b');
+        const token=[{alg:'HS256',typ:'JWT'},{sub:id,aud:'authenticated',role:'authenticated',email,exp,iat:exp-3600},'c2lnbmF0dXJl'].map(v=>typeof v==='string'?v:Buffer.from(JSON.stringify(v)).toString('base64url')).join('.');tokens.set(token,id===idA?'token-a':'token-b');
         if(path.endsWith('/user'))return route.fulfill({json:user});
         if(path.endsWith('/signup'))return route.fulfill({json:user});
         return route.fulfill({json:{access_token:token,refresh_token:'refresh-'+id,expires_in:3600,expires_at:exp,token_type:'bearer',user}});
