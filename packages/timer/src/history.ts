@@ -9,6 +9,14 @@ function copy(entry: HistoryEntry): HistoryEntry {
 }
 export class SolveHistory {
   #entries: HistoryEntry[] = [];
+  entries(): HistoryEntry[] { return this.#entries.map(copy); }
+  merge(entries: readonly HistoryEntry[]): number {
+    let added=0;
+    for(const entry of entries) if(!this.#entries.some(old=>old.solve.id===entry.solve.id)) {
+      this.#entries.push(copy(entry)); added++;
+    }
+    return added;
+  }
   add(solve: Solve): boolean {
     if (this.#entries.some(entry=>entry.solve.id===solve.id)) return false;
     this.#entries.push(copy({solve,penaltyOverride:null})); return true;

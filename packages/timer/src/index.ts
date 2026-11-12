@@ -100,3 +100,6 @@ function copySolve(solve: Solve): Solve { return {...solve,preEvents:solve.preEv
 
 export { SolveHistory } from './history.js';
 export type { HistoryEntry } from './history.js';
+
+export { parseHistoryBackup, validateHistoryBackup, historyCsv } from './backup.js';
+export type { HistoryBackup } from './backup.js';
