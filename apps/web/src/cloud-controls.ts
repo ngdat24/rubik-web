@@ -43,7 +43,7 @@ export function attachCloudHistory(account:CloudAccount|undefined,history:SolveH
     const requested=size.value,{rows}=await api('leaderboard?size='+requested);if(disposed||requested!==size.value)return;
     tbody.replaceChildren();for(const [i,row] of rows.entries()){const tr=document.createElement('tr');for(const text of [String(i+1),row.name,formatTime(row.timeMs)]){const td=document.createElement('td');td.textContent=text;tr.append(td);}tbody.append(tr);}
     if(!rows.length){const td=tbody.insertRow().insertCell();td.colSpan=3;td.textContent='Chưa có kết quả.';}
-    message.textContent='Thành tích tốt nhất mỗi người · 2×2 / 3×3.';
+    message.textContent='Top 10 lượt giải · 2×2 / 3×3.';
   };
   const pull=async()=>{
     const downloaded=new Map<string,Row>();let nextCursor=cursor;
