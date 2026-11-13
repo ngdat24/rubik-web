@@ -35,12 +35,21 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
     const pages=[],contexts=[],errors=[];
     for(let i=0;i<2;i++){
       const id=ids[i],exp=Math.floor(Date.now()/1000)+3600;
+      if(i===1)db.profiles.delete(id);
       const token=[{alg:'HS256',typ:'JWT'},{sub:id,aud:'authenticated',role:'authenticated',exp,iat:exp-3600},'c2lnbmF0dXJl'].map(x=>typeof x==='string'?x:Buffer.from(JSON.stringify(x)).toString('base64url')).join('.');
       tokens.set(token,['token-a','token-b'][i]);
       const context=await browser.newContext({viewport:{width:1280,height:900}});contexts.push(context);
       await context.addInitScript(({token,id,exp})=>localStorage.setItem('sb-cloud-test-auth-token',JSON.stringify({access_token:token,refresh_token:'test',expires_at:exp,expires_in:3600,token_type:'bearer',user:{id,aud:'authenticated',role:'authenticated',email:'test@example.invalid'}})),{token,id,exp});
       const page=await context.newPage();pages.push(page);page.on('pageerror',e=>errors.push(e.message));
-      await page.clock.install();await page.goto(base+'/race.html');await expect(page.locator('canvas')).toBeVisible();
+      await page.clock.install();await page.goto(base+'/race.html');
+      if(i===1){
+        await expect(page.locator('#race-name-dialog')).toBeVisible();
+        await page.locator('#race-name').fill('An');await page.locator('#race-name-form button').click();
+        await expect(page.locator('#race-name-error')).toContainText('chọn tên khác');
+        await page.locator('#race-name').fill('Bình');await page.locator('#race-name-form button').click();
+        await expect(page.locator('#race-name-dialog')).not.toBeVisible();
+      }
+      await expect(page.locator('canvas')).toBeVisible();
       await expect(page.locator('#race-message')).toContainText('Tạo phòng');
       await page.locator('#race-fixed-keys').check();
     }

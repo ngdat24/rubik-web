@@ -72,7 +72,7 @@ export function attachCloudHistory(account:CloudAccount|undefined,history:SolveH
   const sync=async()=>{
     if(disposed||document.hidden)return;if(busy){syncAgain=true;return;}busy=true;syncButton.disabled=true;
     try{
-      await ui.loaded;if(disposed||document.hidden)return;if(!account){await board();status.textContent='Đăng nhập để đồng bộ lịch sử riêng giữa các thiết bị.';return;}
+      await ui.loaded;if(disposed||document.hidden)return;if(!account){await board();status.textContent='Chưa kết nối được hồ sơ tự động; kết quả vẫn lưu trên thiết bị.';return;}
       load();const profile=await api('player');if(disposed)return;
       profileName=profile.name??'';label.textContent=profileName||'Chưa đặt tên';if(!profileName&&!prompted&&!document.querySelector('dialog[open]')){prompted=true;showName();}
       for(const [id,item] of [...pending]){
@@ -103,13 +103,13 @@ export function attachCloudHistory(account:CloudAccount|undefined,history:SolveH
     if(!account||disposed)return;load();const old=pending.get(entry.solve.id);
     store(entry.solve.id,{entry,deleted,ranked:old?.ranked??ranked,revision:old?old.revision:revision(entry.solve.id),nonce:newId()});void sync();
   };
-  const showName=()=>{if(!account){document.querySelector<HTMLButtonElement>('#account-open')!.click();return;}name.value=profileName;nameError.textContent='';if(!document.querySelector('dialog[open]'))dialog.showModal();};
+  const showName=()=>{if(!account){status.textContent='Chưa tạo được hồ sơ tự động. Kiểm tra mạng rồi tải lại trang.';return;}name.value=profileName;nameError.textContent='';if(!document.querySelector('dialog[open]'))dialog.showModal();};
   const submitName=async(event:SubmitEvent)=>{event.preventDefault();const button=form.querySelector<HTMLButtonElement>('button[type=submit]')!;button.disabled=true;try{const profile=await api('player',{name:name.value});profileName=profile.name;label.textContent=profile.name;dialog.close();void sync();}catch(error){nameError.textContent=error instanceof Error?error.message:'Không lưu được tên.';}finally{button.disabled=false;}};
   const change=()=>{void sync();};
   const importHistory=()=>{if(!account)return;for(const entry of history.entries())if(revision(entry.solve.id)===null)queue(entry,false,false);void sync();};
   const useServer=()=>{for(const [id,item] of pending)if(item.conflict){pending.delete(id);try{localStorage.removeItem(prefix+id);}catch{storageError=true;}}cursor=0;resolveButton.hidden=true;void sync();};
   const close=()=>dialog.close();
-  label.textContent=account?'Đang tải tên…':'Khách';edit.textContent=account?'Đổi tên':'Đăng nhập';syncButton.hidden=importButton.hidden=!account;
+  label.textContent=account?'Đang tải tên…':'Khách';edit.textContent=account?'Đổi tên':'Đặt tên';syncButton.hidden=importButton.hidden=!account;
   edit.addEventListener('click',showName);form.addEventListener('submit',submitName);document.querySelector('#player-close')!.addEventListener('click',close);size.addEventListener('change',change);syncButton.addEventListener('click',change);importButton.addEventListener('click',importHistory);resolveButton.addEventListener('click',useServer);window.addEventListener('online',change);
   void sync();const interval=window.setInterval(change,30000);
   const visible=()=>{if(!document.hidden)change();};document.addEventListener('visibilitychange',visible);

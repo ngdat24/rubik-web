@@ -1,16 +1,16 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Rubik Lab — Phòng mời 1v1</title></head>
 <body class="race-page"><main>
-<header><a class="brand" href="/">▦ rubiklab.</a><span>Phòng mời 1v1 · 3×3</span><a href="/">Về luyện tập / đăng nhập</a></header>
+<header><a class="brand" href="/">▦ rubiklab.</a><span>Phòng mời 1v1 · 3×3</span><a href="/">Luyện tập / đặt tên</a></header>
 <section class="race-lobby"><h1>Đua cùng bạn</h1><p>Cùng chuỗi Rubik, cùng giờ bắt đầu. Server xác minh từng khối; chưa tính Elo.</p>
 <details id="race-lobby-controls" open><summary>Thiết lập / mã phòng</summary><div class="toolbar"><label>Chế độ <select id="race-mode"><option value="fullSolve">Giải cả khối · 120 giây</option><option value="f2lRush">F2L Rush · 45 giây</option></select></label><button id="race-create">Tạo phòng</button></div>
 <form id="race-join-form" class="toolbar"><label>Mã phòng <input id="race-code" maxlength="32" autocomplete="off" required pattern="[a-f0-9]{32}"/></label><button id="race-join">Vào phòng</button></form>
 <div class="toolbar"><button id="race-copy" disabled>Sao chép link mời</button><button id="race-ready" disabled>Sẵn sàng</button><button id="race-forfeit" disabled>Bỏ cuộc</button><a id="race-new" href="/race.html" hidden>Trận mới</a></div></details>
-<p id="race-message" role="status" aria-live="polite">Đang kiểm tra đăng nhập…</p></section>
+<p id="race-message" role="status" aria-live="polite">Đang khôi phục hồ sơ…</p></section>
 <section class="scramble-panel"><p id="scramble-text">Scramble được mở khi bắt đầu inspection.</p></section>
 <div class="race-workspace"><section class="solve-space"><div class="cube-toolbar"><label><input id="race-fixed-keys" type="checkbox"/> Khóa xoay phím</label><button id="race-camera">Đặt lại góc nhìn</button></div>
 <section id="viewport" aria-label="Rubik thi đấu 3D"></section><p class="gesture-hint">Phím và kéo lớp như luyện tập · x/y/z được phép trong inspection</p>
 <section class="timer-panel"><output id="race-clock" aria-label="Thời gian trận">—</output><p id="race-phase" role="status">Chưa vào phòng</p></section></section>
 <aside class="leaderboard-panel"><h2>Tiến độ trận</h2><ol id="race-players"></ol><p id="race-result" role="status" aria-live="polite"></p><p class="hint">Điểm: số khối hoàn thành → thời điểm hoàn thành cuối → số nước. Mất mạng vẫn giải tiếp với scramble đã nhận; gửi lại trong ân hạn 3 giây. Kết quả này không vào bảng single.</p></aside></div>
 <dialog id="race-forfeit-dialog"><h2>Bỏ cuộc?</h2><p>Đồng hồ vẫn chạy. Xác nhận sẽ xử thua trận này.</p><button id="race-keep">Tiếp tục</button><button id="race-confirm-forfeit">Xác nhận bỏ cuộc</button></dialog>
-</main><script type="module" src="/src/race.ts"></script></body></html>
+</main><dialog id="race-name-dialog" aria-labelledby="race-name-title"><h2 id="race-name-title">Tên của bạn</h2><p>Chọn tên chưa có người dùng. Trình duyệt tự nhớ hồ sơ; không cần email hay mật khẩu.</p><form id="race-name-form"><label>Tên hiển thị <input id="race-name" maxlength="30" autocomplete="nickname" required/></label><p id="race-name-error" role="alert"></p><button type="submit">Lưu tên và tiếp tục</button></form></dialog><script type="module" src="/src/race.ts"></script></body></html>
