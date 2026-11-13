@@ -32,8 +32,9 @@ export function fakeDatabase(){
       return response(rows.sort((a,b)=>a.id.localeCompare(b.id)).slice(Number(url.searchParams.get('offset')),Number(url.searchParams.get('offset'))+500));
     }
     if(url.pathname.endsWith('/leaderboard')){
-      const best=new Map();for(const row of solves.values()){if(!row.ranked||row.deleted||row.solve.size!==body.p_size||row.solve.penalty==='DNF'||!profiles.has(row.user_id))continue;const timeMs=row.solve.timeMs+(row.solve.penalty==='+2'?2000:0);if(!best.has(row.user_id)||timeMs<best.get(row.user_id))best.set(row.user_id,timeMs);}
-      return response([...best].map(([id,timeMs])=>({id,name:profiles.get(id).name,timeMs})).sort((a,b)=>a.timeMs-b.timeMs));
+      const rows=[...solves.values()].filter(row=>row.ranked&&!row.deleted&&row.solve.size===body.p_size&&row.solve.penalty!=='DNF'&&profiles.has(row.user_id)).map(row=>({id:row.user_id,name:profiles.get(row.user_id).name,timeMs:row.solve.timeMs+(row.solve.penalty==='+2'?2000:0),solveId:row.id})).sort((a,b)=>a.timeMs-b.timeMs||a.name.localeCompare(b.name)||a.id.localeCompare(b.id)).slice(0,10);
+      return response(rows);
+
     }
     throw new Error('Unexpected fake request: '+url.pathname);
   };

@@ -31,7 +31,7 @@ test('LAN profiles, replay, ranking, deduplication and restart persistence',asyn
     assert.equal((await call('solves',{solve:invalid},b.token)).status,400);
     const wrongPenalty=solve('penalty',3,1000,16000);wrongPenalty.penalty='none';assert.equal((await call('solves',{solve:wrongPenalty},a.token)).status,400);
     assert.equal((await call('solves',{solve:{...solve('four',2,1000),size:4}},a.token)).status,400);
-    assert.deepEqual((await call('leaderboard?size=3')).data.rows.map(r=>[r.name,r.timeMs]),[['Bình',4000],['An',5000]]);
+    assert.deepEqual((await call('leaderboard?size=3')).data.rows.map(r=>[r.name,r.timeMs]),[['Bình',4000],['An',5000],['An',9000]]);
     assert.equal((await call('leaderboard?size=2')).data.rows.length,1);
     await call('player',{name:'An mới'},a.token);
     await stop();base=await start();

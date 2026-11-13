@@ -64,9 +64,7 @@ export function createLanServer({dataDir=resolve('lan-data'), webDir=resolve('ap
         }
         if(url.pathname==='/api/leaderboard'&&req.method==='GET'){
           const size=Number(url.searchParams.get('size'));if(![2,3].includes(size))throw new Error('Kích thước không hợp lệ.');
-          const best=new Map();
-          for(const {playerId,solve} of db.solves){if(solve.size!==size||solve.penalty==='DNF')continue;const timeMs=solve.timeMs+(solve.penalty==='+2'?2000:0);if(!best.has(playerId)||timeMs<best.get(playerId))best.set(playerId,timeMs);}
-          const rows=[...best].map(([id,timeMs])=>({id,name:db.players.find(p=>p.id===id)?.name??'Người chơi',timeMs})).sort((a,b)=>a.timeMs-b.timeMs||a.name.localeCompare(b.name)||a.id.localeCompare(b.id));
+          const rows=db.solves.filter(({solve})=>solve.size===size&&solve.penalty!=='DNF').map(({playerId,solve})=>({id:solve.id,name:db.players.find(p=>p.id===playerId)?.name??'Người chơi',timeMs:solve.timeMs+(solve.penalty==='+2'?2000:0)})).sort((a,b)=>a.timeMs-b.timeMs||a.name.localeCompare(b.name)||a.id.localeCompare(b.id)).slice(0,10);
           return json(res,200,{rows});
         }
         return json(res,404,{error:'Không có API này.'});

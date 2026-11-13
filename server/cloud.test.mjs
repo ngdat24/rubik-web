@@ -48,6 +48,10 @@ test('cloud API verifies identities, scopes history, rejects conflicts and does 
     assert.equal((await call('player')).status,200);
     const modern=db.calls.at(-1);assert.equal(modern.headers.apikey,'sb_secret_test');
     assert.equal(modern.headers.Authorization,undefined);
+    for(let i=0;i<12;i++)db.solves.set('rank-'+i,{id:'rank-'+i,user_id:'11111111-1111-4111-8111-111111111111',solve:{...validSolve('rank-'+i),timeMs:100+i},ranked:true,deleted:false});
+    const top=(await call('leaderboard?size=3',undefined,null)).data.rows;
+    assert.equal(top.length,10);assert.ok(top.every(row=>row.name==='An'));
+    assert.deepEqual(top.map(row=>row.timeMs),Array.from({length:10},(_,i)=>100+i));
     const fixture=validSolve('page');
     for(let i=0;i<501;i++)db.solves.set('page-'+i,{id:'page-'+i,user_id:'22222222-2222-4222-8222-222222222222',solve:{...fixture,id:'page-'+i},penalty_override:null,deleted:false,revision:1,sync_version:100+i});
     const page1=(await call('solves?since=0',undefined,'token-b')).data;

@@ -63,7 +63,7 @@ export function attachLeaderboard(){
         catch(e){if(e instanceof ApiError&&[400,413].includes(e.status)){item.rejected=e.message;store(item);continue;}message.textContent=`Kết quả đang chờ gửi: ${e instanceof Error?e.message:'Lỗi kết nối'}`;return;}
         pending=pending.filter(p=>p.solve.id!==item.solve.id);try{localStorage.removeItem(prefix+item.solve.id);}catch{message.textContent='Đã gửi, nhưng không dọn được hàng đợi trên thiết bị.';return;}
       }
-      await render();const rejected=pending.find(item=>item.rejected);message.textContent=rejected?`Một kết quả chỉ giữ local: ${rejected.rejected}`:'Đã đồng bộ · thành tích tốt nhất mỗi người.';
+      await render();const rejected=pending.find(item=>item.rejected);message.textContent=rejected?`Một kết quả chỉ giữ local: ${rejected.rejected}`:'Đã đồng bộ · top 10 lượt giải.';
     }catch{if(!disposed)message.textContent='Chưa kết nối server LAN · kết quả mới sẽ chờ gửi lại.';}
     finally{busy=false;}
   };
