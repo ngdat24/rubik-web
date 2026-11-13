@@ -1,4 +1,4 @@
-import {createClient} from '@supabase/supabase-js';
+import {browserAccount} from './account.js';
 import {CubeController,loadSettings} from '@rubik/controller';
 import {CubeRenderer,viewMove} from '@rubik/renderer';
 import {isSolved,f2lSolvedAny,formatTime} from '@rubik/engine';
@@ -31,12 +31,25 @@ let disposed=false,frame=0,poll=0;
 const cleanup:(()=>void)[]=[];
 
 async function boot():Promise<void>{
-  const url=import.meta.env.VITE_SUPABASE_URL,key=import.meta.env.VITE_SUPABASE_ANON_KEY;
-  if(!url||!key)throw new Error('Phòng online cần cấu hình Supabase/Vercel. Chế độ LAN chưa phục vụ phòng này.');
-  const client=createClient(url,key,{auth:{flowType:'pkce',persistSession:true,autoRefreshToken:true}});
-  const {data:{session}}=await client.auth.getSession();
-  if(!session)throw new Error('Hãy về trang luyện tập đăng nhập và đặt tên, rồi mở lại phòng.');
-  const user=session.user.id;
+  const account=await browserAccount();
+  if(!account)throw new Error('Phòng online cần cấu hình Supabase/Vercel. Chế độ LAN chưa phục vụ phòng này.');
+  cleanup.push(account.dispose);
+  const {client}=account,user=account.id;
+  const profileRequest=async(name?:string)=>{
+    const response=await fetch('/api/player',{method:name===undefined?'GET':'POST',headers:{Authorization:'Bearer '+await account.token(),'Content-Type':'application/json'},...(name===undefined?{}:{body:JSON.stringify({name})}),signal:AbortSignal.timeout(10000)});
+    const value=await response.json();if(!response.ok)throw new Error(value.error??'Chưa lưu được tên.');return value;
+  };
+  if(!(await profileRequest()).name){
+    const nameDialog=el<HTMLDialogElement>('race-name-dialog'),form=el<HTMLFormElement>('race-name-form');
+    nameDialog.oncancel=e=>e.preventDefault();nameDialog.showModal();
+    await new Promise<void>(resolve=>{form.onsubmit=async e=>{
+      e.preventDefault();const button=form.querySelector<HTMLButtonElement>('button')!;button.disabled=true;
+      try{await profileRequest(el<HTMLInputElement>('race-name').value);form.onsubmit=null;nameDialog.close();resolve();}
+      catch(error){el('race-name-error').textContent=error instanceof Error?error.message:'Không lưu được tên.';}
+      finally{button.disabled=false;}
+    };});
+  }
+  if(disposed)return;
   const renderer=new CubeRenderer(el('viewport'));renderer.setSpeed(40);
   const controller=new CubeController(renderer);controller.lockInput('race');
   renderer.onContextChange=available=>available?controller.unlockInput('context'):controller.lockInput('context');
@@ -74,7 +87,7 @@ async function boot():Promise<void>{
   };
   const api=async(action:string,extra:Record<string,unknown>={}):Promise<Snapshot>=>{
     const {data:{session:current}}=await client.auth.getSession();
-    if(current?.user.id!==user)throw new Error('Phiên đăng nhập đã đổi. Hãy tải lại trang.');
+    if(current?.user.id!==user)throw new Error('Phiên hồ sơ đã đổi. Hãy tải lại trang.');
     const started=performance.now();
     const response=await fetch(action==='get'?`/api/race?id=${roomId}`:'/api/race',{
       method:action==='get'?'GET':'POST',headers:{Authorization:`Bearer ${current.access_token}`,'Content-Type':'application/json'},

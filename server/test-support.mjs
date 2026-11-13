@@ -7,8 +7,9 @@ export function fakeDatabase(){
     calls.push({url,body,headers,method:options.method});
     const response=(value,status=200)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json'}});
     if(url.pathname==='/auth/v1/user'){
-      const id=headers.Authorization==='Bearer token-a'?'11111111-1111-4111-8111-111111111111':headers.Authorization==='Bearer token-b'?'22222222-2222-4222-8222-222222222222':undefined;
-      return response(id?{id,email_confirmed_at:'2026-11-13T00:00:00Z'}:{error:'Invalid token'},id?200:401);
+      const token=headers.Authorization;
+      const id=['Bearer token-a','Bearer anonymous-a','Bearer unconfirmed-a'].includes(token)?'11111111-1111-4111-8111-111111111111':['Bearer token-b','Bearer anonymous-b'].includes(token)?'22222222-2222-4222-8222-222222222222':undefined;
+      return response(id?{id,email_confirmed_at:token.startsWith('Bearer token-')?'2026-11-13T00:00:00Z':null,is_anonymous:token.startsWith('Bearer anonymous-')}:{error:'Invalid token'},id?200:401);
     }
     if(url.pathname.startsWith('/auth/v1/admin/users/'))return response({ok:true});
     if(url.pathname.endsWith('/consume_quota'))return response(!denyQuota);

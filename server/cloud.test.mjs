@@ -13,8 +13,13 @@ test('cloud API verifies identities, scopes history, rejects conflicts and does 
   };
   try{
     assert.equal((await call('solves',undefined,'bad')).status,401);
+    assert.equal((await call('solves',undefined,'unconfirmed-a')).status,401);
+    assert.equal((await call('solves',undefined,'anonymous-a')).status,200);
     await call('player',{name:'An',id:'someone-else'});await call('player',{name:'Bình'},'token-b');
     assert.equal(db.profiles.size,2);assert.equal((await call('player',{name:'An'},'token-b')).status,409);
+    const collision=await call('player',{name:'an'},'anonymous-b');assert.equal(collision.status,409);assert.match(collision.data.error,/chọn tên khác/);
+    assert.equal((await call('player',{name:'Bình mới'},'anonymous-b')).status,200);
+    assert.equal((await call('player',undefined,'anonymous-a')).data.name,'An');
     const body={solve:validSolve(),penaltyOverride:null,deleted:false,ranked:true,revision:null,user_id:'someone-else'};
     const saved=await call('solves',body);assert.equal(saved.status,200);assert.equal(saved.data.row.revision,1);
     assert.equal((await call('solves',body)).status,200);

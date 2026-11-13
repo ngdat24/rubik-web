@@ -164,7 +164,7 @@ instant.addEventListener('change', onInstant);
 
 resetButton.addEventListener('click', onReset);
 scrambleButton.addEventListener('click', onScramble);
-const account=await mountAccount().catch(()=>{document.querySelector('#cloud-message')!.textContent='Chưa khởi tạo được đăng nhập; vẫn có thể chơi và lưu trên thiết bị.';return undefined;});
+const account=await mountAccount().catch(()=>{document.querySelector('#cloud-message')!.textContent='Chưa tạo được hồ sơ tự động; kiểm tra mạng hoặc bật Anonymous Sign-Ins trong Supabase. Kết quả vẫn lưu trên thiết bị.';return undefined;});
 if(controller) timerUI=attachTimer(controller,()=>{seed.value=newId();onScramble();},account);
 const onPageHide = (event: PageTransitionEvent): void => {
   if (!event.persisted) { account?.dispose();clearInterval(viewLabelTimer); timerUI?.dispose(); detachDrag?.(); detachKeyboard?.(); keySettings.dispose(); controller?.dispose(); }

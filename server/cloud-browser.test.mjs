@@ -11,7 +11,7 @@ import {fakeDatabase} from './test-support.mjs';
 const require=createRequire(new URL('../apps/web/package.json',import.meta.url));
 const {chromium,expect}=require('@playwright/test');
 
-test('cloud account login, auto upload, cross-device history and logout isolation', {timeout:120000},async()=>{
+test('name-only profile, uniqueness, persistent session, offline sync and private history', {timeout:120000},async()=>{
   const dir=mkdtempSync(join(tmpdir(),'rubik-cloud-'));
   let browser,server;
   try{
@@ -31,8 +31,9 @@ test('cloud account login, auto upload, cross-device history and logout isolatio
     });
     await new Promise(r=>server.listen(0,'127.0.0.1',r));const base='http://127.0.0.1:'+server.address().port;
     browser=await chromium.launch({channel:'chrome',headless:true,args:['--enable-webgl','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
-    const create=async(email)=>{
-      const context=await browser.newContext({viewport:{width:1440,height:1000}});
+    const authCreates=[];
+    const create=async(email,storageState)=>{
+      const context=await browser.newContext({viewport:{width:1440,height:1000},...(storageState?{storageState}:{})});
       await context.addInitScript(()=>{
         const original=window.setInterval;window.rubikPollers=[];
         window.setInterval=function(callback,delay,...args){if(delay===30000)window.rubikPollers.push(()=>callback(...args));return original.call(window,callback,delay,...args);};
@@ -45,18 +46,17 @@ test('cloud account login, auto upload, cross-device history and logout isolatio
         if(path.endsWith('/logout'))return fulfill({status:204});
         if(path.endsWith('/recover'))return fulfill({json:{}});
         const id=email==='a@example.test'?idA:idB;
-        const user={id,email,aud:'authenticated',role:'authenticated',email_confirmed_at:'2026-11-13T00:00:00Z',app_metadata:{provider:'email'},user_metadata:{},created_at:'2026-11-13T00:00:00Z'};
+        const user={id,email,aud:'authenticated',role:'authenticated',is_anonymous:true,app_metadata:{provider:'anonymous'},user_metadata:{},created_at:'2026-11-13T00:00:00Z'};
         const exp=Math.floor(Date.now()/1000)+3600;
-        const token=[{alg:'HS256',typ:'JWT'},{sub:id,aud:'authenticated',role:'authenticated',email,exp,iat:exp-3600},'c2lnbmF0dXJl'].map(v=>typeof v==='string'?v:Buffer.from(JSON.stringify(v)).toString('base64url')).join('.');tokens.set(token,id===idA?'token-a':'token-b');
+        const token=[{alg:'HS256',typ:'JWT'},{sub:id,aud:'authenticated',role:'authenticated',email,exp,iat:exp-3600},'c2lnbmF0dXJl'].map(v=>typeof v==='string'?v:Buffer.from(JSON.stringify(v)).toString('base64url')).join('.');tokens.set(token,id===idA?'anonymous-a':'anonymous-b');
         if(path.endsWith('/user'))return fulfill({json:user});
-        if(path.endsWith('/signup'))return fulfill({json:user});
+        if(path.endsWith('/signup')){assert.equal(route.request().postDataJSON().email,undefined);assert.equal(route.request().postDataJSON().password,undefined);authCreates.push(id);}
         return fulfill({json:{access_token:token,refresh_token:'refresh-'+id,expires_in:3600,expires_at:exp,token_type:'bearer',user}});
       });
-      const page=await context.newPage();const diagnostics=[];page.on('pageerror',e=>diagnostics.push(e.message));page.on('console',m=>{if(m.type()==='error')diagnostics.push(m.text());});await page.goto(base);await expect(page.locator('canvas')).toBeVisible();await page.locator('#account-open').click();
-      await page.locator('#account-email').fill(email);await page.locator('#account-password').fill('test-password');
-      await Promise.all([page.waitForNavigation({waitUntil:'domcontentloaded'}),page.locator('#account-form button[type=submit]').click()]);
-      await expect(page.locator('#cloud-sync')).toBeVisible();
-      try{await expect(page.locator('#account-open')).toHaveText('Tài khoản');}catch(e){throw new Error(String(e)+' Diagnostics: '+JSON.stringify({errors:diagnostics,message:await page.locator('#account-message').textContent(),cloud:await page.locator('#cloud-message').textContent()}));}return {context,page};
+      const page=await context.newPage();await page.goto(base);await expect(page.locator('canvas')).toBeVisible();
+      await expect(page.locator('#cloud-sync')).toBeVisible();await expect(page.locator('#account-open')).toHaveText('Hồ sơ');
+      await expect(page.locator('input[type=email],input[type=password],#account-signout,#account-mode')).toHaveCount(0);
+      return {context,page};
     };
     const {context,page}=await create('a@example.test');const errors=[];page.on('pageerror',e=>errors.push(e.message));
     await expect(page.locator('#player-dialog')).toBeVisible();await page.locator('#player-name').fill('An online');await page.locator('#player-form button[type=submit]').click();await expect(page.locator('#player-dialog')).not.toBeVisible();
@@ -66,7 +66,7 @@ test('cloud account login, auto upload, cross-device history and logout isolatio
     await expect(page.locator('#solve-history li')).toHaveCount(1);await expect.poll(()=>page.evaluate(()=>Object.keys(localStorage).filter(k=>k.startsWith('rubik.cloud.pending.')).length)).toBe(1);
     await context.setOffline(false);await page.reload();await page.selectOption('#cube-size','2');await expect.poll(()=>db.solves.size).toBe(1);
     await page.locator('#solve-history li').getByRole('button',{name:'+2',exact:true}).click();await expect.poll(()=>[...db.solves.values()][0]?.penalty_override).toBe('+2');
-    const second=await create('a@example.test');await expect(second.page.locator('#player-label')).toHaveText('An online');await second.page.selectOption('#cube-size','2');await expect(second.page.locator('#solve-history li')).toHaveCount(1);await expect(second.page.locator('#solve-history li')).toContainText('đã chỉnh');
+    const second=await create('a@example.test',await context.storageState());await expect(second.page.locator('#player-label')).toHaveText('An online');await second.page.selectOption('#cube-size','2');await expect(second.page.locator('#solve-history li')).toHaveCount(1);await expect(second.page.locator('#solve-history li')).toContainText('đã chỉnh');
     await second.page.selectOption('#leaderboard-size','2');await expect(second.page.locator('#leaderboard-rows')).toContainText('An online');
     await expect(second.page.locator('#cloud-sync')).toBeEnabled();
     const unchanged=second.page.waitForResponse(r=>r.url().includes('/api/solves?since=')&&r.request().method()==='GET');await second.page.locator('#cloud-sync').click();
@@ -82,14 +82,16 @@ test('cloud account login, auto upload, cross-device history and logout isolatio
     const changedRows=(await (await changed).json()).rows;assert.equal(changedRows.length,1);assert.equal(changedRows[0].penalty_override,'DNF');
     await expect(second.page.locator('#solve-history li')).toContainText('phạt DNF');
     await page.bringToFront();
-    await page.locator('#account-open').click();await page.locator('#account-signout').click();await expect(page.locator('#account-open')).toHaveText('Đăng nhập');await expect(page.locator('#solve-history li')).toHaveCount(0);
-    await page.selectOption('#leaderboard-size','2');await expect(page.locator('#leaderboard-rows')).toContainText('An online');
     await second.page.bringToFront();await second.page.locator('#solve-history li').getByRole('button',{name:'Xóa',exact:true}).click();await expect.poll(()=>[...db.solves.values()][0]?.deleted).toBe(true);
-    const third=await create('b@example.test');await expect(third.page.locator('#player-dialog')).toBeVisible();await third.page.locator('#player-close').click();await third.page.selectOption('#cube-size','2');await expect(third.page.locator('#solve-history li')).toHaveCount(0);
-    await third.page.locator('#account-open').click();await third.page.locator('#account-signout').click();await expect(third.page.locator('#account-open')).toHaveText('Đăng nhập');
-    await third.page.locator('#account-open').click();await third.page.selectOption('#account-mode','signup');await third.page.locator('#account-email').fill('b@example.test');await third.page.locator('#account-password').fill('test-password');await third.page.locator('#account-form button[type=submit]').click();await expect(third.page.locator('#account-message')).toContainText('Kiểm tra email');
-    await third.page.selectOption('#account-mode','reset');await third.page.locator('#account-password').fill('');await third.page.locator('#account-form button[type=submit]').click();await expect(third.page.locator('#account-message')).toContainText('email khôi phục');
-    await third.page.goto(base+'/?code=recovery-test');await expect(third.page.locator('#account-dialog')).toBeVisible();await expect(third.page.locator('#account-mode')).toHaveValue('password');await third.page.locator('#account-password').fill('new-test-password');await third.page.locator('#account-form button[type=submit]').click();await expect(third.page.locator('#account-message')).toContainText('Đã đổi mật khẩu');
+    const third=await create('b@example.test');await expect(third.page.locator('#player-dialog')).toBeVisible();
+    await third.page.locator('#player-name').fill('an online');await third.page.locator('#player-form button[type=submit]').click();
+    await expect(third.page.locator('#player-error')).toContainText('chọn tên khác');await expect(third.page.locator('#player-dialog')).toBeVisible();
+    await third.page.locator('#player-name').fill('Bình online');await third.page.locator('#player-form button[type=submit]').click();
+    await expect(third.page.locator('#player-dialog')).not.toBeVisible();await third.page.selectOption('#cube-size','2');await expect(third.page.locator('#solve-history li')).toHaveCount(0);
+    await third.page.reload();await expect(third.page.locator('#player-label')).toHaveText('Bình online');
+    assert.equal(authCreates.length,2,'Reload or restored session created a replacement identity');
+    await third.page.locator('#account-open').click();await expect(third.page.locator('#account-dialog')).toBeVisible();
+    await third.page.locator('#account-close').click();
     assert.deepEqual(errors,[]);await context.close();await second.context.close();await third.context.close();
   }finally{await browser?.close();if(server)await new Promise(r=>{server.closeAllConnections();server.close(r);});rmSync(dir,{recursive:true,force:true});}
 });

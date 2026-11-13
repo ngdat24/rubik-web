@@ -15,8 +15,8 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
         const response=await fetcher(base+path,{method,headers:{apikey:auth===secret?secret:key,...(auth.startsWith('sb_secret_')?{}:{Authorization:'Bearer '+auth}),'Content-Type':'application/json',Prefer:path.startsWith('/rest/v1/profiles?')?'resolution=merge-duplicates,return=representation':'return=representation'},...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(10000)});
         const value=response.status===204?null:await response.json();
         if(!response.ok){
-          if(response.status===401||response.status===403)throw new HttpError(auth===secret?503:401,auth===secret?'Khóa server Supabase chưa được cấu hình đúng.':'Phiên đăng nhập hết hạn; hãy đăng nhập lại.');
-          if(value?.code==='23505')throw new HttpError(409,'Tên hoặc ID đã được sử dụng.');
+          if(response.status===401||response.status===403)throw new HttpError(auth===secret?503:401,auth===secret?'Khóa server Supabase chưa được cấu hình đúng.':'Phiên hồ sơ hết hạn; hãy tải lại trang.');
+          if(value?.code==='23505')throw new HttpError(409,path.startsWith('/rest/v1/profiles?')?'Tên này đã có người dùng. Hãy chọn tên khác.':'ID đã được sử dụng.');
           if(value?.code==='40001')throw new HttpError(409,'Dữ liệu đã thay đổi trên thiết bị khác. Hãy tải bản server trước khi sửa tiếp.');
           if(value?.code==='54000')throw new HttpError(413,'Đã đạt giới hạn 10.000 bản ghi mỗi tài khoản.');
           if(value?.code==='P0001'&&path==='/rest/v1/rpc/race_action')throw new HttpError(409,
@@ -35,8 +35,8 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
         res.setHeader('Cache-Control','public, s-maxage=15, stale-while-revalidate=15');return send(200,{rows});
       }
       if(!['player','solves','account','race'].includes(route)||!['GET','POST','DELETE'].includes(req.method))throw new HttpError(404,'Không có API này.');
-      const token=/^Bearer (\S+)$/.exec(req.headers.authorization??'')?.[1];if(!token||token.length>8192)throw new HttpError(401,'Cần đăng nhập.');
-      const user=await request('/auth/v1/user',{auth:token});if(!user?.id||!user.email_confirmed_at)throw new HttpError(401,'Cần xác nhận email trước khi đồng bộ.');
+      const token=/^Bearer (\S+)$/.exec(req.headers.authorization??'')?.[1];if(!token||token.length>8192)throw new HttpError(401,'Cần phiên hồ sơ hợp lệ.');
+      const user=await request('/auth/v1/user',{auth:token});if(!user?.id||(!user.email_confirmed_at&&user.is_anonymous!==true))throw new HttpError(401,'Phiên hồ sơ không hợp lệ. Hãy tải lại trang.');
       const allowed=await request('/rest/v1/rpc/consume_quota',{method:'POST',body:{p_user:user.id,p_kind:req.method==='GET'?'read':'write'}});
       if(!allowed)throw new HttpError(429,'Thao tác quá nhanh, thử lại sau một phút.');
       let body={};
