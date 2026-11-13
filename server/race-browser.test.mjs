@@ -17,7 +17,7 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
   try{
     const vite=join(dirname(require.resolve('vite/package.json')),'bin/vite.js');
     execFileSync(process.execPath,[vite,'build','--outDir',dir,'--emptyOutDir'],{cwd:resolve('apps/web'),env:{...process.env,VITE_SUPABASE_URL:'https://cloud-test.supabase.co',VITE_SUPABASE_ANON_KEY:'public-test'},stdio:'pipe'});
-    const db=fakeDatabase(),ids=['11111111-1111-4111-8111-111111111111','22222222-2222-4222-8222-222222222222'];
+    const epoch=Date.now(),db=fakeDatabase({raceClock:()=>epoch}),ids=['11111111-1111-4111-8111-111111111111','22222222-2222-4222-8222-222222222222'];
     ids.forEach((id,i)=>db.profiles.set(id,{id,name:['An','Bình'][i]}));
     const tokens=new Map();
     const handler=createCloudHandler({env:{SUPABASE_URL:'https://db.test',SUPABASE_ANON_KEY:'public-test',SUPABASE_SECRET_KEY:'sb_secret_test'},fetcher:(url,options)=>{
@@ -41,27 +41,50 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
       const context=await browser.newContext({viewport:{width:1280,height:900}});contexts.push(context);
       await context.addInitScript(({token,id,exp})=>localStorage.setItem('sb-cloud-test-auth-token',JSON.stringify({access_token:token,refresh_token:'test',expires_at:exp,expires_in:3600,token_type:'bearer',user:{id,aud:'authenticated',role:'authenticated',email:'test@example.invalid'}})),{token,id,exp});
       const page=await context.newPage();pages.push(page);page.on('pageerror',e=>errors.push(e.message));
-      await page.clock.install();await page.goto(base+'/race.html');
+      await page.clock.install();
+      await page.addInitScript(()=>{
+        const original=window.setTimeout;
+        window.setTimeout=function(callback,delay,...args){
+          if(delay===1000&&typeof callback==='function')window.racePoll=callback;
+          return original.call(window,callback,delay,...args);
+        };
+      });
+      await page.goto(base+'/race.html');
       if(i===1){
         await expect(page.locator('#race-name-dialog')).toBeVisible();
         await page.locator('#race-name').fill('An');await page.locator('#race-name-form button').click();
         await expect(page.locator('#race-name-error')).toContainText('chọn tên khác');
-        await page.locator('#race-name').fill('Bình');await page.locator('#race-name-form button').click();
+        await page.locator('#race-name').fill('Bình');
+        const saved=page.waitForResponse(r=>r.url().endsWith('/api/player')&&r.request().method()==='POST');
+        await page.locator('#race-name-form button').click();
+        const response=await saved;assert.equal(response.status(),200,JSON.stringify(await response.json()));
         await expect(page.locator('#race-name-dialog')).not.toBeVisible();
       }
       await expect(page.locator('canvas')).toBeVisible();
       await expect(page.locator('#race-message')).toContainText('Tạo phòng');
       await page.locator('#race-fixed-keys').check();
     }
+    // Freeze both browser clocks and the fake server. Slow screenshots or CI
+    // scheduling must never consume inspection or alter captured event times.
+    await Promise.all(pages.map(page=>page.clock.pauseAt(new Date(Date.now()+100))));
+    const tick=async ms=>{
+      const responses=pages.map(page=>page.waitForResponse(r=>r.url().includes('/api/race?id=')&&r.request().method()==='GET'));
+      db.advanceRace(ms);await Promise.all(pages.map(page=>page.clock.fastForward(ms)));
+      await Promise.all(pages.map(page=>page.evaluate(()=>window.racePoll())));
+      await Promise.all(responses.map(p=>p.then(response=>response.finished())));
+      db.advanceRace(32);await Promise.all(pages.map(page=>page.clock.runFor(32)));
+    };
     const [a,b]=pages;
     await a.locator('#race-create').click();await expect(a.locator('#race-copy')).toBeEnabled();
     const id=await a.locator('#race-code').inputValue();await b.locator('#race-code').fill(id);await b.locator('#race-join').click();
     await expect(b.locator('#race-players li')).toHaveCount(2);
     await a.locator('#race-ready').click();await b.locator('#race-ready').click();
     await expect.poll(()=>db.rooms.get(id).start_ms).not.toBeNull();
+    await expect(a.locator('#race-ready')).toBeDisabled();await expect(b.locator('#race-ready')).toBeDisabled();
+    await tick(1000);
     await expect(a.locator('#race-phase')).toContainText('Đếm ngược');
     assert.equal((await a.locator('#scramble-text').textContent()).includes('inspection'),true);
-    db.advanceRace(3500);await Promise.all(pages.map(page=>page.clock.fastForward(3500)));
+    await tick(2500);
     await expect(a.locator('#race-phase')).toContainText('Inspection');await expect(b.locator('#race-phase')).toContainText('Inspection');
     await a.screenshot({path:resolve('test-results/race-desktop.png'),fullPage:true});
     await b.setViewportSize({width:390,height:844});
@@ -75,9 +98,10 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
     },moves);
     await press(a,['R']);
     assert.equal((await a.evaluate(()=>JSON.parse(localStorage.getItem(Object.keys(localStorage).find(k=>k.startsWith('rubik.race.v1:')))))).events.length,0);
-    db.advanceRace(15000);await Promise.all(pages.map(page=>page.clock.fastForward(15000)));
+    await tick(15000);
     await expect(a.locator('#race-phase')).toContainText('Đang giải');
     await contexts[0].setOffline(true);await press(a,invert(scramble,3));
+    db.advanceRace(32);await Promise.all(pages.map(page=>page.clock.runFor(32)));
     await expect(a.locator('#race-phase')).toContainText('khối 2');
     assert.equal(db.rooms.get(id).players[0].runs.length,0);
     await contexts[0].setOffline(false);await a.reload();
@@ -90,7 +114,7 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
       const response=await fetch('/api/race',{method:'POST',headers:{Authorization:'Bearer '+auth.access_token,'Content-Type':'application/json'},body:JSON.stringify({action:'cube_done',id,run})});return {status:response.status,body:await response.json()};
     },{id,run:receipt});
     assert.equal(duplicate.status,200);assert.equal(duplicate.body.ack,0);assert.equal(db.rooms.get(id).players[0].runs.length,1);
-    db.advanceRace(124000);await Promise.all(pages.map(page=>page.clock.fastForward(124000)));
+    await tick(124000);
     await expect(a.locator('#race-result')).toHaveText('Người thắng: An');await expect(b.locator('#race-result')).toHaveText('Người thắng: An');
     // Fresh room exercises explicit forfeit; old room remains immutable.
     await a.goto(base+'/race.html');await b.goto(base+'/race.html');

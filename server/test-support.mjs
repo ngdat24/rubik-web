@@ -1,6 +1,6 @@
 import {scrambleAt,invert,ENGINE_VERSION} from '../packages/engine/dist/index.js';
 import {isDeepStrictEqual} from 'node:util';
-export function fakeDatabase(){
+export function fakeDatabase({raceClock=Date.now}={}){
   const profiles=new Map(),solves=new Map(),rooms=new Map(),calls=[];let denyQuota=false,version=0,raceOffset=0;
   const fetcher=async(input,options={})=>{
     const url=new URL(input),body=options.body?JSON.parse(options.body):undefined,headers=options.headers??{};
@@ -19,7 +19,7 @@ export function fakeDatabase(){
       return new Response(null,{status:204});
     }
     if(url.pathname.endsWith('/race_action')){
-      const {p_id:id,p_user:user,p_action:action,p_payload:payload}=body,now=Date.now()+raceOffset;
+      const {p_id:id,p_user:user,p_action:action,p_payload:payload}=body,now=raceClock()+raceOffset;
       const fail=()=>response({code:'P0001'},400);
       if(action==='create'&&!rooms.has(id)){
         if(!profiles.has(user)||!['fullSolve','f2lRush'].includes(payload.mode))return fail();
