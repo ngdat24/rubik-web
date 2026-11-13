@@ -1,6 +1,7 @@
 import {scrambleAt,invert,ENGINE_VERSION} from '../packages/engine/dist/index.js';
+import {isDeepStrictEqual} from 'node:util';
 export function fakeDatabase(){
-  const profiles=new Map(),solves=new Map(),calls=[];let denyQuota=false,version=0;
+  const profiles=new Map(),solves=new Map(),rooms=new Map(),calls=[];let denyQuota=false,version=0,raceOffset=0;
   const fetcher=async(input,options={})=>{
     const url=new URL(input),body=options.body?JSON.parse(options.body):undefined,headers=options.headers??{};
     calls.push({url,body,headers,method:options.method});
@@ -11,6 +12,37 @@ export function fakeDatabase(){
     }
     if(url.pathname.startsWith('/auth/v1/admin/users/'))return response({ok:true});
     if(url.pathname.endsWith('/consume_quota'))return response(!denyQuota);
+    if(url.pathname==='/rest/v1/race_rooms'&&options.method==='DELETE'){
+      const user=JSON.parse(url.searchParams.get('players').slice(3))[0].id;
+      for(const [id,room] of rooms)if(room.players.some(p=>p.id===user))rooms.delete(id);
+      return new Response(null,{status:204});
+    }
+    if(url.pathname.endsWith('/race_action')){
+      const {p_id:id,p_user:user,p_action:action,p_payload:payload}=body,now=Date.now()+raceOffset;
+      const fail=()=>response({code:'P0001'},400);
+      if(action==='create'&&!rooms.has(id)){
+        if(!profiles.has(user)||!['fullSolve','f2lRush'].includes(payload.mode))return fail();
+        rooms.set(id,{id,owner_id:user,seed:payload.seed,mode:payload.mode,duration_ms:payload.mode==='fullSolve'?120000:45000,start_ms:null,forfeit:null,players:[{id:user,name:profiles.get(user).name,ready:false,runs:[]}]});
+      }
+      const room=rooms.get(id);if(!room)return fail();
+      let player=room.players.find(p=>p.id===user);
+      if(action==='join'&&!player){
+        if(room.players.length===2||room.start_ms!==null||room.forfeit||!profiles.has(user))return fail();
+        player={id:user,name:profiles.get(user).name,ready:false,runs:[]};room.players.push(player);
+      }
+      if(!player)return fail();
+      if(action==='ready'&&room.start_ms===null&&!room.forfeit){player.ready=true;if(room.players.length===2&&room.players.every(p=>p.ready))room.start_ms=now;}
+      if(action==='cube_done'){
+        const run=payload.run,previous=player.runs[run.k];
+        if(previous){if(!isDeepStrictEqual(previous,run))return fail();}
+        else{
+          if(run.k!==player.runs.length||room.forfeit||room.start_ms===null||now<room.start_ms+18000||now>=room.start_ms+21000+room.duration_ms)return fail();
+          player.runs.push(run);
+        }
+      }
+      if(action==='forfeit'&&!room.forfeit&&(room.start_ms===null||now<room.start_ms+21000+room.duration_ms))room.forfeit=user;
+      return response({room,now_ms:now});
+    }
     if(url.pathname==='/rest/v1/profiles'){
       if(options.method==='POST'){
         if([...profiles.values()].some(p=>p.id!==body.id&&p.name.toLowerCase()===body.name.toLowerCase()))return response({code:'23505'},409);
@@ -38,7 +70,7 @@ export function fakeDatabase(){
     }
     throw new Error('Unexpected fake request: '+url.pathname);
   };
-  return {fetcher,profiles,solves,calls,setQuota(value){denyQuota=value;}};
+  return {fetcher,profiles,solves,rooms,calls,setQuota(value){denyQuota=value;},advanceRace(ms){raceOffset+=ms;}};
 }
 
 export function validSolve(id='first',size=3){

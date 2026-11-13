@@ -14,3 +14,6 @@
 @media(max-width:620px){.leaderboard-panel{order:1;width:100%}.workspace>aside:not(.leaderboard-panel){order:2}}
 
 [hidden]{display:none!important}#account-open{font-size:12px;padding:8px 12px}#account-form{display:grid;gap:10px}#account-form label{font-size:12px;color:var(--muted)}#account-form input,#account-form select{width:100%;min-width:0}#account-message,#cloud-message{font-size:11px;line-height:1.6;color:var(--muted)}#account-signed details{margin:18px 0}#account-delete{border-color:#9f5c4b;color:#ffb6a6}
+[hidden]{display:none!important}
+.race-lobby{margin:24px 0;padding:20px;background:var(--panel);border:1px solid var(--line);border-radius:16px}.race-lobby .toolbar{margin:12px 0}.race-workspace{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:20px}#race-clock{font:48px ui-monospace,monospace}#race-players{padding-left:20px;line-height:2}#race-result{color:var(--accent)}.race-lobby input{max-width:100%}@media(max-width:700px){.race-workspace{grid-template-columns:1fr}.race-lobby .toolbar{flex-wrap:wrap}}
+.race-page .race-lobby{margin:16px 0;padding:16px}.race-page .race-lobby h1{font-size:24px;margin:0 0 8px}.race-page .race-lobby>p{margin:8px 0;font-size:13px}.race-page .race-lobby summary{cursor:pointer}.race-page #race-message{color:var(--muted)}

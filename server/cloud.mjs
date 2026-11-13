@@ -1,4 +1,5 @@
 import {verifySolve} from './verify-solve.mjs';
+import {handleRace} from './race.mjs';
 
 class HttpError extends Error {constructor(status,message){super(message);this.status=status;}}
 export function createCloudHandler({env=process.env,fetcher=fetch}={}){
@@ -18,6 +19,11 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
           if(value?.code==='23505')throw new HttpError(409,'Tên hoặc ID đã được sử dụng.');
           if(value?.code==='40001')throw new HttpError(409,'Dữ liệu đã thay đổi trên thiết bị khác. Hãy tải bản server trước khi sửa tiếp.');
           if(value?.code==='54000')throw new HttpError(413,'Đã đạt giới hạn 10.000 bản ghi mỗi tài khoản.');
+          if(value?.code==='P0001'&&path==='/rest/v1/rpc/race_action')throw new HttpError(409,
+            value.message==='Set your player name first'?'Hãy đặt tên ở trang luyện tập trước khi vào phòng.':
+            value.message==='Room limit: 3 per hour'?'Bạn đã tạo 3 phòng trong giờ qua. Hãy dùng phòng đã có hoặc đợi thêm.':
+            value.message==='Room not found or expired'?'Phòng không tồn tại hoặc đã hết hạn 1 giờ.':
+            'Phòng đã đầy/đóng, bạn không thuộc phòng, hoặc kết quả sai thứ tự/quá hạn.');
           throw new HttpError(502,'Không truy cập được cơ sở dữ liệu.');
         }
         return value;
@@ -28,7 +34,7 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
         const rows=await request('/rest/v1/rpc/leaderboard',{method:'POST',body:{p_size:size}});
         res.setHeader('Cache-Control','public, s-maxage=15, stale-while-revalidate=15');return send(200,{rows});
       }
-      if(!['player','solves','account'].includes(route)||!['GET','POST','DELETE'].includes(req.method))throw new HttpError(404,'Không có API này.');
+      if(!['player','solves','account','race'].includes(route)||!['GET','POST','DELETE'].includes(req.method))throw new HttpError(404,'Không có API này.');
       const token=/^Bearer (\S+)$/.exec(req.headers.authorization??'')?.[1];if(!token||token.length>8192)throw new HttpError(401,'Cần đăng nhập.');
       const user=await request('/auth/v1/user',{auth:token});if(!user?.id||!user.email_confirmed_at)throw new HttpError(401,'Cần xác nhận email trước khi đồng bộ.');
       const allowed=await request('/rest/v1/rpc/consume_quota',{method:'POST',body:{p_user:user.id,p_kind:req.method==='GET'?'read':'write'}});
@@ -40,7 +46,15 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
         if(!body||typeof body!=='object'||Array.isArray(body))throw new HttpError(400,'Dữ liệu không hợp lệ.');
         if(Buffer.byteLength(JSON.stringify(body))>300000)throw new HttpError(413,'Dữ liệu quá lớn.');
       }
+      if(route==='race'){
+        if(!['GET','POST'].includes(req.method))throw new HttpError(405,'Phương thức không hợp lệ.');
+        try{return send(200,await handleRace({request,user,method:req.method,body,url}));}
+        catch(error){if(error instanceof HttpError)throw error;throw new HttpError(400,error.message??'Không xử lý được trận đấu.');}
+      }
       if(route==='account'&&req.method==='DELETE'){
+        // Room snapshots include participant names and input records. Remove
+        // shared rooms containing this account as part of data deletion too.
+        await request('/rest/v1/race_rooms?players=cs.'+encodeURIComponent(JSON.stringify([{id:user.id}])) ,{method:'DELETE'});
         await request('/auth/v1/admin/users/'+encodeURIComponent(user.id),{method:'DELETE'});return send(200,{ok:true});
       }
       if(route==='player'){

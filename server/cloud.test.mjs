@@ -40,8 +40,13 @@ test('cloud API verifies identities, scopes history, rejects conflicts and does 
     assert.equal(deleted.rows.length,1);assert.equal(deleted.rows[0].deleted,true);
     db.setQuota(true);assert.equal((await call('solves')).status,429);db.setQuota(false);
     assert.equal((await call('solves?offset=-1')).status,400);
+    const shared='a'.repeat(32),other='c'.repeat(32);
+    assert.equal((await call('race',{action:'create',id:shared,mode:'fullSolve'})).status,200);
+    assert.equal((await call('race',{action:'join',id:shared},'token-b')).status,200);
+    assert.equal((await call('race',{action:'create',id:other,mode:'fullSolve'})).status,200);
     assert.equal((await call('account',undefined,'token-b','DELETE')).status,200);
-    const deletion=db.calls.find(c=>c.method==='DELETE');assert.ok(deletion.url.pathname.endsWith('22222222-2222-4222-8222-222222222222'));
+    assert.equal(db.rooms.has(shared),false);assert.equal(db.rooms.has(other),true);
+    const deletion=db.calls.find(c=>c.method==='DELETE'&&c.url.pathname.startsWith('/auth/'));assert.ok(deletion.url.pathname.endsWith('22222222-2222-4222-8222-222222222222'));
     const cross=await fetch(base+'/api/player',{method:'POST',headers:{Origin:'https://evil.test','Content-Type':'application/json'},body:'{}'});assert.equal(cross.status,403);
     assert.equal(JSON.stringify((await call('player')).data).includes('private-test'),false);
     env.SUPABASE_SECRET_KEY='sb_secret_test';
