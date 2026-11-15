@@ -66,7 +66,10 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
     }
     // Freeze both browser clocks and the fake server. Slow screenshots or CI
     // scheduling must never consume inspection or alter captured event times.
-    await Promise.all(pages.map(page=>page.clock.pauseAt(new Date(Date.now()+100))));
+    // Browser/runner clocks can differ, and a busy CI worker can take >100ms
+    // to deliver a command. Jump ahead before creating the room; match time
+    // has not started yet, so this consumes no countdown or inspection.
+    await Promise.all(pages.map(async page=>page.clock.pauseAt(new Date(await page.evaluate(()=>Date.now())+60000))));
     const tick=async ms=>{
       const responses=pages.map(page=>page.waitForResponse(r=>r.url().includes('/api/race')&&r.status()===200));
       db.advanceRace(ms);await Promise.all(pages.map(page=>page.clock.fastForward(ms)));
