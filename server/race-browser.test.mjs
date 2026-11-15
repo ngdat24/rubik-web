@@ -78,10 +78,18 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
       db.advanceRace(32);await Promise.all(pages.map(page=>page.clock.runFor(32)));
     };
     const [a,b]=pages;
+    const holdNextPoll=async page=>{
+      let release,entered;const hold=new Promise(resolve=>{release=resolve;}),started=new Promise(resolve=>{entered=resolve;});
+      await page.route(url=>url.pathname==='/api/race'&&url.searchParams.has('id'),async route=>{entered();await hold;await route.continue();},{times:1});
+      await page.evaluate(()=>window.racePoll());await started;return release;
+    };
     await a.locator('#race-create').click();await expect(a.locator('#race-copy')).toBeEnabled();
     const id=await a.locator('#race-code').inputValue();await b.locator('#race-code').fill(id);await b.locator('#race-join').click();
     await expect(b.locator('#race-players li')).toHaveCount(2);
-    await a.locator('#race-ready').click();await b.locator('#race-ready').click();
+    const releaseReady=await holdNextPoll(a);
+    await a.locator('#race-ready').click();assert.equal(db.rooms.get(id).players[0].ready,false);
+    releaseReady();await expect.poll(()=>db.rooms.get(id).players[0].ready).toBe(true);
+    await b.locator('#race-ready').click();
     await expect.poll(()=>db.rooms.get(id).start_ms).not.toBeNull();
     await expect(a.locator('#race-ready')).toBeDisabled();await expect(b.locator('#race-ready')).toBeDisabled();
     await tick(1000);
@@ -140,7 +148,9 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
     await a.goto(base+'/race.html');await b.goto(base+'/race.html');
     await a.locator('#race-create').click();await expect(a.locator('#race-copy')).toBeEnabled();
     const second=await a.locator('#race-code').inputValue();await b.locator('#race-code').fill(second);await b.locator('#race-join').click();await expect(b.locator('#race-players li')).toHaveCount(2);
+    const releaseForfeit=await holdNextPoll(b);
     await b.locator('#race-forfeit').click();await b.locator('#race-confirm-forfeit').click();
+    assert.equal(db.rooms.get(second).forfeit,null);releaseForfeit();
     await expect(b.locator('#race-result')).toHaveText('Người thắng: An');
     assert.equal(db.solves.size,0);assert.deepEqual(errors,[]);
   }finally{await browser?.close();if(server)await new Promise(r=>server.close(r));rmSync(dir,{recursive:true,force:true});}
