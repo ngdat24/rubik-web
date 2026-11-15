@@ -18,6 +18,19 @@ export function fakeDatabase({raceClock=Date.now}={}){
       for(const [id,room] of rooms)if(room.players.some(p=>p.id===user))rooms.delete(id);
       return new Response(null,{status:204});
     }
+    if(url.pathname.endsWith('/race_progress')){
+      const room=rooms.get(body.p_id),player=room?.players.find(p=>p.id===body.p_user),now=raceClock()+raceOffset;
+      if(!player)return response({code:'P0001'},400);
+      const live=body.p_live,old=player.live;
+      if(live.k===player.runs.length&&!room.forfeit&&room.start_ms!==null&&now>=room.start_ms+3000&&now<room.start_ms+18000+room.duration_ms){
+        if(!old||old.k!==live.k||(live.preCount>=old.preCount&&live.moveCount>=old.moveCount)){
+          if(old?.k===live.k&&old.preCount===live.preCount&&old.moveCount===live.moveCount){
+            if(!isDeepStrictEqual(old.state,live.state))return response({code:'P0001'},400);
+          }else player.live={...live,updatedAt:now};
+        }
+      }
+      return response({room,now_ms:now});
+    }
     if(url.pathname.endsWith('/race_action')){
       const {p_id:id,p_user:user,p_action:action,p_payload:payload}=body,now=raceClock()+raceOffset;
       const fail=()=>response({code:'P0001'},400);
