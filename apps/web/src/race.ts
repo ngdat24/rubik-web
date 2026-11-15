@@ -62,6 +62,7 @@ async function boot():Promise<void>{
     move=>el<HTMLInputElement>('race-fixed-keys').checked?move:viewMove(move,renderer.getViewFaces())));
   cleanup.push(attachDrag(renderer,controller,()=>{}),()=>controller.dispose());
   let room:Snapshot|undefined,roomId='',busy=false,origin:number|undefined,loaded=-1,loading=false;
+  let queuedAction:{action:string;extra:Record<string,unknown>}|undefined;
   let draft:Draft={k:0,preEvents:[],events:[],pending:[]};
   const scrambles=new Map<number,string[]>();
   const storageKey=()=>`rubik.race.v1:${user}:${roomId}`;
@@ -133,7 +134,14 @@ async function boot():Promise<void>{
     else el('race-result').textContent=draft.pending.length?`${draft.pending.length} khối đang chờ xác nhận`:'Các khối đã gửi được server xác nhận.';
   };
   const sync=async(action='get',extra:Record<string,unknown>={})=>{
-    if(busy||!roomId||disposed)return;busy=true;
+    if(!roomId||disposed)return;
+    if(busy){
+      // Background polling must not consume a ready/forfeit click. Forfeit
+      // takes priority if both actions arrive while a request is in flight.
+      if((action==='ready'||action==='forfeit')&&queuedAction?.action!=='forfeit')queuedAction={action,extra};
+      return;
+    }
+    busy=true;
     try{
       const key=`${draft.k}:${draft.preEvents.length}:${draft.events.length}`;
       const publish=action==='get'&&room&&!room.final&&!draft.pending.length&&loaded===draft.k&&
@@ -144,7 +152,10 @@ async function boot():Promise<void>{
       while(draft.pending.length&&!room!.final){accept(await api('cube_done',{run:draft.pending[0]}));}
       message.textContent=room!.final?'Trận đã được server chốt.':room!.startMs===null?'Đã kết nối phòng. Mời bạn bằng link; cả hai bấm Sẵn sàng để bắt đầu.':'Đã kết nối · tiến độ đối thủ cập nhật mỗi giây.';
     }catch(error){message.textContent=`${error instanceof Error?error.message:'Mất kết nối.'} Hàng chờ được giữ để thử lại.`;}
-    finally{busy=false;}
+    finally{
+      busy=false;
+      if(queuedAction){const next=queuedAction;queuedAction=undefined;queueMicrotask(()=>{void sync(next.action,next.extra);});}
+    }
   };
   cleanup.push(controller.onMoveApplied(event=>{
     if(loading||!room)return;
