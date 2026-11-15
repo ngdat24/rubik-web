@@ -1,5 +1,6 @@
 import {scrambleAt,invert,ENGINE_VERSION} from '../packages/engine/dist/index.js';
 import {isDeepStrictEqual} from 'node:util';
+import {RACE_DURATION_MS} from '../shared/race-rules.mjs';
 export function fakeDatabase({raceClock=Date.now}={}){
   const profiles=new Map(),solves=new Map(),rooms=new Map(),calls=[];let denyQuota=false,version=0,raceOffset=0;
   const fetcher=async(input,options={})=>{
@@ -35,8 +36,8 @@ export function fakeDatabase({raceClock=Date.now}={}){
       const {p_id:id,p_user:user,p_action:action,p_payload:payload}=body,now=raceClock()+raceOffset;
       const fail=()=>response({code:'P0001'},400);
       if(action==='create'&&!rooms.has(id)){
-        if(!profiles.has(user)||!['fullSolve','f2lRush'].includes(payload.mode))return fail();
-        rooms.set(id,{id,owner_id:user,seed:payload.seed,mode:payload.mode,duration_ms:payload.mode==='fullSolve'?120000:45000,start_ms:null,forfeit:null,players:[{id:user,name:profiles.get(user).name,ready:false,runs:[]}]});
+        if(!profiles.has(user)||!['fullSolve','f2lRush','oneFace'].includes(payload.mode))return fail();
+        rooms.set(id,{id,owner_id:user,seed:payload.seed,mode:payload.mode,duration_ms:RACE_DURATION_MS,start_ms:null,forfeit:null,players:[{id:user,name:profiles.get(user).name,ready:false,runs:[]}]});
       }
       const room=rooms.get(id);if(!room)return fail();
       let player=room.players.find(p=>p.id===user);

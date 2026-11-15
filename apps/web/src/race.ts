@@ -1,7 +1,8 @@
 import {browserAccount} from './account.js';
 import {CubeController,loadSettings} from '@rubik/controller';
 import {CubeRenderer,viewMove} from '@rubik/renderer';
-import {isSolved,f2lSolvedAny,formatTime,solvedState} from '@rubik/engine';
+import {formatTime,solvedState} from '@rubik/engine';
+import {raceComplete} from '../../../shared/race-rules.mjs';
 import type {MoveEvent} from '@rubik/engine';
 import {attachKeyboard} from './keyboard.js';
 import {attachDrag} from './drag.js';
@@ -129,7 +130,7 @@ async function boot():Promise<void>{
     if(starting)el<HTMLDetailsElement>('race-lobby-controls').open=false;
     if(next.final)el<HTMLDetailsElement>('race-lobby-controls').open=true;
     el('race-new').hidden=!next.final;
-    forfeit.disabled=next.final;copy.disabled=false;create.disabled=join.disabled=true;mode.disabled=true;
+    forfeit.disabled=next.final;copy.disabled=false;create.disabled=join.disabled=true;mode.value=next.mode;mode.disabled=true;
     if(next.final)el('race-result').textContent=next.result==='draw'?'Hòa':next.result?`Người thắng: ${next.players[next.result==='A'?0:1]!.name}`:'Phòng đã đóng';
     else el('race-result').textContent=draft.pending.length?`${draft.pending.length} khối đang chờ xác nhận`:'Các khối đã gửi được server xác nhận.';
   };
@@ -163,7 +164,7 @@ async function boot():Promise<void>{
     if(t<0)draft.preEvents.push(item);
     else{
       draft.events.push(item);
-      if(room.mode==='fullSolve'?isSolved(event.stateAfter,3):f2lSolvedAny(event.stateAfter)){
+      if(raceComplete(event.stateAfter,room.mode)){
         draft.pending.push({k:draft.k,endT:t,preEvents:draft.preEvents,events:draft.events});
         draft.k++;draft.preEvents=[];draft.events=[];save();load();
         if(loaded!==draft.k)controller.lockInput('race');
