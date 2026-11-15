@@ -32,6 +32,15 @@ begin
  assert (select start_ms from public.race_rooms where id=room_id)=start_time,'Ready retry reset clock';
  begin perform public.race_action(a,room_id,'cube_done',jsonb_build_object('run',run));raise exception using errcode='XX000',message='Early move admitted';exception when raise_exception then null;end;
  update public.race_rooms set start_ms=floor(extract(epoch from clock_timestamp())*1000)-19000 where id=room_id;
+ -- Live snapshots are cosmetic, scoped, idempotent and cannot rewind.
+ v:=public.race_progress(a,room_id,jsonb_build_object('k',0,'preCount',0,'moveCount',1,'state',to_jsonb(array_fill(0,array[54]))));
+ assert v->'room'->'players'->0->'live'->>'moveCount'='1';
+ assert jsonb_array_length(v->'room'->'players'->0->'runs')=0,'Live state awarded score';
+ perform public.race_progress(a,room_id,jsonb_build_object('k',0,'preCount',0,'moveCount',1,'state',to_jsonb(array_fill(0,array[54]))));
+ v:=public.race_progress(a,room_id,jsonb_build_object('k',0,'preCount',0,'moveCount',0,'state',to_jsonb(array_fill(1,array[54]))));
+ assert v->'room'->'players'->0->'live'->>'moveCount'='1','Old progress rewound state';
+ begin perform public.race_progress(a,room_id,jsonb_build_object('k',0,'preCount',0,'moveCount',1,'state',to_jsonb(array_fill(1,array[54]))));raise exception using errcode='XX000',message='Conflicting live accepted';exception when raise_exception then null;end;
+ begin perform public.race_progress(c,room_id,jsonb_build_object('k',0,'preCount',0,'moveCount',1,'state',to_jsonb(array_fill(0,array[54]))));raise exception using errcode='XX000',message='Nonmember progress accepted';exception when raise_exception then null;end;
  perform public.race_action(a,room_id,'cube_done',jsonb_build_object('run',run));
  perform public.race_action(a,room_id,'cube_done',jsonb_build_object('run',run));
  assert (select jsonb_array_length(players->0->'runs') from public.race_rooms where id=room_id)=1,'Duplicate score';
@@ -45,5 +54,7 @@ begin
  assert not has_table_privilege('authenticated','public.race_rooms','select');
  assert not has_function_privilege('anon','public.race_action(uuid,text,text,jsonb)','execute');
  assert not has_function_privilege('authenticated','public.race_action(uuid,text,text,jsonb)','execute');
+ assert not has_function_privilege('anon','public.race_progress(uuid,text,jsonb)','execute');
+ assert not has_function_privilege('authenticated','public.race_progress(uuid,text,jsonb)','execute');
 end $$;
 rollback;

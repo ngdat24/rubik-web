@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Cube,matchScrambleAt,invert,f2lSolvedAny} from '../packages/engine/dist/index.js';
-import {verifyRaceCube,publicRace,handleRace} from './race.mjs';
+import {verifyRaceCube,verifyRaceProgress,publicRace,handleRace} from './race.mjs';
 
 const fixture=()=>({id:'a'.repeat(32),seed:'server-private',mode:'fullSolve',duration_ms:120000,start_ms:100000,forfeit:null,
   players:[{id:'a',name:'An',ready:true,runs:[]},{id:'b',name:'Bình',ready:true,runs:[]}]});
@@ -62,4 +62,22 @@ test('route validates invite and action before RPC; does not trust player identi
   assert.equal(calls[0].p_user,'a');
   await assert.rejects(handleRace({request,user:{id:'a'},method:'POST',body:{action:'start',id:room.id},url:new URL('https://test')}));
   assert.equal(calls.length,1);
+});
+test('live opponent state is replayed, private before inspection, and never changes scores',()=>{
+  const room=fixture(),player=room.players[1],progress={k:0,preEvents:[{m:'y',t:500}],events:[{m:'R',t:50}]};
+  const live=verifyRaceProgress(room,player,{...progress,state:Array(54).fill(0)},119000);
+  assert.deepEqual(live.state,Array.from(new Cube(3).applyMoves(matchScrambleAt(room.seed,3,0,1)).applyMoves(['y','R']).state));
+  player.live={...live,updatedAt:119000};
+  assert.equal(publicRace(room,'a',102999).opponent,null);
+  const view=publicRace(room,'a',119000);
+  assert.deepEqual(view.opponent.state,live.state);assert.equal(view.opponent.id,'b');
+  assert.equal(view.players[1].score.score,0);assert.equal('events' in view.opponent,false);
+  assert.throws(()=>verifyRaceProgress(room,player,{...progress,k:1},119000));
+  assert.throws(()=>verifyRaceProgress(room,player,{...progress,preEvents:[{m:'R',t:0}]},119000));
+  assert.throws(()=>verifyRaceProgress(room,player,{...progress,events:[{m:'R',t:3000}]},119000));
+  assert.throws(()=>verifyRaceProgress(room,player,progress,102999));
+  player.runs.push(verifyRaceCube(room,player,solved(room),119000));
+  assert.equal(verifyRaceProgress(room,player,progress,119000),null);
+  assert.equal(publicRace(room,'a',119000).opponent.k,1);
+  assert.deepEqual(publicRace(room,'a',119000).opponent.state,Array.from(new Cube(3).applyMoves(matchScrambleAt(room.seed,3,1,1)).state));
 });

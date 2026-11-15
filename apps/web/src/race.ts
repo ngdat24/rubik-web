@@ -1,7 +1,7 @@
 import {browserAccount} from './account.js';
 import {CubeController,loadSettings} from '@rubik/controller';
 import {CubeRenderer,viewMove} from '@rubik/renderer';
-import {isSolved,f2lSolvedAny,formatTime} from '@rubik/engine';
+import {isSolved,f2lSolvedAny,formatTime,solvedState} from '@rubik/engine';
 import type {MoveEvent} from '@rubik/engine';
 import {attachKeyboard} from './keyboard.js';
 import {attachDrag} from './drag.js';
@@ -12,6 +12,7 @@ interface Snapshot {
   id:string;mode:string;durationMs:number;serverNow:number;startMs:number|null;phase:string;final:boolean;result:'A'|'B'|'draw'|null;
   ack:number;runs:Run[];scrambles:{k:number;moves:string[]}[];
   players:{id:string;name:string;ready:boolean;score:{score:number;lastEndT:number;totalMoves:number}}[];
+  opponent?:{id:string;name:string;k:number;state:number[];moveCount:number;updatedAt:number|null}|null;
 }
 interface Draft {k:number;preEvents:MoveEvent[];events:MoveEvent[];pending:Run[]}
 function readDraft(text:string):Draft{
@@ -52,6 +53,9 @@ async function boot():Promise<void>{
   if(disposed)return;
   const renderer=new CubeRenderer(el('viewport'));renderer.setSpeed(40);
   const controller=new CubeController(renderer);controller.lockInput('race');
+  const opponentRenderer=new CubeRenderer(el('opponent-viewport'));opponentRenderer.setSize(3);opponentRenderer.setState(solvedState(3));
+  cleanup.push(()=>opponentRenderer.dispose());
+  let opponentState='',sentProgress='';
   renderer.onContextChange=available=>available?controller.unlockInput('context'):controller.lockInput('context');
   const settings=loadSettings(()=>localStorage).settings;
   cleanup.push(attachKeyboard(controller,()=>{},()=>settings.profiles[settings.activeProfile]!.bindings,
@@ -106,6 +110,15 @@ async function boot():Promise<void>{
     draft.pending=draft.pending.filter(run=>run.k>next.ack);
     if(draft.k<=next.ack){draft.k=next.ack+1;draft.events=[];draft.preEvents=[];}
     load();save();
+    const me=next.players.find(player=>player.id===user),other=next.players.find(player=>player.id!==user);
+    el('race-own-name').textContent=me?`${me.name} · Bạn`:'Bạn';
+    el('race-opponent-name').textContent=other?`${other.name} · Đối thủ`:'Đối thủ';
+    const view=next.opponent;
+    if(view&&Array.isArray(view.state)&&view.state.length===54&&view.state.every(n=>Number.isInteger(n)&&n>=0&&n<=5)){
+      const key=`${view.k}:${view.state.join(',')}`;
+      if(key!==opponentState){opponentRenderer.setState(Uint8Array.from(view.state));opponentState=key;}
+      el('race-opponent-status').textContent=`Khối ${view.k+1} · ${view.moveCount} nước${next.final?' · Đã kết thúc':''}`;
+    }else el('race-opponent-status').textContent=other?'Chờ inspection để xem Rubik':'Đang chờ đối thủ';
     el('race-players').replaceChildren(...next.players.map(player=>{
       const li=document.createElement('li');
       li.textContent=`${player.name}${player.id===user?' (bạn)':''} · ${player.ready?'Sẵn sàng':'Đang chờ'} · ${player.score.score} khối · ${formatTime(player.score.lastEndT)} · ${player.score.totalMoves} nước`;
@@ -122,7 +135,12 @@ async function boot():Promise<void>{
   const sync=async(action='get',extra:Record<string,unknown>={})=>{
     if(busy||!roomId||disposed)return;busy=true;
     try{
-      accept(await api(action,extra));
+      const key=`${draft.k}:${draft.preEvents.length}:${draft.events.length}`;
+      const publish=action==='get'&&room&&!room.final&&!draft.pending.length&&loaded===draft.k&&
+        time()>=-15000&&time()<=room.durationMs&&(draft.preEvents.length>0||draft.events.length>0)&&key!==sentProgress;
+      const snapshot=await api(publish?'progress':action,publish?{progress:{k:draft.k,preEvents:draft.preEvents.slice(),events:draft.events.slice()}}:extra);
+      if(publish)sentProgress=key;
+      accept(snapshot);
       while(draft.pending.length&&!room!.final){accept(await api('cube_done',{run:draft.pending[0]}));}
       message.textContent=room!.final?'Trận đã được server chốt.':room!.startMs===null?'Đã kết nối phòng. Mời bạn bằng link; cả hai bấm Sẵn sàng để bắt đầu.':'Đã kết nối · tiến độ đối thủ cập nhật mỗi giây.';
     }catch(error){message.textContent=`${error instanceof Error?error.message:'Mất kết nối.'} Hàng chờ được giữ để thử lại.`;}
@@ -160,6 +178,7 @@ async function boot():Promise<void>{
   forfeit.onclick=()=>dialog.showModal();el('race-keep').onclick=()=>dialog.close();
   el('race-confirm-forfeit').onclick=()=>{dialog.close();void sync('forfeit');};
   el('race-camera').onclick=()=>renderer.resetCamera();
+  el('race-opponent-camera').onclick=()=>opponentRenderer.resetCamera();
   message.textContent='Tạo phòng hoặc mở link mời từ bạn.';
   const invite=new URLSearchParams(location.search).get('room');if(invite){code.value=invite;await enter('join');}
   const tick=()=>{if(disposed)return;void sync().finally(()=>{if(!disposed)poll=window.setTimeout(tick,1000);});};

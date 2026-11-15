@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {join,resolve,dirname,extname,sep} from 'node:path';
 import {createRequire} from 'node:module';
 import {execFileSync} from 'node:child_process';
-import {invert} from '../packages/engine/dist/index.js';
+import {Cube,invert} from '../packages/engine/dist/index.js';
 import {createCloudHandler} from './cloud.mjs';
 import {fakeDatabase} from './test-support.mjs';
 const require=createRequire(new URL('../apps/web/package.json',import.meta.url));
@@ -60,7 +60,7 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
         const response=await saved;assert.equal(response.status(),200,JSON.stringify(await response.json()));
         await expect(page.locator('#race-name-dialog')).not.toBeVisible();
       }
-      await expect(page.locator('canvas')).toBeVisible();
+      await expect(page.locator('#viewport canvas')).toBeVisible();await expect(page.locator('#opponent-viewport canvas')).toBeVisible();
       await expect(page.locator('#race-message')).toContainText('Tạo phòng');
       await page.locator('#race-fixed-keys').check();
     }
@@ -68,7 +68,7 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
     // scheduling must never consume inspection or alter captured event times.
     await Promise.all(pages.map(page=>page.clock.pauseAt(new Date(Date.now()+100))));
     const tick=async ms=>{
-      const responses=pages.map(page=>page.waitForResponse(r=>r.url().includes('/api/race?id=')&&r.request().method()==='GET'));
+      const responses=pages.map(page=>page.waitForResponse(r=>r.url().includes('/api/race')&&r.status()===200));
       db.advanceRace(ms);await Promise.all(pages.map(page=>page.clock.fastForward(ms)));
       await Promise.all(pages.map(page=>page.evaluate(()=>window.racePoll())));
       await Promise.all(responses.map(p=>p.then(response=>response.finished())));
@@ -88,10 +88,17 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
     await expect(a.locator('#race-phase')).toContainText('Inspection');await expect(b.locator('#race-phase')).toContainText('Inspection');
     await a.screenshot({path:resolve('test-results/race-desktop.png'),fullPage:true});
     await b.setViewportSize({width:390,height:844});
+    db.advanceRace(64);await Promise.all(pages.map(page=>page.clock.runFor(64)));
     assert.equal(await b.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
     await b.screenshot({path:resolve('test-results/race-mobile.png'),fullPage:true});
     await expect(a.locator('#scramble-text')).toHaveText(await b.locator('#scramble-text').textContent());
     const scramble=(await a.locator('#scramble-text').textContent()).trim().split(/\s+/);
+    for(const page of pages){
+      await expect(page.locator('#race-own-name')).toContainText(page===a?'An':'Bình');
+      await expect(page.locator('#race-opponent-name')).toContainText(page===a?'Bình':'An');
+      const left=await page.locator('#viewport').boundingBox(),right=await page.locator('#opponent-viewport').boundingBox();
+      assert.ok(right.x>=left.x+left.width,'Own cube must remain left of opponent, including mobile');
+    }
     const press=async(page,moves)=>page.evaluate(moves=>{
       document.activeElement?.blur();
       for(const m of moves){const e=new KeyboardEvent('keydown',{code:'Key'+m[0].toUpperCase(),shiftKey:m.endsWith("'"),altKey:m.endsWith('2'),bubbles:true,cancelable:true});Object.defineProperty(e,'timeStamp',{value:performance.now()});window.dispatchEvent(e);}
@@ -100,6 +107,16 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
     assert.equal((await a.evaluate(()=>JSON.parse(localStorage.getItem(Object.keys(localStorage).find(k=>k.startsWith('rubik.race.v1:')))))).events.length,0);
     await tick(15000);
     await expect(a.locator('#race-phase')).toContainText('Đang giải');
+    // Publish a partial move; the other browser must see the replayed state
+    // without gaining score or changing its own local cube.
+    const before=await b.locator('#opponent-viewport canvas').screenshot();
+    await press(a,['R']);await tick(1000);await tick(1000);
+    await expect(b.locator('#race-opponent-status')).toContainText('1 nước');
+    assert.deepEqual(db.rooms.get(id).players[0].live.state,Array.from(new Cube(3).applyMoves(scramble).applyMove('R').state));
+    assert.equal(db.rooms.get(id).players[0].runs.length,0);
+    const after=await b.locator('#opponent-viewport canvas').screenshot();assert.notDeepEqual(before,after,'Opponent canvas must change with the received move');
+    assert.equal(await b.evaluate(()=>JSON.parse(localStorage.getItem(Object.keys(localStorage).find(k=>k.startsWith('rubik.race.v1:')))).events.length),0);
+    await press(a,["R'"]);await tick(1000);
     await contexts[0].setOffline(true);await press(a,invert(scramble,3));
     db.advanceRace(32);await Promise.all(pages.map(page=>page.clock.runFor(32)));
     await expect(a.locator('#race-phase')).toContainText('khối 2');
