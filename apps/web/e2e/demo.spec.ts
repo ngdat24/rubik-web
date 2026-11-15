@@ -73,21 +73,22 @@ test('timer flow, focused Space, rotations, solved result and next scramble stay
  for(const move of scramble.reverse()){
   const face=move[0]!.toLowerCase();await page.keyboard.press(move.endsWith('2')?'Alt+'+face:move.endsWith("'")?face:'Shift+'+face);
  }
- await expect(page.locator('#timer-phase')).toContainText('kết thúc');await expect(page.locator('#timer-readout')).not.toHaveText('DNF');
+ await expect(page.locator('#timer-phase')).toContainText('Sẵn sàng');await expect(page.locator('#timer-readout')).not.toHaveText('DNF');
  await expect(page.locator('#key-settings-open')).toBeEnabled();
- await page.keyboard.press('Space');await expect(page.locator('#timer-phase')).toContainText('Sẵn sàng');
+ await page.keyboard.press('Space');await expect(page.locator('#timer-phase')).toContainText('Inspection');
  await expect(page.locator('#seed')).not.toHaveValue('timer-e2e');expect(errors).toEqual([]);
 });
 
-test('cancel restores the same scramble, timeout continues behind the dialog, touch Start works',async({page})=>{
+test('cancel prepares a new scramble, timeout continues behind the dialog',async({page})=>{
  await page.clock.install();await page.goto('/');await expect(page.locator('canvas')).toBeVisible();
  await page.locator('#workspace-tools').evaluate((node:HTMLDetailsElement)=>{node.open=true;});await page.locator('#seed').fill('cancel-seed');await page.locator('#scramble').click();const original=await page.locator('#scramble-text').textContent();
  await page.locator('#timer-start').click();await page.keyboard.press('r');await expect(page.locator('#timer-phase')).toContainText('Đang giải');
  await page.keyboard.press('Escape');await expect(page.locator('#timer-cancel-dialog')).toBeVisible();
- await page.locator('#timer-confirm-cancel').click();await expect(page.locator('#timer-phase')).toContainText('Sẵn sàng');await expect(page.locator('#scramble-text')).toHaveText(original!);
+ await page.locator('#timer-confirm-cancel').click();await expect(page.locator('#timer-phase')).toContainText('Sẵn sàng');await expect(page.locator('#scramble-text')).not.toHaveText(original!);
+ const dnfScramble=await page.locator('#scramble-text').textContent();
  await page.locator('#timer-start').click();await page.locator('#timer-cancel').click();
  await page.clock.runFor(17100);await expect(page.locator('#timer-readout')).toHaveText('DNF');
- await page.locator('#timer-confirm-cancel').click();await expect(page.locator('#timer-phase')).toContainText('kết thúc');
+ await page.locator('#timer-confirm-cancel').click();await expect(page.locator('#timer-phase')).toContainText('kết thúc');await expect(page.locator('#scramble-text')).toHaveText(dnfScramble!);
 });
 
 test('drag cannot start while idle; during inspection it starts the solve, context recovery preserves locks',async({page})=>{

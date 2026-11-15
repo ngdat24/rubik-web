@@ -1,6 +1,7 @@
 import { attachLeaderboard } from './leaderboard.js';
 import { newId } from './id.js';
 import { SolveHistory, SolveTimer } from '@rubik/timer';
+import type {Solve} from '@rubik/timer';
 import { formatTime } from '@rubik/engine';
 import type { CubeController } from '@rubik/controller';
 import { attachHistory } from './history-controls.js';
@@ -19,7 +20,7 @@ export function attachTimer(controller: CubeController, newScramble: () => void,
   const readout=element('timer-readout'), phaseLabel=element('timer-phase'), message=element('timer-message');
   const start=element<HTMLButtonElement>('timer-start'), cancel=element<HTMLButtonElement>('timer-cancel');
   const dialog=element<HTMLDialogElement>('timer-cancel-dialog');
-  let context: {size:number;seed:string;scrambleIndex:number} | undefined;
+  let lastResult:Solve|undefined,preparingNext=false;
   let frame=0, wake=0, disposed=false;
   const listeners: (()=>void)[]=[];
   const on=(target:EventTarget,type:string,listener:EventListener,capture=false):void=>{
@@ -36,8 +37,8 @@ export function attachTimer(controller: CubeController, newScramble: () => void,
   const show=():void=>{
     const elapsed=timer.elapsed(performance.now());
     if(timer.phase==='inspecting')readout.textContent=elapsed<=15000?String(Math.max(0,Math.ceil((15000-elapsed)/1000))):'+2';
-    else if(timer.phase==='finished'){
-      const result=timer.result!,penalty=history.penalty(result.id)??result.penalty;
+    else if(timer.phase==='finished'||(timer.phase==='idle'&&lastResult)){
+      const result=timer.result??lastResult!,penalty=history.penalty(result.id)??result.penalty;
       readout.textContent=penalty==='DNF'?'DNF':formatTime(result.timeMs+(penalty==='+2'?2000:0))+(penalty==='+2'?' (+2)':'');
     }else readout.textContent=formatTime(elapsed);
   };
@@ -46,8 +47,21 @@ export function attachTimer(controller: CubeController, newScramble: () => void,
     if(timer.phase==='inspecting')wake=window.setTimeout(wakeUp,Math.max(1,17001-timer.elapsed(performance.now())));
   };
   const refresh=():void=>{if(disposed)return;timer.advance(performance.now());show();frame=requestAnimationFrame(refresh);};
-  const unchange=timer.onChange(()=>{if(timer.phase==='finished'){if(history.add(timer.result!))leaderboard.completed(timer.result!);historyUI.changed();}clearTimeout(wake);sync();show();});
-  const unreplaced=controller.onStateReplaced(()=>{context=undefined;timer.disarm();sync();show();historyUI.render();});
+  const prepareNext=(result?:Solve):void=>{
+    lastResult=result;preparingNext=true;
+    try{newScramble();}finally{preparingNext=false;}
+  };
+  const unchange=timer.onChange(()=>{
+    clearTimeout(wake);
+    if(timer.phase==='finished'){
+      const result=timer.result!;
+      if(history.add(result))leaderboard.completed(result);
+      historyUI.changed();
+      if(result.penalty!=='DNF'){prepareNext(result);return;}
+    }
+    sync();show();
+  });
+  const unreplaced=controller.onStateReplaced(()=>{if(!preparingNext)lastResult=undefined;timer.disarm();sync();show();historyUI.render();});
   const unmove=controller.onMoveApplied(e=>timer.recordMove(e.move,e.stateAfter,e.t));
   controller.setMoveGate((move,stamp)=>timer.canApply(move,stamp));
   const begin=(stamp:number):void=>{
@@ -74,13 +88,13 @@ export function attachTimer(controller: CubeController, newScramble: () => void,
   on(element('timer-keep'),'click',()=>dialog.close());
   on(element('timer-confirm-cancel'),'click',()=>{
     timer.advance(performance.now());
-    if(running()&&context){const old={...context};timer.cancel();controller.scramble(old.seed,old.scrambleIndex);context=old;timer.arm(old);sync();show();}
+    if(running()){timer.cancel();prepareNext();}
     dialog.close();
   });
   on(document,'visibilitychange',()=>{if(!document.hidden){timer.advance(performance.now());show();}});
   sync();frame=requestAnimationFrame(refresh);
   return {
-    scrambled(seed:string):void {context={size:controller.size,seed,scrambleIndex:0};timer.arm(context);sync();show();},
+    scrambled(seed:string):void {timer.arm({size:controller.size,seed,scrambleIndex:0});sync();show();},
     dispose():void {leaderboard.dispose();historyUI.dispose();disposed=true;cancelAnimationFrame(frame);clearTimeout(wake);for(const off of listeners)off();unchange();unreplaced();unmove();controller.setMoveGate(undefined);controller.unlockInput('timer');dialog.close();}
   };
 }
