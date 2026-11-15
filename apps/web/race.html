@@ -2,11 +2,11 @@
 <html lang="vi"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Rubik Lab — Phòng mời 1v1</title></head>
 <body class="race-page"><main>
 <header><a class="brand" href="/">▦ rubiklab.</a><span>Phòng mời 1v1 · 3×3</span><a href="/">Luyện tập / đặt tên</a></header>
-<section class="race-lobby"><h1>Đua cùng bạn</h1><p>Cùng chuỗi Rubik, cùng giờ bắt đầu. Server xác minh từng khối; chưa tính Elo.</p>
-<details id="race-lobby-controls" open><summary>Thiết lập / mã phòng</summary><div class="toolbar"><label>Chế độ <select id="race-mode"><option value="fullSolve">Giải cả khối · 120 giây</option><option value="f2lRush">F2L Rush · 45 giây</option></select></label><button id="race-create">Tạo phòng</button></div>
+<section class="race-lobby"><h1>Đua cùng bạn</h1><p>Cùng chuỗi Rubik, cùng giờ bắt đầu, mỗi trận 3 phút. Server xác minh từng khối; chưa tính Elo.</p>
+<details id="race-lobby-controls" open><summary>Thiết lập / mã phòng</summary><div class="toolbar"><label>Chế độ <select id="race-mode"><option value="fullSolve">Giải cả khối · 3 phút</option><option value="f2lRush">F2L Rush · 3 phút</option><option value="oneFace">Một mặt bất kỳ · 3 phút</option></select></label><button id="race-create">Tạo phòng</button></div>
 <form id="race-join-form" class="toolbar"><label>Mã phòng <input id="race-code" maxlength="32" autocomplete="off" required pattern="[a-f0-9]{32}"/></label><button id="race-join">Vào phòng</button></form>
 <div class="toolbar"><button id="race-copy" disabled>Sao chép link mời</button><button id="race-ready" disabled>Sẵn sàng</button><button id="race-forfeit" disabled>Bỏ cuộc</button><a id="race-new" href="/race.html" hidden>Trận mới</a></div></details>
-<p id="race-message" role="status" aria-live="polite">Đang khôi phục hồ sơ…</p></section>
+<p class="hint">Một mặt: cả 9 viên phải đúng vị trí, các màu ở mặt bên khớp với tâm.</p><p id="race-message" role="status" aria-live="polite">Đang khôi phục hồ sơ…</p></section>
 <section class="scramble-panel"><p id="scramble-text">Scramble được mở khi bắt đầu inspection.</p></section>
 <div class="race-workspace"><div class="race-cubes"><section class="solve-space" aria-label="Rubik của bạn"><h2 id="race-own-name" class="race-cube-name">Bạn</h2><div class="cube-toolbar"><label><input id="race-fixed-keys" type="checkbox"/> Khóa xoay phím</label><button id="race-camera">Đặt lại góc nhìn</button></div>
 <section id="viewport" aria-label="Rubik thi đấu 3D"></section><p class="gesture-hint">Phím và kéo lớp như luyện tập · x/y/z được phép trong inspection</p>

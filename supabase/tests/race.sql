@@ -18,6 +18,11 @@ do $$ declare
 begin
  v := public.race_action(a,room_id,'create','{"mode":"fullSolve","seed":"test-only"}');
  assert v->'room'->>'seed'='test-only';
+ assert v->'room'->>'duration_ms'='180000';
+ v:=public.race_action(a,repeat('d',32),'create','{"mode":"oneFace","seed":"face-test"}');
+ assert v->'room'->>'mode'='oneFace' and v->'room'->>'duration_ms'='180000';
+ v:=public.race_action(a,repeat('c',32),'create','{"mode":"f2lRush","seed":"f2l-test"}');
+ assert v->'room'->>'duration_ms'='180000';
  perform public.race_action(a,room_id,'create','{"mode":"fullSolve","seed":"replacement"}');
  assert (select seed from public.race_rooms where id=room_id)='test-only','Create retry changed challenge';
  begin perform public.race_action(c,room_id,'get');raise exception using errcode='XX000',message='Nonmember admitted';exception when raise_exception then null;end;
@@ -46,7 +51,7 @@ begin
  assert (select jsonb_array_length(players->0->'runs') from public.race_rooms where id=room_id)=1,'Duplicate score';
  begin perform public.race_action(a,room_id,'cube_done',jsonb_build_object('run',jsonb_set(run,'{endT}','6')));raise exception using errcode='XX000',message='Conflicting duplicate admitted';exception when raise_exception then null;end;
  begin perform public.race_action(a,room_id,'cube_done',jsonb_build_object('run',jsonb_set(run,'{k}','2')));raise exception using errcode='XX000',message='Skipped cube admitted';exception when raise_exception then null;end;
- update public.race_rooms set start_ms=floor(extract(epoch from clock_timestamp())*1000)-141001 where id=room_id;
+ update public.race_rooms set start_ms=floor(extract(epoch from clock_timestamp())*1000)-201001 where id=room_id;
  begin perform public.race_action(a,room_id,'cube_done',jsonb_build_object('run',jsonb_set(run,'{k}','1')));raise exception using errcode='XX000',message='Late receipt admitted';exception when raise_exception then null;end;
  perform public.race_action(a,room_id,'cube_done',jsonb_build_object('run',run));
  -- Direct client roles cannot read the hidden seed or call the privileged RPC.

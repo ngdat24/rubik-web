@@ -2,11 +2,12 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Cube,matchScrambleAt,invert,f2lSolvedAny} from '../packages/engine/dist/index.js';
 import {verifyRaceCube,verifyRaceProgress,publicRace,handleRace} from './race.mjs';
+import {faceSolved,oneFaceSolved,raceScramble} from '../shared/race-rules.mjs';
 
 const fixture=()=>({id:'a'.repeat(32),seed:'server-private',mode:'fullSolve',duration_ms:120000,start_ms:100000,forfeit:null,
   players:[{id:'a',name:'An',ready:true,runs:[]},{id:'b',name:'Bình',ready:true,runs:[]}]});
 function solved(room,k=0,start=0){
-  const moves=invert(matchScrambleAt(room.seed,3,k,1),3);
+  const moves=invert(raceScramble(room.seed,k,room.mode),3);
   const events=moves.map((m,i)=>({m,t:start+i+1}));return {k,endT:events.at(-1).t,preEvents:[],events};
 }
 test('server replays exact challenge; cutoff inclusive and grace exclusive',()=>{
@@ -80,4 +81,29 @@ test('live opponent state is replayed, private before inspection, and never chan
   assert.equal(verifyRaceProgress(room,player,progress,119000),null);
   assert.equal(publicRace(room,'a',119000).opponent.k,1);
   assert.deepEqual(publicRace(room,'a',119000).opponent.state,Array.from(new Cube(3).applyMoves(matchScrambleAt(room.seed,3,1,1)).state));
+});
+test('one face requires correctly placed corners/edges and follows rotated centers',()=>{
+  const uniformButMisplaced=new Cube(3).applyMoves('U D').state;
+  assert.equal(new Set(uniformButMisplaced.slice(0,9)).size,1);
+  assert.equal(faceSolved(uniformButMisplaced,0),false);assert.equal(oneFaceSolved(uniformButMisplaced),false);
+  for(const [move,opposite] of [['U',3],['R',4],['F',5],['D',0],['L',1],['B',2]]){
+    const state=new Cube(3).applyMove(move).state;assert.equal(faceSolved(state,opposite),true);
+    assert.equal(oneFaceSolved(new Cube(3).applyMoves([move,'x','y','z']).state),true);
+  }
+  assert.throws(()=>oneFaceSolved(new Cube(2).state));
+});
+test('one-face scramble, first completion, replay scoring and 180s cutoff',()=>{
+  const room=fixture();room.mode='oneFace';room.duration_ms=180000;
+  for(let k=0;k<20;k++)assert.equal(oneFaceSolved(new Cube(3).applyMoves(raceScramble(room.seed,k,room.mode)).state),false);
+  const original=solved(room),cube=new Cube(3).applyMoves(raceScramble(room.seed,0,room.mode)),events=[];
+  for(const e of original.events){events.push(e);cube.applyMove(e.m);if(oneFaceSolved(cube.state))break;}
+  assert.equal(cube.isSolved(),false);assert.ok(events.length<original.events.length);
+  const run=verifyRaceCube(room,room.players[0],{...original,events,endT:events.at(-1).t},room.start_ms+19000);
+  assert.equal(run.result,'face');room.players[0].runs.push(run);
+  const result=publicRace(room,'a',room.start_ms+201000);
+  assert.equal(result.durationMs,180000);assert.equal(result.players[0].score.score,1);assert.equal(result.result,'A');
+  const last={k:1,preEvents:[],events:[]},next=new Cube(3).applyMoves(raceScramble(room.seed,1,room.mode));
+  for(const m of invert(raceScramble(room.seed,1,room.mode),3)){next.applyMove(m);last.events.push({m,t:180000});if(oneFaceSolved(next.state))break;}
+  last.endT=180000;assert.equal(verifyRaceCube(room,room.players[0],last,room.start_ms+198000).endT,180000);
+  assert.throws(()=>verifyRaceCube(room,room.players[0],last,room.start_ms+201000));
 });

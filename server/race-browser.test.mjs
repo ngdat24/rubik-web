@@ -7,6 +7,7 @@ import {join,resolve,dirname,extname,sep} from 'node:path';
 import {createRequire} from 'node:module';
 import {execFileSync} from 'node:child_process';
 import {Cube,invert} from '../packages/engine/dist/index.js';
+import {oneFaceSolved} from '../shared/race-rules.mjs';
 import {createCloudHandler} from './cloud.mjs';
 import {fakeDatabase} from './test-support.mjs';
 const require=createRequire(new URL('../apps/web/package.json',import.meta.url));
@@ -85,6 +86,7 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
     };
     await a.locator('#race-create').click();await expect(a.locator('#race-copy')).toBeEnabled();
     const id=await a.locator('#race-code').inputValue();await b.locator('#race-code').fill(id);await b.locator('#race-join').click();
+    assert.equal(db.rooms.get(id).duration_ms,180000);
     await expect(b.locator('#race-players li')).toHaveCount(2);
     const releaseReady=await holdNextPoll(a);
     await a.locator('#race-ready').click();assert.equal(db.rooms.get(id).players[0].ready,false);
@@ -142,12 +144,23 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
       const response=await fetch('/api/race',{method:'POST',headers:{Authorization:'Bearer '+auth.access_token,'Content-Type':'application/json'},body:JSON.stringify({action:'cube_done',id,run})});return {status:response.status,body:await response.json()};
     },{id,run:receipt});
     assert.equal(duplicate.status,200);assert.equal(duplicate.body.ack,0);assert.equal(db.rooms.get(id).players[0].runs.length,1);
-    await tick(124000);
+    await tick(184000);
     await expect(a.locator('#race-result')).toHaveText('Người thắng: An');await expect(b.locator('#race-result')).toHaveText('Người thắng: An');
     // Fresh room exercises explicit forfeit; old room remains immutable.
     await a.goto(base+'/race.html');await b.goto(base+'/race.html');
+    await a.selectOption('#race-mode','oneFace');
     await a.locator('#race-create').click();await expect(a.locator('#race-copy')).toBeEnabled();
     const second=await a.locator('#race-code').inputValue();await b.locator('#race-code').fill(second);await b.locator('#race-join').click();await expect(b.locator('#race-players li')).toHaveCount(2);
+    await expect(b.locator('#race-mode')).toHaveValue('oneFace');assert.equal(db.rooms.get(second).duration_ms,180000);
+    await a.locator('#race-ready').click();await b.locator('#race-ready').click();
+    await expect(a.locator('#race-ready')).toBeDisabled();await expect(b.locator('#race-ready')).toBeDisabled();
+    await tick(1000);await tick(2500);await tick(15000);
+    const faceScramble=(await a.locator('#scramble-text').textContent()).trim().split(/\s+/),partial=[],cube=new Cube(3).applyMoves(faceScramble);
+    for(const move of invert(faceScramble,3)){partial.push(move);cube.applyMove(move);if(oneFaceSolved(cube.state))break;}
+    assert.equal(cube.isSolved(),false);await press(a,partial);
+    await expect.poll(()=>db.rooms.get(second).players[0].runs.length).toBe(1);
+    assert.equal(db.rooms.get(second).players[0].runs[0].result,'face');await expect(a.locator('#race-players')).toContainText('1 khối');
+    await b.locator('#race-lobby-controls summary').click();
     const releaseForfeit=await holdNextPoll(b);
     await b.locator('#race-forfeit').click();await b.locator('#race-confirm-forfeit').click();
     assert.equal(db.rooms.get(second).forfeit,null);releaseForfeit();
