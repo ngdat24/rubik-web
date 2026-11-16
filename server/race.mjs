@@ -77,6 +77,8 @@ export function publicRace(room,user,now){
 }
 
 export async function handleRace({request,user,method,body,url}){
+  const code=method==='GET'?url.searchParams.get('id'):body.id;
+  if(typeof code==='string'&&/^[a-z0-9]{8}$/i.test(code))return (await import('./lobby.mjs')).handleLobby({request,user,method,body,url});
   const action=method==='GET'?'get':body.action;
   const id=method==='GET'?url.searchParams.get('id'):body.id;
   if(!['create','join','ready','get','cube_done','forfeit','progress'].includes(action)||typeof id!=='string'||!/^[a-f0-9]{32}$/.test(id))throw new Error('Phòng hoặc thao tác không hợp lệ.');

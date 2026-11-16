@@ -20,6 +20,14 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
           if(value?.code==='23505')throw new HttpError(409,path.startsWith('/rest/v1/profiles?')?'Tên này đã có người dùng. Hãy chọn tên khác.':'ID đã được sử dụng.');
           if(value?.code==='40001')throw new HttpError(409,'Dữ liệu đã thay đổi trên thiết bị khác. Hãy tải bản server trước khi sửa tiếp.');
           if(value?.code==='54000')throw new HttpError(413,'Đã đạt giới hạn 10.000 bản ghi mỗi tài khoản.');
+          if(value?.code==='P0001'&&path==='/rest/v1/rpc/lobby_action')throw new HttpError(value.message==='Room not found'?404:409,
+            value.message==='Set your player name first'?'Hãy đặt tên trước khi vào phòng.':
+            value.message==='Room code collision'?'Mã phòng trùng, hãy tạo lại.':
+            value.message==='Room not found'?'Phòng đã đóng hoặc không tồn tại.':
+            value.message==='Room full'?'Phòng đã đủ hai người.':
+            value.message==='Room limit'?'Bạn đang có quá nhiều phòng mở. Hãy rời phòng cũ.':
+            value.message==='Connection replaced'?'Phòng đang mở ở tab khác. Hãy vào lại phòng tại tab này.':
+            'Phòng hoặc lựa chọn đã đổi. Hãy đợi đồng bộ rồi thử lại.');
           if(value?.code==='P0001'&&path==='/rest/v1/rpc/time_limit_action')throw new HttpError(409,
             value.message==='Set your player name first'?'Hãy đặt tên trước khi bắt đầu Time Limit.':
             value.message==='Time Limit start limit'?'Bạn đã bắt đầu quá nhiều lượt trong giờ qua. Hãy thử lại sau.':
@@ -65,6 +73,7 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
         // Room snapshots include participant names and input records. Remove
         // shared rooms containing this account as part of data deletion too.
         await request('/rest/v1/race_rooms?players=cs.'+encodeURIComponent(JSON.stringify([{id:user.id}])) ,{method:'DELETE'});
+        await request('/rest/v1/race_lobbies?players=cs.'+encodeURIComponent(JSON.stringify([{id:user.id}])) ,{method:'DELETE'});
         await request('/auth/v1/admin/users/'+encodeURIComponent(user.id),{method:'DELETE'});return send(200,{ok:true});
       }
       if(route==='player'){

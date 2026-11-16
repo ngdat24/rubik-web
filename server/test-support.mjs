@@ -1,8 +1,9 @@
 import {scrambleAt,invert,ENGINE_VERSION} from '../packages/engine/dist/index.js';
 import {isDeepStrictEqual} from 'node:util';
 import {RACE_DURATION_MS} from '../shared/race-rules.mjs';
+import {lobbyAction} from './lobby-test-support.mjs';
 export function fakeDatabase({raceClock=Date.now}={}){
-  const profiles=new Map(),solves=new Map(),rooms=new Map(),timeLimits=new Map(),calls=[];let denyQuota=false,version=0,raceOffset=0;
+  const profiles=new Map(),solves=new Map(),rooms=new Map(),lobbies=new Map(),timeLimits=new Map(),calls=[];let denyQuota=false,version=0,raceOffset=0;
   const fetcher=async(input,options={})=>{
     const url=new URL(input),body=options.body?JSON.parse(options.body):undefined,headers=options.headers??{};
     calls.push({url,body,headers,method:options.method});
@@ -17,6 +18,15 @@ export function fakeDatabase({raceClock=Date.now}={}){
       return response({ok:true});
     }
     if(url.pathname.endsWith('/consume_quota'))return response(!denyQuota);
+    if(url.pathname.endsWith('/lobby_action')){
+      try{return response(lobbyAction(lobbies,profiles,body,raceClock()+raceOffset));}
+      catch(error){return response({code:'P0001',message:error.message},400);}
+    }
+    if(url.pathname==='/rest/v1/race_lobbies'&&options.method==='DELETE'){
+      const user=JSON.parse(url.searchParams.get('players').slice(3))[0].id;
+      for(const [id,room] of lobbies)if(room.players.some(p=>p.id===user))lobbies.delete(id);
+      return new Response(null,{status:204});
+    }
     if(url.pathname.endsWith('/time_limit_action')){
       const {p_id:id,p_user:user,p_action:action,p_payload:payload}=body,now=raceClock()+raceOffset;
       const fail=()=>response({code:'P0001'},400);
@@ -114,7 +124,7 @@ export function fakeDatabase({raceClock=Date.now}={}){
     }
     throw new Error('Unexpected fake request: '+url.pathname);
   };
-  return {fetcher,profiles,solves,rooms,timeLimits,calls,setQuota(value){denyQuota=value;},advanceRace(ms){raceOffset+=ms;}};
+  return {fetcher,profiles,solves,rooms,lobbies,timeLimits,calls,setQuota(value){denyQuota=value;},advanceRace(ms){raceOffset+=ms;}};
 }
 
 export function validSolve(id='first',size=3){
