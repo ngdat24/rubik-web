@@ -102,3 +102,23 @@ test('weekly board validates selectors and maintenance requires the exact cron s
     assert.equal(calls.length,2);
   }finally{server.closeAllConnections();await new Promise(r=>server.close(r));}
 });
+
+test('single Vercel API entry preserves flat route URLs and query validation',async()=>{
+  const names=['SUPABASE_URL','SUPABASE_ANON_KEY','SUPABASE_SECRET_KEY'];
+  const previous=names.map(name=>process.env[name]);
+  Object.assign(process.env,{SUPABASE_URL:'https://fixture.invalid',SUPABASE_ANON_KEY:'fixture-public',SUPABASE_SECRET_KEY:'fixture-private'});
+  const {default:entry}=await import('../api/[route].mjs');
+  const server=createServer(entry);await new Promise(r=>server.listen(0,'127.0.0.1',r));
+  const base='http://127.0.0.1:'+server.address().port;
+  try{
+    for(const name of ['account','player','practice','quests','race','skins','solves','time-limit','wallet'])
+      assert.equal((await fetch(base+'/api/'+name)).status,401,name);
+    for(const path of ['leaderboard?size=1','time-limit-leaderboard?mode=invalid','weekly-leaderboard?size=1'])
+      assert.equal((await fetch(base+'/api/'+path)).status,400,path);
+    assert.equal((await fetch(base+'/api/economy-maintenance')).status,401);
+    assert.equal((await fetch(base+'/api/unknown')).status,404);
+  }finally{
+    server.closeAllConnections();await new Promise(r=>server.close(r));
+    names.forEach((name,i)=>{if(previous[i]===undefined)delete process.env[name];else process.env[name]=previous[i];});
+  }
+});
