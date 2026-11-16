@@ -10,6 +10,7 @@ import { attachKeyboard } from './keyboard.js';
 import { attachTimer } from './timer-controls.js';
 import { mountKeySettings } from './key-settings.js';
 import {mountAccount} from './account.js';
+import {mountWardrobe} from './wardrobe.js';
 
 let detachDrag: (()=>void) | undefined;
 let timerUI: ReturnType<typeof attachTimer> | undefined;
@@ -166,12 +167,14 @@ instant.addEventListener('change', onInstant);
 resetButton.addEventListener('click', onReset);
 scrambleButton.addEventListener('click', onScramble);
 const account=await mountAccount().catch(()=>{document.querySelector('#cloud-message')!.textContent=t("Chưa tạo được hồ sơ tự động; kiểm tra mạng hoặc bật Anonymous Sign-Ins trong Supabase. Kết quả vẫn lưu trên thiết bị.");return undefined;});
+const wardrobe=mountWardrobe(account,colors=>renderer?.setTheme(colors));
 if(controller) timerUI=attachTimer(controller,()=>{seed.value=newId();onScramble();},account);
 const onPageHide = (event: PageTransitionEvent): void => {
-  if (!event.persisted) { account?.dispose();clearInterval(viewLabelTimer); timerUI?.dispose(); detachDrag?.(); detachKeyboard?.(); keySettings.dispose(); controller?.dispose(); }
+  if (!event.persisted) { wardrobe.dispose(); account?.dispose();clearInterval(viewLabelTimer); timerUI?.dispose(); detachDrag?.(); detachKeyboard?.(); keySettings.dispose(); controller?.dispose(); }
 };
 window.addEventListener('pagehide', onPageHide);
 if (import.meta.hot) import.meta.hot.dispose(() => {
+  wardrobe.dispose();
   account?.dispose();
   clearInterval(viewLabelTimer);
   timerUI?.dispose();
