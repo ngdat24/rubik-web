@@ -1,4 +1,10 @@
 export const english: Record<string, string> = {
+  "Scramble máy chủ": "Server scramble",
+  "Đặt tên hồ sơ trước khi lấy scramble máy chủ.": "Set your profile name before requesting a server scramble.",
+  "Chưa kết nối được máy chủ luyện tập.": "Could not connect to the practice server.",
+  "Đã lấy scramble máy chủ.": "Server scramble is ready.",
+  "Máy chủ đã xác minh lượt giải.": "The server verified your solve.",
+  "Lượt giải đã lưu, chưa đạt ngưỡng tính thưởng.": "Solve saved. It did not meet the reward threshold.",
   " · Trạng thái đã giải": " · Solved",
   " · Đã trộn": " · Scrambled",
   "Chưa tạo được hồ sơ tự động. Kiểm tra mạng và bật Anonymous Sign-Ins trong Supabase.": "Could not create a profile automatically. Check your connection and enable Anonymous Sign-Ins in Supabase.",

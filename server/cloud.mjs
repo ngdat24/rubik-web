@@ -1,6 +1,7 @@
 import {verifySolve} from './verify-solve.mjs';
 import {handleRace} from './race.mjs';
 import {handleTimeLimit,TIME_LIMIT_MODES} from './time-limit.mjs';
+import {preparePracticeAction,practiceErrorMessages} from './practice.mjs';
 
 class HttpError extends Error {constructor(status,message){super(message);this.status=status;}}
 export function createCloudHandler({env=process.env,fetcher=fetch}={}){
@@ -20,6 +21,8 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
           if(value?.code==='23505')throw new HttpError(409,path.startsWith('/rest/v1/profiles?')?'Tên này đã có người dùng. Hãy chọn tên khác.':'ID đã được sử dụng.');
           if(value?.code==='40001')throw new HttpError(409,'Dữ liệu đã thay đổi trên thiết bị khác. Hãy tải bản server trước khi sửa tiếp.');
           if(value?.code==='54000')throw new HttpError(413,'Đã đạt giới hạn 10.000 bản ghi mỗi tài khoản.');
+          if(value?.code==='P0001'&&path.startsWith('/rest/v1/rpc/practice_')&&Object.hasOwn(practiceErrorMessages,value.message))
+            throw new HttpError(value.message==='profile_required'?403:409,practiceErrorMessages[value.message]);
           if(value?.code==='P0001'&&path==='/rest/v1/rpc/lobby_action')throw new HttpError(value.message==='Room not found'?404:409,
             value.message==='Set your player name first'?'Hãy đặt tên trước khi vào phòng.':
             value.message==='Room code collision'?'Mã phòng trùng, hãy tạo lại.':
@@ -52,7 +55,7 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
         const rows=await request('/rest/v1/rpc/leaderboard',{method:'POST',body:{p_size:size}});
         res.setHeader('Cache-Control','public, s-maxage=15, stale-while-revalidate=15');return send(200,{rows});
       }
-      if(!['player','solves','account','race','time-limit'].includes(route)||!['GET','POST','DELETE'].includes(req.method))throw new HttpError(404,'Không có API này.');
+      if(!['player','solves','account','race','time-limit','practice'].includes(route)||!['GET','POST','DELETE'].includes(req.method))throw new HttpError(404,'Không có API này.');
       const token=/^Bearer (\S+)$/.exec(req.headers.authorization??'')?.[1];if(!token||token.length>8192)throw new HttpError(401,'Cần phiên hồ sơ hợp lệ.');
       const user=await request('/auth/v1/user',{auth:token});if(!user?.id||(!user.email_confirmed_at&&user.is_anonymous!==true))throw new HttpError(401,'Phiên hồ sơ không hợp lệ. Hãy tải lại trang.');
       const allowed=await request('/rest/v1/rpc/consume_quota',{method:'POST',body:{p_user:user.id,p_kind:req.method==='GET'?'read':'write'}});
@@ -63,6 +66,15 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
         else{let length=0;const chunks=[];for await(const chunk of req){length+=chunk.length;if(length>300000)throw new HttpError(413,'Dữ liệu quá lớn.');chunks.push(chunk);}body=JSON.parse(Buffer.concat(chunks).toString('utf8'));}
         if(!body||typeof body!=='object'||Array.isArray(body))throw new HttpError(400,'Dữ liệu không hợp lệ.');
         if(Buffer.byteLength(JSON.stringify(body))>300000)throw new HttpError(413,'Dữ liệu quá lớn.');
+      }
+      if(route==='practice'){
+        if(req.method!=='POST')throw new HttpError(405,'Phương thức không hợp lệ.');
+        let action;
+        try{action=preparePracticeAction(body);}
+        catch(error){throw new HttpError(400,error.message);}
+        return send(200,await request('/rest/v1/rpc/practice_'+action.method,{
+          method:'POST',body:{...action.input,p_user:user.id}
+        }));
       }
       if(route==='race'||route==='time-limit'){
         if(!['GET','POST'].includes(req.method))throw new HttpError(405,'Phương thức không hợp lệ.');

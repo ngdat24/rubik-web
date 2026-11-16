@@ -10,6 +10,7 @@ import { attachKeyboard } from './keyboard.js';
 import { attachTimer } from './timer-controls.js';
 import { mountKeySettings } from './key-settings.js';
 import {mountAccount} from './account.js';
+import {mountPracticeChallenge} from './practice-challenge.js';
 
 let detachDrag: (()=>void) | undefined;
 let timerUI: ReturnType<typeof attachTimer> | undefined;
@@ -120,13 +121,14 @@ const onReset = (): void => {
   scrambleText.textContent = t("Chưa có scramble.");
   updateMoveControls(); moveStatus.textContent = '';
 };
-const onScramble = (): void => {
+const onScramble = (): boolean => {
   const moves = controller?.scramble(seed.value);
-  if (!moves) return;
+  if (!moves) return false;
   timerUI?.scrambled(seed.value);
   scrambleText.textContent = moves.join(' ');
   description.textContent = `Rubik ${sizeSelect.value}×${sizeSelect.value}${t(" · Đã trộn")}`;
   updateMoveControls(); moveStatus.textContent = '';
+  return true;
 };
 const onMove = (event: MouseEvent): void => {
   const inputTime = performance.now();
@@ -166,12 +168,16 @@ instant.addEventListener('change', onInstant);
 resetButton.addEventListener('click', onReset);
 scrambleButton.addEventListener('click', onScramble);
 const account=await mountAccount().catch(()=>{document.querySelector('#cloud-message')!.textContent=t("Chưa tạo được hồ sơ tự động; kiểm tra mạng hoặc bật Anonymous Sign-Ins trong Supabase. Kết quả vẫn lưu trên thiết bị.");return undefined;});
-if(controller) timerUI=attachTimer(controller,()=>{seed.value=newId();onScramble();},account);
+const practice = controller && mountPracticeChallenge(account,controller,value=>{seed.value=value;return onScramble();},
+  ()=>timerUI?.isRunning() ?? false);
+if(controller) timerUI=attachTimer(controller,()=>{seed.value=newId();onScramble();},account,
+  solve=>void practice?.completed(solve));
 const onPageHide = (event: PageTransitionEvent): void => {
-  if (!event.persisted) { account?.dispose();clearInterval(viewLabelTimer); timerUI?.dispose(); detachDrag?.(); detachKeyboard?.(); keySettings.dispose(); controller?.dispose(); }
+  if (!event.persisted) { practice?.dispose(); account?.dispose();clearInterval(viewLabelTimer); timerUI?.dispose(); detachDrag?.(); detachKeyboard?.(); keySettings.dispose(); controller?.dispose(); }
 };
 window.addEventListener('pagehide', onPageHide);
 if (import.meta.hot) import.meta.hot.dispose(() => {
+  practice?.dispose();
   account?.dispose();
   clearInterval(viewLabelTimer);
   timerUI?.dispose();
