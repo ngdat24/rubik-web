@@ -1,4 +1,5 @@
 export const english: Record<string, string> = {
+  "Đang chốt mùa giải. Hãy thử lại.": "The season is closing. Try again shortly.",
   "Cược CB mỗi người": "CB stake per player",
   "Chơi miễn phí": "Play for free",
   "Đã giữ tiền cược": "Stakes held",
