@@ -12,6 +12,17 @@ declare
 begin
   wallet := public.economy_wallet_snapshot(player);
   if wallet <> '{"cb":0,"zn":0}' then raise exception 'Wallet should start at zero'; end if;
+  -- Old #44 eligibility flags must not qualify for v2 money or starter progress.
+  for i in 101..104 loop
+    challenge:=gen_random_uuid(); seed:=lpad(to_hex(i),64,'0');
+    perform public.practice_issue(player,challenge,seed,3::smallint);
+    payload:=jsonb_build_object('id','legacy-'||i,'seed',seed,'size',3,'scrambleIndex',0,
+      'scrambleSource','generated','penalty','+2');
+    perform public.practice_finish(player,challenge,payload,12,3500,true);
+  end loop;
+  if public.economy_wallet_snapshot(player) <> '{"cb":0,"zn":0}' then
+    raise exception 'Legacy eligibility incorrectly paid v2 rewards';
+  end if;
   for i in 1..35 loop
     challenge:=gen_random_uuid();
     seed:=lpad(to_hex(i),64,'0');

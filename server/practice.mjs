@@ -2,7 +2,7 @@ import {randomBytes,randomUUID} from 'node:crypto';
 import {verifySolve} from './verify-solve.mjs';
 import {countPressMoves} from '../packages/engine/dist/index.js';
 
-const minimum = new Map([[2,[4,500]],[3,[12,1500]],[4,[20,3000]],[5,[30,5000]]]);
+const minimum = new Map([[2,[6,1500]],[3,[14,3500]],[4,[35,15000]],[5,[55,35000]]]);
 
 export function practiceEligibility(solve) {
   const [turnThreshold,timeThreshold] = minimum.get(Math.min(5,solve.size));

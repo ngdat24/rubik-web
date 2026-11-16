@@ -25,6 +25,10 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
             throw new HttpError(403,'Đặt tên hồ sơ để mở ví.');
           if(value?.code==='P0001'&&path.startsWith('/rest/v1/rpc/practice_')&&Object.hasOwn(practiceErrorMessages,value.message))
             throw new HttpError(value.message==='profile_required'?403:409,practiceErrorMessages[value.message]);
+          if(value?.code==='P0001'&&path==='/rest/v1/rpc/skin_inventory'){
+            if(value.message==='profile_required')throw new HttpError(403,'Đặt tên hồ sơ để sử dụng kho skin.');
+            if(value.message==='skin_not_owned')throw new HttpError(409,'Bạn chưa sở hữu skin này.');
+          }
           if(value?.code==='P0001'&&path==='/rest/v1/rpc/lobby_action')throw new HttpError(value.message==='Room not found'?404:409,
             value.message==='Set your player name first'?'Hãy đặt tên trước khi vào phòng.':
             value.message==='Room code collision'?'Mã phòng trùng, hãy tạo lại.':
@@ -57,7 +61,7 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
         const rows=await request('/rest/v1/rpc/leaderboard',{method:'POST',body:{p_size:size}});
         res.setHeader('Cache-Control','public, s-maxage=15, stale-while-revalidate=15');return send(200,{rows});
       }
-      if(!['player','solves','account','race','time-limit','practice','wallet'].includes(route)||!['GET','POST','DELETE'].includes(req.method))throw new HttpError(404,'Không có API này.');
+      if(!['player','solves','account','race','time-limit','practice','wallet','skins'].includes(route)||!['GET','POST','DELETE'].includes(req.method))throw new HttpError(404,'Không có API này.');
       const token=/^Bearer (\S+)$/.exec(req.headers.authorization??'')?.[1];if(!token||token.length>8192)throw new HttpError(401,'Cần phiên hồ sơ hợp lệ.');
       const user=await request('/auth/v1/user',{auth:token});if(!user?.id||(!user.email_confirmed_at&&user.is_anonymous!==true))throw new HttpError(401,'Phiên hồ sơ không hợp lệ. Hãy tải lại trang.');
       const allowed=await request('/rest/v1/rpc/consume_quota',{method:'POST',body:{p_user:user.id,p_kind:req.method==='GET'?'read':'write'}});
@@ -81,6 +85,14 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
         return send(200,await request('/rest/v1/rpc/practice_'+action.method,{
           method:'POST',body:{...action.input,p_user:user.id}
         }));
+      }
+      if(route==='skins'){
+        if(!['GET','POST'].includes(req.method))throw new HttpError(405,'Phương thức không hợp lệ.');
+        const equip=req.method==='POST',skin=equip?body.skinId:null;
+        if(skin!==null&&(typeof skin!=='string'||!/^[a-z0-9_-]{1,80}$/.test(skin)))throw new HttpError(400,'Mã skin không hợp lệ.');
+        return send(200,await request('/rest/v1/rpc/skin_inventory',{method:'POST',body:{
+          p_user:user.id,p_equip:equip,p_skin:skin
+        }}));
       }
       if(route==='race'||route==='time-limit'){
         if(!['GET','POST'].includes(req.method))throw new HttpError(405,'Phương thức không hợp lệ.');
