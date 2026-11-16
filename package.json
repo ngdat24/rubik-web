@@ -17,6 +17,7 @@
     "start:lan": "node tools/lan/server.mjs",
     "test:lan": "node --test tools/lan/server.test.mjs tools/lan/browser.test.mjs",
     "test:cloud": "node --test server/cloud.test.mjs server/cloud-browser.test.mjs",
-    "test:race": "node --test server/race.test.mjs server/race-browser.test.mjs"
+    "test:race": "node --test server/race.test.mjs server/race-browser.test.mjs",
+    "test:time-limit": "node --test server/time-limit.test.mjs server/time-limit-browser.test.mjs"
   }
 }

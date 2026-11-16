@@ -21,6 +21,7 @@ jobs:
       - run: npm run test:lan
       - run: npm run test:cloud
       - run: npm run test:race
+      - run: npm run test:time-limit
       - run: python -B tools/reference/check-engine.py
       - run: npm run test:e2e
         env:

@@ -1,5 +1,6 @@
 import {verifySolve} from './verify-solve.mjs';
 import {handleRace} from './race.mjs';
+import {handleTimeLimit,TIME_LIMIT_MODES} from './time-limit.mjs';
 
 class HttpError extends Error {constructor(status,message){super(message);this.status=status;}}
 export function createCloudHandler({env=process.env,fetcher=fetch}={}){
@@ -19,6 +20,10 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
           if(value?.code==='23505')throw new HttpError(409,path.startsWith('/rest/v1/profiles?')?'Tên này đã có người dùng. Hãy chọn tên khác.':'ID đã được sử dụng.');
           if(value?.code==='40001')throw new HttpError(409,'Dữ liệu đã thay đổi trên thiết bị khác. Hãy tải bản server trước khi sửa tiếp.');
           if(value?.code==='54000')throw new HttpError(413,'Đã đạt giới hạn 10.000 bản ghi mỗi tài khoản.');
+          if(value?.code==='P0001'&&path==='/rest/v1/rpc/time_limit_action')throw new HttpError(409,
+            value.message==='Set your player name first'?'Hãy đặt tên trước khi bắt đầu Time Limit.':
+            value.message==='Time Limit start limit'?'Bạn đã bắt đầu quá nhiều lượt trong giờ qua. Hãy thử lại sau.':
+            'Lượt không tồn tại, không thuộc hồ sơ này, hoặc khối gửi sai thứ tự/quá hạn.');
           if(value?.code==='P0001'&&path==='/rest/v1/rpc/race_action')throw new HttpError(409,
             value.message==='Set your player name first'?'Hãy đặt tên ở trang luyện tập trước khi vào phòng.':
             value.message==='Room limit: 3 per hour'?'Bạn đã tạo 3 phòng trong giờ qua. Hãy dùng phòng đã có hoặc đợi thêm.':
@@ -29,12 +34,17 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
         return value;
       };
       const url=new URL(req.url,'https://'+req.headers.host),route=url.pathname.split('/').at(-1);
+      if(route==='time-limit-leaderboard'&&req.method==='GET'){
+        const mode=url.searchParams.get('mode');if(!TIME_LIMIT_MODES.includes(mode))throw new HttpError(400,'Danh mục Time Limit không hợp lệ.');
+        const rows=await request('/rest/v1/rpc/time_limit_leaderboard',{method:'POST',body:{p_mode:mode}});
+        if(url.searchParams.get('fresh')!=='1')res.setHeader('Cache-Control','public, s-maxage=15, stale-while-revalidate=15');return send(200,{rows});
+      }
       if(route==='leaderboard'&&req.method==='GET'){
         const size=Number(url.searchParams.get('size'));if(![2,3].includes(size))throw new HttpError(400,'Chỉ có bảng 2×2 và 3×3.');
         const rows=await request('/rest/v1/rpc/leaderboard',{method:'POST',body:{p_size:size}});
         res.setHeader('Cache-Control','public, s-maxage=15, stale-while-revalidate=15');return send(200,{rows});
       }
-      if(!['player','solves','account','race'].includes(route)||!['GET','POST','DELETE'].includes(req.method))throw new HttpError(404,'Không có API này.');
+      if(!['player','solves','account','race','time-limit'].includes(route)||!['GET','POST','DELETE'].includes(req.method))throw new HttpError(404,'Không có API này.');
       const token=/^Bearer (\S+)$/.exec(req.headers.authorization??'')?.[1];if(!token||token.length>8192)throw new HttpError(401,'Cần phiên hồ sơ hợp lệ.');
       const user=await request('/auth/v1/user',{auth:token});if(!user?.id||(!user.email_confirmed_at&&user.is_anonymous!==true))throw new HttpError(401,'Phiên hồ sơ không hợp lệ. Hãy tải lại trang.');
       const allowed=await request('/rest/v1/rpc/consume_quota',{method:'POST',body:{p_user:user.id,p_kind:req.method==='GET'?'read':'write'}});
@@ -46,9 +56,9 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
         if(!body||typeof body!=='object'||Array.isArray(body))throw new HttpError(400,'Dữ liệu không hợp lệ.');
         if(Buffer.byteLength(JSON.stringify(body))>300000)throw new HttpError(413,'Dữ liệu quá lớn.');
       }
-      if(route==='race'){
+      if(route==='race'||route==='time-limit'){
         if(!['GET','POST'].includes(req.method))throw new HttpError(405,'Phương thức không hợp lệ.');
-        try{return send(200,await handleRace({request,user,method:req.method,body,url}));}
+        try{return send(200,await (route==='race'?handleRace:handleTimeLimit)({request,user,method:req.method,body,url}));}
         catch(error){if(error instanceof HttpError)throw error;throw new HttpError(400,error.message??'Không xử lý được trận đấu.');}
       }
       if(route==='account'&&req.method==='DELETE'){

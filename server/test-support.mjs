@@ -2,7 +2,7 @@ import {scrambleAt,invert,ENGINE_VERSION} from '../packages/engine/dist/index.js
 import {isDeepStrictEqual} from 'node:util';
 import {RACE_DURATION_MS} from '../shared/race-rules.mjs';
 export function fakeDatabase({raceClock=Date.now}={}){
-  const profiles=new Map(),solves=new Map(),rooms=new Map(),calls=[];let denyQuota=false,version=0,raceOffset=0;
+  const profiles=new Map(),solves=new Map(),rooms=new Map(),timeLimits=new Map(),calls=[];let denyQuota=false,version=0,raceOffset=0;
   const fetcher=async(input,options={})=>{
     const url=new URL(input),body=options.body?JSON.parse(options.body):undefined,headers=options.headers??{};
     calls.push({url,body,headers,method:options.method});
@@ -12,8 +12,37 @@ export function fakeDatabase({raceClock=Date.now}={}){
       const id=['Bearer token-a','Bearer anonymous-a','Bearer unconfirmed-a'].includes(token)?'11111111-1111-4111-8111-111111111111':['Bearer token-b','Bearer anonymous-b'].includes(token)?'22222222-2222-4222-8222-222222222222':undefined;
       return response(id?{id,email_confirmed_at:token.startsWith('Bearer token-')?'2026-11-13T00:00:00Z':null,is_anonymous:token.startsWith('Bearer anonymous-')}:{error:'Invalid token'},id?200:401);
     }
-    if(url.pathname.startsWith('/auth/v1/admin/users/'))return response({ok:true});
+    if(url.pathname.startsWith('/auth/v1/admin/users/')){
+      const id=url.pathname.split('/').at(-1);for(const [key,session] of timeLimits)if(session.user_id===id)timeLimits.delete(key);
+      return response({ok:true});
+    }
     if(url.pathname.endsWith('/consume_quota'))return response(!denyQuota);
+    if(url.pathname.endsWith('/time_limit_action')){
+      const {p_id:id,p_user:user,p_action:action,p_payload:payload}=body,now=raceClock()+raceOffset;
+      const fail=()=>response({code:'P0001'},400);
+      if(action==='create'&&!timeLimits.has(id)){
+        if(!profiles.has(user)||!['oneFace','f2lRush','fullSolve'].includes(payload.mode))return fail();
+        timeLimits.set(id,{id,user_id:user,mode:payload.mode,seed:payload.seed,start_ms:now,duration_ms:180000,runs:[],abandoned:false,score:0,lastEndT:0,totalMoves:0});
+      }
+      const session=timeLimits.get(id);if(!session||session.user_id!==user)return fail();
+      if(action==='cube_done'){
+        const {run,moveCost}=payload,previous=session.runs[run.k];
+        if(previous){if(!isDeepStrictEqual(previous,run))return fail();}
+        else{
+          if(run.k!==session.runs.length||session.abandoned||now<session.start_ms+18000||now>=session.start_ms+201000||run.endT>Math.min(180000,now-session.start_ms-18000+250))return fail();
+          session.runs.push(run);session.score++;session.lastEndT=run.endT;session.totalMoves+=moveCost;
+        }
+      }
+      if(action==='forfeit'&&now<session.start_ms+201000)session.abandoned=true;
+      return response({now_ms:now,room:{id,mode:session.mode,seed:session.seed,start_ms:session.start_ms,duration_ms:180000,forfeit:session.abandoned?user:null,
+        players:[{id:user,name:profiles.get(user)?.name,ready:true,runs:session.runs}]}});
+    }
+    if(url.pathname.endsWith('/time_limit_leaderboard')){
+      const now=raceClock()+raceOffset;
+      return response([...timeLimits.values()].filter(s=>s.mode===body.p_mode&&!s.abandoned&&s.start_ms+201000<=now&&profiles.has(s.user_id))
+        .sort((a,b)=>b.score-a.score||a.lastEndT-b.lastEndT||a.totalMoves-b.totalMoves||a.id.localeCompare(b.id)).slice(0,10)
+        .map(s=>({id:s.id,name:profiles.get(s.user_id).name,score:s.score,lastEndT:s.lastEndT,totalMoves:s.totalMoves})));
+    }
     if(url.pathname==='/rest/v1/race_rooms'&&options.method==='DELETE'){
       const user=JSON.parse(url.searchParams.get('players').slice(3))[0].id;
       for(const [id,room] of rooms)if(room.players.some(p=>p.id===user))rooms.delete(id);
@@ -85,7 +114,7 @@ export function fakeDatabase({raceClock=Date.now}={}){
     }
     throw new Error('Unexpected fake request: '+url.pathname);
   };
-  return {fetcher,profiles,solves,rooms,calls,setQuota(value){denyQuota=value;},advanceRace(ms){raceOffset+=ms;}};
+  return {fetcher,profiles,solves,rooms,timeLimits,calls,setQuota(value){denyQuota=value;},advanceRace(ms){raceOffset+=ms;}};
 }
 
 export function validSolve(id='first',size=3){
