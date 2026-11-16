@@ -13,6 +13,6 @@ test('cube workspace is responsive, uncluttered and keeps cube larger than clock
  await page.screenshot({path:'test-results/workspace-desktop.png',fullPage:true});
  await page.setViewportSize({width:390,height:844});await page.screenshot({path:'test-results/workspace-mobile.png',fullPage:true});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
- const scene=(await page.locator('.solve-space').boundingBox())!,history=(await page.locator('.history-panel').boundingBox())!;
+ const scene=(await page.locator('.solve-space').boundingBox())!,history=(await page.locator('.history-panel[aria-labelledby="history-title"]').boundingBox())!;
  expect(scene.y).toBeLessThan(history.y);await page.locator('#timer-start').click();await expect(page.locator('#timer-phase')).toContainText('Sẵn sàng');
 });
