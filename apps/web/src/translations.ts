@@ -1,4 +1,13 @@
 export const english: Record<string, string> = {
+  "Cược CB mỗi người": "CB stake per player",
+  "Chơi miễn phí": "Play for free",
+  "Đã giữ tiền cược": "Stakes held",
+  "Đã hoàn cược": "Stakes refunded",
+  "Đã chốt tiền cược": "Wager settled",
+  "Mức cược không hợp lệ.": "Invalid stake.",
+  "Một người chơi không đủ CB để đặt cược.": "A player does not have enough CB for this stake.",
+  "Mức cược đã đổi. Kiểm tra mức mới trước khi sẵn sàng.": "The stake changed. Review the new stake before you ready up.",
+  "Không thể đổi mức cược lúc này.": "The stake cannot be changed right now.",
   "Bảng xếp hạng tuần": "Weekly leaderboard",
   "Tuần": "Week",
   "Tuần này": "This week",

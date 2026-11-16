@@ -18,7 +18,7 @@ export function fakeDatabase({raceClock=Date.now}={}){
       return response({ok:true});
     }
     if(url.pathname.endsWith('/consume_quota'))return response(!denyQuota);
-    if(url.pathname.endsWith('/lobby_action')){
+    if(url.pathname.endsWith('/lobby_action_with_escrow')||url.pathname.endsWith('/lobby_action')){
       try{return response(lobbyAction(lobbies,profiles,body,raceClock()+raceOffset));}
       catch(error){return response({code:'P0001',message:error.message},400);}
     }
