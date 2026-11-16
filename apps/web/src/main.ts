@@ -11,6 +11,7 @@ import { attachTimer } from './timer-controls.js';
 import { mountKeySettings } from './key-settings.js';
 import {mountAccount} from './account.js';
 import {mountPracticeChallenge} from './practice-challenge.js';
+import {mountWallet} from './wallet.js';
 import {mountWardrobe} from './wardrobe.js';
 
 let detachDrag: (()=>void) | undefined;
@@ -169,17 +170,19 @@ instant.addEventListener('change', onInstant);
 resetButton.addEventListener('click', onReset);
 scrambleButton.addEventListener('click', onScramble);
 const account=await mountAccount().catch(()=>{document.querySelector('#cloud-message')!.textContent=t("Chưa tạo được hồ sơ tự động; kiểm tra mạng hoặc bật Anonymous Sign-Ins trong Supabase. Kết quả vẫn lưu trên thiết bị.");return undefined;});
+const wallet=mountWallet(account);
 const wardrobe=mountWardrobe(account,colors=>renderer?.setTheme(colors));
 const practice = controller && mountPracticeChallenge(account,controller,value=>{seed.value=value;return onScramble();},
   ()=>timerUI?.isRunning() ?? false);
 if(controller) timerUI=attachTimer(controller,()=>{seed.value=newId();onScramble();},account,
-  solve=>void practice?.completed(solve));
+  solve=>{if(practice)void practice.completed(solve).then(wallet.refresh);});
 const onPageHide = (event: PageTransitionEvent): void => {
-  if (!event.persisted) { practice?.dispose(); wardrobe.dispose(); account?.dispose();clearInterval(viewLabelTimer); timerUI?.dispose(); detachDrag?.(); detachKeyboard?.(); keySettings.dispose(); controller?.dispose(); }
+  if (!event.persisted) { practice?.dispose(); wardrobe.dispose(); wallet.dispose(); account?.dispose();clearInterval(viewLabelTimer); timerUI?.dispose(); detachDrag?.(); detachKeyboard?.(); keySettings.dispose(); controller?.dispose(); }
 };
 window.addEventListener('pagehide', onPageHide);
 if (import.meta.hot) import.meta.hot.dispose(() => {
   practice?.dispose(); wardrobe.dispose();
+  wallet.dispose();
   account?.dispose();
   clearInterval(viewLabelTimer);
   timerUI?.dispose();
