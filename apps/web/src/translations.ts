@@ -1,4 +1,6 @@
 export const english: Record<string, string> = {
+  "Đặt tên hồ sơ để mở ví.": "Set your profile name to open your wallet.",
+  "Chưa tải được số dư.": "Unable to load your balance.",
   "Scramble máy chủ": "Server scramble",
   "Đặt tên hồ sơ trước khi lấy scramble máy chủ.": "Set your profile name before requesting a server scramble.",
   "Chưa kết nối được máy chủ luyện tập.": "Could not connect to the practice server.",
