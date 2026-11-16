@@ -1,4 +1,10 @@
 export const english: Record<string, string> = {
+  "Bảng xếp hạng tuần": "Weekly leaderboard",
+  "Tuần": "Week",
+  "Tuần này": "This week",
+  "Tuần trước": "Last week",
+  "Thưởng": "Reward",
+  "Chưa tải được bảng tuần.": "Unable to load the weekly leaderboard.",
   "Full 3×3 có 1 vé miễn phí và tối đa 2 vé giá 100 CB mỗi ngày. Vé được tính sau đếm ngược. Hết vé hoặc thiếu CB, bạn vẫn có thể tập miễn phí.": "Full 3×3 has one free ticket and up to two 100 CB tickets each day. Tickets are used after countdown. You can keep practising for free when out of tickets or CB.",
   "Thưởng Time Limit": "Time Limit reward",
   "Đã dùng vé miễn phí": "Free ticket used",

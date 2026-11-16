@@ -1,3 +1,4 @@
+import {timingSafeEqual} from 'node:crypto';
 import {verifySolve} from './verify-solve.mjs';
 import {handleRace} from './race.mjs';
 import {handleTimeLimit,TIME_LIMIT_MODES} from './time-limit.mjs';
@@ -54,6 +55,22 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
         return value;
       };
       const url=new URL(req.url,'https://'+req.headers.host),route=url.pathname.split('/').at(-1);
+      if(route==='economy-maintenance'){
+        if(req.method!=='GET')throw new HttpError(405,'Phương thức không hợp lệ.');
+        const cron=env.CRON_SECRET,token=/^Bearer (\S+)$/.exec(req.headers.authorization??'')?.[1];
+        if(!cron||!token||Buffer.byteLength(token)!==Buffer.byteLength(cron)||
+          !timingSafeEqual(Buffer.from(token),Buffer.from(cron)))throw new HttpError(401,'Tác vụ không được xác thực.');
+        return send(200,await request('/rest/v1/rpc/economy_maintain',{method:'POST',body:{}}));
+      }
+      if(route==='weekly-leaderboard'&&req.method==='GET'){
+        const size=Number(url.searchParams.get('size')),week=url.searchParams.get('week')??'current';
+        if(!Number.isInteger(size)||size<2||size>10||!['current','previous'].includes(week))
+          throw new HttpError(400,'Danh mục bảng tuần không hợp lệ.');
+        const board=await request('/rest/v1/rpc/economy_weekly_board',{method:'POST',
+          body:{p_size:size,p_previous:week==='previous'}});
+        res.setHeader('Cache-Control','public, s-maxage=15, stale-while-revalidate=15');
+        return send(200,board);
+      }
       if(route==='time-limit-leaderboard'&&req.method==='GET'){
         const mode=url.searchParams.get('mode');if(!TIME_LIMIT_MODES.includes(mode))throw new HttpError(400,'Danh mục Time Limit không hợp lệ.');
         const rows=await request('/rest/v1/rpc/time_limit_leaderboard',{method:'POST',body:{p_mode:mode}});
