@@ -17,7 +17,7 @@ export function mountQuestProgress(account:CloudAccount|undefined) {
   const abort=new AbortController();
   let latest=0;
   async function refresh() {
-    if (!account || abort.signal.aborted) return;
+    if (!account || document.hidden || abort.signal.aborted) return;
     const id=++latest;
     try {
       const response=await fetch('/api/quests',{
@@ -46,9 +46,11 @@ export function mountQuestProgress(account:CloudAccount|undefined) {
   }
   const update=()=>void refresh();
   for (const event of ['rubik-profile-updated','online','focus']) window.addEventListener(event,update);
+  document.addEventListener('visibilitychange',update);
   void refresh();
   return {refresh,dispose:()=>{
     abort.abort();
+    document.removeEventListener('visibilitychange',update);
     for (const event of ['rubik-profile-updated','online','focus']) window.removeEventListener(event,update);
   }};
 }

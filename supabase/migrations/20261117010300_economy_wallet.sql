@@ -89,6 +89,18 @@ begin
 end;
 $$;
 
+-- Recheck v2 thresholds for receipts created before this migration as well.
+create function public.economy_solo_eligible(p_challenge public.practice_challenges)
+returns boolean language plpgsql immutable security invoker set search_path = '' as $$
+begin
+  return coalesce(p_challenge.completed_at is not null and p_challenge.eligible
+    and p_challenge.size between 2 and 5
+    and p_challenge.move_count >= (array[6,14,35,55])[p_challenge.size-1]
+    and p_challenge.effective_ms - case when p_challenge.solve->>'penalty' = '+2' then 2000 else 0 end
+      >= (array[1500,3500,15000,35000])[p_challenge.size-1],false);
+end;
+$$;
+
 create function public.economy_award_solo(p_challenge uuid)
 returns jsonb language plpgsql security invoker set search_path = '' as $$
 declare
@@ -97,7 +109,7 @@ declare
   earned_today bigint; today date; daily_start timestamptz; tomorrow timestamptz;
 begin
   select * into strict challenge from public.practice_challenges where id=p_challenge;
-  if challenge.completed_at is null or challenge.eligible is distinct from true or challenge.size not between 2 and 5
+  if not public.economy_solo_eligible(challenge)
     then raise exception 'ineligible_solo';
   end if;
   perform public.economy_lock_wallet(challenge.user_id);
@@ -134,7 +146,7 @@ begin
   if exists(select 1 from public.economy_receipts where user_id=p_user and kind='starter' and request_id='v2')
     then return; end if;
   if (select count(*) from (select 1 from public.practice_challenges
-    where user_id=p_user and eligible and completed_at is not null limit 5) qualifying) <> 5 then return; end if;
+    where user_id=p_user and public.economy_solo_eligible(practice_challenges) limit 5) qualifying) <> 5 then return; end if;
   result := public.economy_change_balance(p_user,'CB',200,'starter_reward',p_challenge);
   insert into public.economy_receipts(user_id,kind,request_id,payload,result)
     values(p_user,'starter','v2',jsonb_build_object('requiredSolves',5),result);
@@ -144,6 +156,7 @@ $$;
 create function public.economy_record_solo()
 returns trigger language plpgsql security invoker set search_path = '' as $$
 begin
+  if not public.economy_solo_eligible(new) then return new; end if;
   perform public.economy_award_solo(new.id);
   perform public.economy_award_starter(new.user_id,new.id);
   return new;
@@ -156,12 +169,12 @@ create trigger economy_solo_received after update of completed_at on public.prac
 
 revoke all on function public.economy_lock_wallet(uuid),
   public.economy_change_balance(uuid,text,bigint,text,uuid,boolean),
-  public.economy_wallet_snapshot(uuid), public.economy_award_solo(uuid),
+  public.economy_wallet_snapshot(uuid), public.economy_solo_eligible(public.practice_challenges), public.economy_award_solo(uuid),
   public.economy_award_starter(uuid,uuid), public.economy_record_solo()
   from public, anon, authenticated;
 grant execute on function public.economy_lock_wallet(uuid),
   public.economy_change_balance(uuid,text,bigint,text,uuid,boolean),
-  public.economy_wallet_snapshot(uuid), public.economy_award_solo(uuid),
+  public.economy_wallet_snapshot(uuid), public.economy_solo_eligible(public.practice_challenges), public.economy_award_solo(uuid),
   public.economy_award_starter(uuid,uuid), public.economy_record_solo() to service_role;
 
 commit;
