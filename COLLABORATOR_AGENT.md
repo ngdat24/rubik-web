@@ -16,7 +16,7 @@ Tên file này không bảo đảm mọi AI tự đọc. Khi mở chat, người
 
 - Đọc AGENTS.md, issue, spec liên quan, decisions.md và API của module sẽ dùng.
 - Đọc docs/project-history-and-github-workflow.md để hiểu trạng thái đã làm; đối chiếu code/PR/main mới nhất.
-- STATUS/README/PLAN/handoff cũ có thể lỗi thời: email/password đã bị bỏ khỏi UI; có name-only, 1v1 và Time Limit.
+- Tài liệu tổng kết ghi trạng thái theo thời điểm; đối chiếu code/PR mới nhất. Hiện có name-only, 1v1 và Time Limit.
 - Chạy git status, xem nhánh/remote/diff. Giữ thay đổi local và file untracked không thuộc nhiệm vụ; không tự xóa/revert.
 - Khi tree phù hợp, cập nhật main bằng git pull --ff-only rồi tạo nhánh codex/<issue>-<ten-viec>.
 - Nếu đang có việc dở/nhánh lệch, xác định nguồn gốc trước khi đổi nhánh; không dùng reset --hard hoặc clean để làm sạch.

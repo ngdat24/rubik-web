@@ -94,7 +94,7 @@ Thử chọn N, xoay bằng phím, kéo sticker và đổi camera để hiểu s
 3. [Tổng kết và workflow GitHub](project-history-and-github-workflow.md): lịch sử triển khai, phạm vi hiện có, cách phối hợp.
 4. Issue được giao và spec liên quan trong [docs/spec](spec/).
 
-README/STATUS/PLAN và handoff cũ có thể còn mô tả trước khi chuyển sang name-only, 1v1 và Time Limit. Không tự làm theo mục tương lai của tài liệu cũ. Code, PR mới và yêu cầu hiện tại cần được đối chiếu.
+Tài liệu tổng kết ghi trạng thái theo thời điểm. Không tự làm theo mục tương lai hoặc coi ảnh chụp lịch sử là hiện trạng. Code, PR mới và yêu cầu hiện tại cần được đối chiếu.
 
 Mở AI với workspace là thư mục `rubik-web`, gửi:
 
