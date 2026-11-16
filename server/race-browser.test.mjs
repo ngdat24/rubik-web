@@ -52,7 +52,9 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
       });
       await page.goto(base+'/race.html');
       if(i===1){
-        await expect(page.locator('#race-name-dialog')).toBeVisible();
+        // Initial WebGL setup and the profile request can take longer on CI's
+        // software GPU; keep a bounded startup wait without relaxing match tests.
+        await expect(page.locator('#race-name-dialog')).toBeVisible({timeout:15000});
         await page.locator('#race-name').fill('An');await page.locator('#race-name-form button').click();
         await expect(page.locator('#race-name-error')).toContainText('chọn tên khác');
         await page.locator('#race-name').fill('Bình');
