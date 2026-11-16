@@ -52,7 +52,9 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
       });
       await page.goto(base+'/race.html');
       if(i===1){
-        await expect(page.locator('#race-name-dialog')).toBeVisible();
+        // Initial WebGL setup and the profile request can take longer on CI's
+        // software GPU; keep a bounded startup wait without relaxing match tests.
+        await expect(page.locator('#race-name-dialog')).toBeVisible({timeout:15000});
         await page.locator('#race-name').fill('An');await page.locator('#race-name-form button').click();
         await expect(page.locator('#race-name-error')).toContainText('chọn tên khác');
         await page.locator('#race-name').fill('Bình');
@@ -90,6 +92,7 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
     await expect(b.locator('#race-players li')).toHaveCount(2);
     const releaseReady=await holdNextPoll(a);
     await a.locator('#race-ready').click();assert.equal(db.rooms.get(id).players[0].ready,false);
+    await expect(a.locator('#race-ready')).toBeDisabled();await expect(a.locator('#race-message')).toContainText('Đang gửi sẵn sàng');
     releaseReady();await expect.poll(()=>db.rooms.get(id).players[0].ready).toBe(true);
     await b.locator('#race-ready').click();
     await expect.poll(()=>db.rooms.get(id).start_ms).not.toBeNull();
