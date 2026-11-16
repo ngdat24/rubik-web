@@ -90,6 +90,7 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
     await expect(b.locator('#race-players li')).toHaveCount(2);
     const releaseReady=await holdNextPoll(a);
     await a.locator('#race-ready').click();assert.equal(db.rooms.get(id).players[0].ready,false);
+    await expect(a.locator('#race-ready')).toBeDisabled();await expect(a.locator('#race-message')).toContainText('Đang gửi sẵn sàng');
     releaseReady();await expect.poll(()=>db.rooms.get(id).players[0].ready).toBe(true);
     await b.locator('#race-ready').click();
     await expect.poll(()=>db.rooms.get(id).start_ms).not.toBeNull();

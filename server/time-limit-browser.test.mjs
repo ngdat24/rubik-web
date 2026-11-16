@@ -36,7 +36,7 @@ test('Time Limit: three solo modes, offline resume, deadline, cancellation and c
     await context.addInitScript(({id,token,exp})=>localStorage.setItem('sb-cloud-test-auth-token',JSON.stringify({access_token:token,refresh_token:'test',expires_at:exp,expires_in:3600,token_type:'bearer',user:{id,aud:'authenticated',role:'authenticated',is_anonymous:true}})),{id,token,exp});
     const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));
     await page.clock.install();await page.addInitScript(()=>{const original=window.setTimeout;window.setTimeout=function(callback,delay,...args){if(delay===1000&&typeof callback==='function')window.timeLimitPoll=callback;return original.call(window,callback,delay,...args);};});
-    await page.goto(base+'/time-limit.html');await expect(page.locator('#viewport canvas')).toBeVisible();await expect(page.locator('#opponent-viewport')).toHaveCount(0);
+    await page.goto(base+'/time-limit.html');await expect(page.locator('#viewport canvas')).toBeVisible();await expect(page.locator('#race-message')).toContainText('Chọn danh mục');await expect(page.locator('#opponent-viewport')).toHaveCount(0);
     await page.locator('#race-fixed-keys').check();await page.clock.pauseAt(new Date(await page.evaluate(()=>Date.now())+60000));
     const tick=async ms=>{
       const response=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/time-limit'&&r.status()===200);
@@ -50,8 +50,15 @@ test('Time Limit: three solo modes, offline resume, deadline, cancellation and c
       await press(moves);
     };
     for(const mode of ['oneFace','f2lRush','fullSolve']){
+      let releaseCreate;
+      if(mode==='oneFace'){
+        const held=new Promise(resolve=>{releaseCreate=resolve;});
+        await page.route(url=>url.pathname==='/api/time-limit'&&!url.search,async route=>{await held;await route.continue();},{times:1});
+      }
       await page.selectOption('#race-mode',mode);await page.locator('#race-create').focus();await page.keyboard.press('Space');
       await expect(page.locator('#race-create')).toBeDisabled();await expect(page.locator('#race-mode')).toBeDisabled();
+      if(releaseCreate){await expect(page.locator('#race-message')).toContainText('Đang bắt đầu');releaseCreate();}
+      await expect(page.locator('#race-message')).toContainText('Đã kết nối');
       const session=new URL(page.url()).searchParams.get('session');assert.ok(session);assert.equal(db.timeLimits.get(session).duration_ms,180000);
       assert.equal((await page.locator('#scramble-text').textContent()).includes('inspection'),true);
       await tick(1000);await expect(page.locator('#race-phase')).toContainText('Đếm ngược');await tick(2500);await expect(page.locator('#race-phase')).toContainText('Inspection');
@@ -68,7 +75,7 @@ test('Time Limit: three solo modes, offline resume, deadline, cancellation and c
     }
     for(const mode of ['oneFace','f2lRush','fullSolve']){await page.locator(`[data-time-mode="${mode}"]`).click();await expect(page.locator('#time-limit-rows tr')).toHaveCount(1);await expect(page.locator('#time-limit-rows')).toContainText('An Time Limit');}
     await page.setViewportSize({width:390,height:844});await page.locator('#viewport canvas').scrollIntoViewIfNeeded();db.advanceRace(64);await page.clock.runFor(64);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.screenshot({path:resolve('test-results/time-limit-mobile.png'),fullPage:true});
-    await page.selectOption('#race-mode','oneFace');await page.locator('#race-create').click();await expect(page.locator('#race-create')).toBeDisabled();const canceled=new URL(page.url()).searchParams.get('session');
+    await page.selectOption('#race-mode','oneFace');await page.locator('#race-create').click();await expect(page.locator('#race-create')).toBeDisabled();await expect(page.locator('#race-message')).toContainText('Đã kết nối');const canceled=new URL(page.url()).searchParams.get('session');
     let release,entered;const hold=new Promise(resolve=>{release=resolve;}),started=new Promise(resolve=>{entered=resolve;});
     await page.route(url=>url.pathname==='/api/time-limit'&&url.searchParams.has('id'),async route=>{entered();await hold;await route.continue();},{times:1});
     await page.evaluate(()=>window.timeLimitPoll());await started;await page.locator('#race-forfeit').click();await page.locator('#race-confirm-forfeit').click();assert.equal(db.timeLimits.get(canceled).abandoned,false);release();
