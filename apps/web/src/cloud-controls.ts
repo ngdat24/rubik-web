@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {formatTime} from '@rubik/engine';
 import {validateHistoryBackup} from '@rubik/timer';
 import type {HistoryEntry,Solve,SolveHistory} from '@rubik/timer';
@@ -21,7 +22,7 @@ export function attachCloudHistory(account:CloudAccount|undefined,history:SolveH
   let disposed=false,busy=false,syncAgain=false,profileName='',storageError=false,prompted=false;
   // Reset on reload: never persist a cursor ahead of a failed IndexedDB write.
   let cursor=0;
-  const store=(id:string,item:Pending)=>{pending.set(id,item);try{localStorage.setItem(prefix+id,JSON.stringify(item));}catch{storageError=true;status.textContent='Không lưu được hàng đợi; giữ trang mở để gửi lại.';}};
+  const store=(id:string,item:Pending)=>{pending.set(id,item);try{localStorage.setItem(prefix+id,JSON.stringify(item));}catch{storageError=true;status.textContent=t("Không lưu được hàng đợi; giữ trang mở để gửi lại.");}};
   const load=()=>{
     if(!account)return;
     try{for(let i=0;i<localStorage.length;i++){
@@ -30,28 +31,28 @@ export function attachCloudHistory(account:CloudAccount|undefined,history:SolveH
       const entry=validateHistoryBackup({version:1,entries:[raw.entry]}).entries[0]!;
       if(typeof raw.deleted!=='boolean'||typeof raw.ranked!=='boolean'||typeof raw.nonce!=='string'||(raw.revision!==null&&(!Number.isSafeInteger(raw.revision)||raw.revision<1)))continue;
       if(!pending.has(entry.solve.id))pending.set(entry.solve.id,{...raw,entry});
-    }}catch{storageError=true;status.textContent='Không đọc được hàng đợi; có thể xuất backup trước khi tải lại.';}
+    }}catch{storageError=true;status.textContent=t("Không đọc được hàng đợi; có thể xuất backup trước khi tải lại.");}
   };
   const revision=(id:string)=>{if(revisions.has(id))return revisions.get(id)!;try{const value=Number(localStorage.getItem(revisionPrefix+id));return Number.isSafeInteger(value)&&value>0?value:null;}catch{return null;}};
   const remember=(row:Row)=>{revisions.set(row.id,row.revision);try{localStorage.setItem(revisionPrefix+row.id,String(row.revision));}catch{/* A missing revision causes a safe conflict, never an unguarded overwrite. */}};
   const api=async(path:string,body?:unknown)=>{
     const token=account&&!path.startsWith('leaderboard?')?await account.token():undefined;
     const response=await fetch('/api/'+path,{method:body===undefined?'GET':'POST',headers:{...(body===undefined?{}:{'Content-Type':'application/json'}),...(token?{Authorization:'Bearer '+token}:{})},...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.any([abort.signal,AbortSignal.timeout(15000)])});
-    if(!response.ok){let text='Chưa kết nối được server.';try{text=(await response.json()).error??text;}catch{/* Preserve pending data on a non-JSON gateway response. */}throw new ApiError(text,response.status);}return response.json();
+    if(!response.ok){let text=t("Chưa kết nối được server.");try{text=(await response.json()).error??text;}catch{/* Preserve pending data on a non-JSON gateway response. */}throw new ApiError(text,response.status);}return response.json();
   };
   const board=async()=>{
     const requested=size.value,{rows}=await api('leaderboard?size='+requested);if(disposed||requested!==size.value)return;
     tbody.replaceChildren();for(const [i,row] of rows.entries()){const tr=document.createElement('tr');for(const text of [String(i+1),row.name,formatTime(row.timeMs)]){const td=document.createElement('td');td.textContent=text;tr.append(td);}tbody.append(tr);}
-    if(!rows.length){const td=tbody.insertRow().insertCell();td.colSpan=3;td.textContent='Chưa có kết quả.';}
-    message.textContent='Top 10 lượt giải · 2×2 / 3×3.';
+    if(!rows.length){const td=tbody.insertRow().insertCell();td.colSpan=3;td.textContent=t("Chưa có kết quả.");}
+    message.textContent=t("Top 10 lượt giải · 2×2 / 3×3.");
   };
   const pull=async()=>{
     const downloaded=new Map<string,Row>();let nextCursor=cursor;
     for(let page=0;page<21;page++){
       if(document.hidden) return;
       const data:{rows:Row[];cursor:number;hasMore:boolean}=await api('solves?since='+nextCursor);if(disposed)return;
-      if(!Number.isSafeInteger(data.cursor)||data.cursor<nextCursor||data.rows.length>500||(data.hasMore&&data.cursor===nextCursor))throw new Error('Mốc đồng bộ server không hợp lệ.');
-      for(const row of data.rows){if(!Number.isSafeInteger(row.sync_version)||row.sync_version<=nextCursor||row.sync_version>data.cursor)throw new Error('Thứ tự thay đổi không hợp lệ.');downloaded.set(row.id,row);}
+      if(!Number.isSafeInteger(data.cursor)||data.cursor<nextCursor||data.rows.length>500||(data.hasMore&&data.cursor===nextCursor))throw new Error(t("Mốc đồng bộ server không hợp lệ."));
+      for(const row of data.rows){if(!Number.isSafeInteger(row.sync_version)||row.sync_version<=nextCursor||row.sync_version>data.cursor)throw new Error(t("Thứ tự thay đổi không hợp lệ."));downloaded.set(row.id,row);}
       nextCursor=data.cursor;if(!data.hasMore)break;
     }
     validateHistoryBackup({version:1,entries:[...downloaded.values()].map(row=>({solve:row.solve,penaltyOverride:row.penalty_override}))});
@@ -72,9 +73,9 @@ export function attachCloudHistory(account:CloudAccount|undefined,history:SolveH
   const sync=async()=>{
     if(disposed||document.hidden)return;if(busy){syncAgain=true;return;}busy=true;syncButton.disabled=true;
     try{
-      await ui.loaded;if(disposed||document.hidden)return;if(!account){await board();status.textContent='Chưa kết nối được hồ sơ tự động; kết quả vẫn lưu trên thiết bị.';return;}
+      await ui.loaded;if(disposed||document.hidden)return;if(!account){await board();status.textContent=t("Chưa kết nối được hồ sơ tự động; kết quả vẫn lưu trên thiết bị.");return;}
       load();const profile=await api('player');if(disposed)return;
-      profileName=profile.name??'';label.textContent=profileName||'Chưa đặt tên';if(!profileName&&!prompted&&!document.querySelector('dialog[open]')){prompted=true;showName();}
+      profileName=profile.name??'';label.textContent=profileName||t("Chưa đặt tên");if(!profileName&&!prompted&&!document.querySelector('dialog[open]')){prompted=true;showName();}
       for(const [id,item] of [...pending]){
         if(document.hidden)return;
         if(item.error)continue;
@@ -91,25 +92,25 @@ export function attachCloudHistory(account:CloudAccount|undefined,history:SolveH
           }catch{storageError=true;}
           if(latest?.nonce!==item.nonce){if(latest)store(id,{...latest,revision:row.revision});continue;}
           pending.delete(id);try{localStorage.removeItem(prefix+id);}catch{storageError=true;}
-        }catch(error){if(error instanceof ApiError&&[400,409,413].includes(error.status)){store(id,{...item,error:error.message,conflict:error.status===409});continue;}throw error;}
+        }catch(error){if(error instanceof ApiError&&[400,409,413].includes(error.status)){store(id,{...item,error:t(error.message),conflict:error.status===409});continue;}throw error;}
       }
       await pull();if(disposed||document.hidden)return;await board();
       const failed=[...pending.values()].find(item=>item.error);resolveButton.hidden=![...pending.values()].some(item=>item.conflict);
-      status.textContent=failed?`Một thay đổi chưa đồng bộ: ${failed.error}`:storageError?'Đã gửi; lưu hàng đợi trên thiết bị gặp lỗi.':'Đã đồng bộ lịch sử tài khoản.';
-    }catch(error){if(!disposed)status.textContent=error instanceof Error?error.message:'Chưa kết nối được server; kết quả vẫn ở thiết bị.';}
+      status.textContent=failed?`${t("Một thay đổi chưa đồng bộ: ")}${t(failed.error ?? "")}`:storageError?t("Đã gửi; lưu hàng đợi trên thiết bị gặp lỗi."):t("Đã đồng bộ lịch sử tài khoản.");
+    }catch(error){if(!disposed)status.textContent=error instanceof Error?t(error.message):t("Chưa kết nối được server; kết quả vẫn ở thiết bị.");}
     finally{busy=false;if(!disposed){syncButton.disabled=!account;if(syncAgain){syncAgain=false;queueMicrotask(()=>{void sync();});}}}
   };
   const queue=(entry:HistoryEntry,deleted:boolean,ranked=false)=>{
     if(!account||disposed)return;load();const old=pending.get(entry.solve.id);
     store(entry.solve.id,{entry,deleted,ranked:old?.ranked??ranked,revision:old?old.revision:revision(entry.solve.id),nonce:newId()});void sync();
   };
-  const showName=()=>{if(!account){status.textContent='Chưa tạo được hồ sơ tự động. Kiểm tra mạng rồi tải lại trang.';return;}name.value=profileName;nameError.textContent='';if(!document.querySelector('dialog[open]'))dialog.showModal();};
-  const submitName=async(event:SubmitEvent)=>{event.preventDefault();const button=form.querySelector<HTMLButtonElement>('button[type=submit]')!;button.disabled=true;try{const profile=await api('player',{name:name.value});profileName=profile.name;label.textContent=profile.name;dialog.close();void sync();}catch(error){nameError.textContent=error instanceof Error?error.message:'Không lưu được tên.';}finally{button.disabled=false;}};
+  const showName=()=>{if(!account){status.textContent=t("Chưa tạo được hồ sơ tự động. Kiểm tra mạng rồi tải lại trang.");return;}name.value=profileName;nameError.textContent='';if(!document.querySelector('dialog[open]'))dialog.showModal();};
+  const submitName=async(event:SubmitEvent)=>{event.preventDefault();const button=form.querySelector<HTMLButtonElement>('button[type=submit]')!;button.disabled=true;try{const profile=await api('player',{name:name.value});profileName=profile.name;label.textContent=profile.name;dialog.close();void sync();}catch(error){nameError.textContent=error instanceof Error?t(error.message):t("Không lưu được tên.");}finally{button.disabled=false;}};
   const change=()=>{void sync();};
   const importHistory=()=>{if(!account)return;for(const entry of history.entries())if(revision(entry.solve.id)===null)queue(entry,false,false);void sync();};
   const useServer=()=>{for(const [id,item] of pending)if(item.conflict){pending.delete(id);try{localStorage.removeItem(prefix+id);}catch{storageError=true;}}cursor=0;resolveButton.hidden=true;void sync();};
   const close=()=>dialog.close();
-  label.textContent=account?'Đang tải tên…':'Khách';edit.textContent=account?'Đổi tên':'Đặt tên';syncButton.hidden=importButton.hidden=!account;
+  label.textContent=account?t("Đang tải tên…"):t("Khách");edit.textContent=account?t("Đổi tên"):t("Đặt tên");syncButton.hidden=importButton.hidden=!account;
   edit.addEventListener('click',showName);form.addEventListener('submit',submitName);document.querySelector('#player-close')!.addEventListener('click',close);size.addEventListener('change',change);syncButton.addEventListener('click',change);importButton.addEventListener('click',importHistory);resolveButton.addEventListener('click',useServer);window.addEventListener('online',change);
   void sync();const interval=window.setInterval(change,30000);
   const visible=()=>{if(!document.hidden)change();};document.addEventListener('visibilitychange',visible);

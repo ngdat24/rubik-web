@@ -1,3 +1,4 @@
+import {t as translate} from './i18n.js';
 import {browserAccount} from './account.js';
 import {CubeController,loadSettings} from '@rubik/controller';
 import {CubeRenderer,viewMove} from '@rubik/renderer';
@@ -24,7 +25,7 @@ function readDraft(text:string):Draft{
   const value=JSON.parse(text) as Draft;
   const events=(items:MoveEvent[],max:number)=>Array.isArray(items)&&items.length<=max&&items.every(e=>e&&typeof e.m==='string'&&e.m.length<=12&&Number.isSafeInteger(e.t)&&e.t>=0);
   if(!value||!Number.isSafeInteger(value.k)||value.k<0||value.k>1000||!events(value.preEvents,200)||!events(value.events,4000)||
-    !Array.isArray(value.pending)||value.pending.length>1000||!value.pending.every((run,i)=>run&&run.k===value.k-value.pending.length+i&&Number.isSafeInteger(run.endT)&&events(run.preEvents,200)&&events(run.events,4000)))throw new Error('Tiến độ local không hợp lệ.');
+    !Array.isArray(value.pending)||value.pending.length>1000||!value.pending.every((run,i)=>run&&run.k===value.k-value.pending.length+i&&Number.isSafeInteger(run.endT)&&events(run.preEvents,200)&&events(run.events,4000)))throw new Error(translate("Tiến độ local không hợp lệ."));
   return value;
 }
 const el=<T extends HTMLElement>(id:string)=>document.getElementById(id) as T;
@@ -40,11 +41,11 @@ const cleanup:(()=>void)[]=[];
 
 async function boot():Promise<void>{
   const account=await browserAccount();
-  if(!account)throw new Error('Phòng online cần cấu hình Supabase/Vercel. Chế độ LAN chưa phục vụ phòng này.');
+  if(!account)throw new Error(translate("Phòng online cần cấu hình Supabase/Vercel. Chế độ LAN chưa phục vụ phòng này."));
   cleanup.push(account.dispose);
   const board=solo?mountTimeLimitBoard():undefined;if(board)cleanup.push(board.dispose);
   const targetLabel=document.querySelector<HTMLElement>('#time-limit-target');
-  const showTarget=(value:string,playing=false)=>{if(targetLabel)targetLabel.textContent=(playing?'Đang chơi: ':'Sẽ chơi: ')+({oneFace:'1 mặt',f2lRush:'F2L',fullSolve:'full'} as Record<string,string>)[value];};
+  const showTarget=(value:string,playing=false)=>{if(targetLabel)targetLabel.textContent=(playing?translate("Đang chơi: "):translate("Sẽ chơi: "))+({oneFace:translate("1 mặt"),f2lRush:'F2L',fullSolve:'full'} as Record<string,string>)[value];};
   if(solo){showTarget(mode.value);mode.onchange=()=>{showTarget(mode.value);board?.select(mode.value);};}
   const {client}=account,user=account.id;
   const renderer=new CubeRenderer(el('viewport'));renderer.setSpeed(40);
@@ -52,7 +53,7 @@ async function boot():Promise<void>{
   cleanup.push(()=>controller.dispose());
   const profileRequest=async(name?:string)=>{
     const response=await fetch('/api/player',{method:name===undefined?'GET':'POST',headers:{Authorization:'Bearer '+await account.token(),'Content-Type':'application/json'},...(name===undefined?{}:{body:JSON.stringify({name})}),signal:AbortSignal.timeout(10000)});
-    const value=await response.json();if(!response.ok)throw new Error(value.error??'Chưa lưu được tên.');return value;
+    const value=await response.json();if(!response.ok)throw new Error(value.error??translate("Chưa lưu được tên."));return value;
   };
   if(!(await profileRequest()).name){
     const nameDialog=el<HTMLDialogElement>('race-name-dialog'),form=el<HTMLFormElement>('race-name-form');
@@ -60,7 +61,7 @@ async function boot():Promise<void>{
     await new Promise<void>(resolve=>{form.onsubmit=async e=>{
       e.preventDefault();const button=form.querySelector<HTMLButtonElement>('button')!;button.disabled=true;
       try{await profileRequest(el<HTMLInputElement>('race-name').value);form.onsubmit=null;nameDialog.close();resolve();}
-      catch(error){el('race-name-error').textContent=error instanceof Error?error.message:'Không lưu được tên.';}
+      catch(error){el('race-name-error').textContent=error instanceof Error?translate(error.message):translate("Không lưu được tên.");}
       finally{button.disabled=false;}
     };});
   }
@@ -78,7 +79,7 @@ async function boot():Promise<void>{
   let queuedAction:{action:string;extra:Record<string,unknown>}|undefined;
   let nextScrambleCheck=0;
   const pendingAction=(action:string)=>{
-    message.textContent=({create:solo?'Đang bắt đầu lượt…':'Đang tạo phòng…',join:'Đang vào phòng…',ready:'Đang gửi sẵn sàng…',forfeit:'Đang hủy lượt…',leave:'Đang rời phòng…',rematch:'Đang gửi đấu lại…',mode:'Đang đổi chế độ…'} as Record<string,string>)[action]??'Đang kết nối…';
+    message.textContent=({create:solo?translate("Đang bắt đầu lượt…"):translate("Đang tạo phòng…"),join:translate("Đang vào phòng…"),ready:translate("Đang gửi sẵn sàng…"),forfeit:translate("Đang hủy lượt…"),leave:translate("Đang rời phòng…"),rematch:translate("Đang gửi đấu lại…"),mode:translate("Đang đổi chế độ…")} as Record<string,string>)[action]??translate("Đang kết nối…");
     if(action==='create'||action==='join'){create.disabled=true;mode.disabled=true;if(join)join.disabled=true;}
     if(action==='ready'&&ready)ready.disabled=true;
     if(action==='forfeit'&&forfeit)forfeit.disabled=true;
@@ -93,14 +94,14 @@ async function boot():Promise<void>{
     room=undefined;roomId='';origin=undefined;loaded=-1;nextScrambleCheck=0;sentProgress='';queuedAction=undefined;scrambles.clear();
     draft={k:0,preEvents:[],events:[],pending:[]};controller.setMoveGate(undefined);controller.reset();controller.lockInput('race');
     opponentRenderer?.setState(solvedState(3));opponentState='';
-    el('race-players').replaceChildren();el('race-result').textContent='';el('scramble-text').textContent='Tạo phòng hoặc nhập mã 8 ký tự để vào phòng.';
+    el('race-players').replaceChildren();el('race-result').textContent='';el('scramble-text').textContent=translate("Tạo phòng hoặc nhập mã 8 ký tự để vào phòng.");
     create.disabled=false;if(join)join.disabled=false;if(ready)ready.disabled=true;if(copy)copy.disabled=true;if(leave)leave.disabled=true;
     if(rematch){rematch.hidden=true;rematch.disabled=true;}mode.disabled=true;if(code)code.value='';
     el<HTMLDetailsElement>('race-lobby-controls').open=true;
-    el('race-opponent-status').textContent='Đang chờ đối thủ';
+    el('race-opponent-status').textContent=translate("Đang chờ đối thủ");
     history.replaceState(null,'','/race.html');
   };
-  const save=()=>{try{localStorage.setItem(storageKey(),JSON.stringify(draft));}catch{message.textContent='Không lưu được hàng chờ trên thiết bị. Giữ trang mở để gửi kết quả.';}};
+  const save=()=>{try{localStorage.setItem(storageKey(),JSON.stringify(draft));}catch{message.textContent=translate("Không lưu được hàng chờ trên thiết bị. Giữ trang mở để gửi kết quả.");}};
   const time=(stamp=performance.now())=>origin===undefined?-18001:Math.floor(stamp-origin);
   const load=()=>{
     if(loaded===draft.k||!scrambles.has(draft.k))return;
@@ -126,19 +127,19 @@ async function boot():Promise<void>{
     const active=!!room&&!room.final&&loaded===draft.k&&origin!==undefined&&t>=-15000&&t<=room.durationMs;
     if(active)controller.unlockInput('race');else controller.lockInput('race');
     clock.textContent=!room||origin===undefined||room.abandoned?'—':t< -15000?String(Math.ceil((-15000-t)/1000)):t<0?String(Math.ceil(-t/1000)):formatTime(Math.max(0,room.durationMs-t));
-    phase.textContent=!room?(solo?'Chưa bắt đầu':'Chưa vào phòng'):room.final?'Kết thúc':origin===undefined?(solo?'Đang đồng bộ giờ':'Chờ hai người sẵn sàng'):t< -15000?'Đếm ngược':t<0?'Inspection · chỉ x/y/z':t<=room.durationMs?(loaded===draft.k?`Đang giải khối ${draft.k+1}`:'Chờ scramble tiếp theo…'):'Hết giờ · đang chốt kết quả';
+    phase.textContent=!room?(solo?translate("Chưa bắt đầu"):translate("Chưa vào phòng")):room.final?translate("Kết thúc"):origin===undefined?(solo?translate("Đang đồng bộ giờ"):translate("Chờ hai người sẵn sàng")):t< -15000?translate("Đếm ngược"):t<0?translate("Inspection · chỉ x/y/z"):t<=room.durationMs?(loaded===draft.k?`${translate("Đang giải khối ")}${draft.k+1}`:translate("Chờ scramble tiếp theo…")):translate("Hết giờ · đang chốt kết quả");
     frame=requestAnimationFrame(draw);
   };
   const api=async(action:string,extra:Record<string,unknown>={}):Promise<Snapshot>=>{
     const {data:{session:current}}=await client.auth.getSession();
-    if(current?.user.id!==user)throw new Error('Phiên hồ sơ đã đổi. Hãy tải lại trang.');
+    if(current?.user.id!==user)throw new Error(translate("Phiên hồ sơ đã đổi. Hãy tải lại trang."));
     accessToken=current.access_token;
     const started=performance.now();
     const endpoint=solo?'/api/time-limit':'/api/race';
     const response=await fetch(action==='get'?`${endpoint}?id=${roomId}${!solo?'&client='+connection:''}`:endpoint,{
       method:action==='get'?'GET':'POST',headers:{Authorization:`Bearer ${current.access_token}`,'Content-Type':'application/json'},
       ...(action==='get'?{}:{body:JSON.stringify({id:roomId,action:!solo&&roomId.length===32&&action==='leave'?'forfeit':action,...(!solo?{client:connection,round:room?.round,mode:room?.nextMode??mode.value}:{}),...extra})}),signal:AbortSignal.timeout(8000)});
-    const value=await response.json();if(!response.ok)throw new RoomApiError(value.error??'Không kết nối được phòng.',response.status);
+    const value=await response.json();if(!response.ok)throw new RoomApiError(value.error??translate("Không kết nối được phòng."),response.status);
     const next=value as Snapshot;
     if(!solo&&action==='leave'&&roomId.length===32)next.left=true;
     if(next.round&&next.round!==room?.round)origin=undefined;
@@ -157,26 +158,26 @@ async function boot():Promise<void>{
       renderer.setState(solvedState(3));opponentRenderer?.setState(solvedState(3));
       draft={k:0,preEvents:[],events:[],pending:[]};
       try{const saved=localStorage.getItem(storageKey());if(saved)draft=readDraft(saved);}catch{/* Invalid/absent draft never leaks into another round. */}
-      el('race-result').textContent='';el('scramble-text').textContent='Scramble được mở khi bắt đầu inspection.';
+      el('race-result').textContent='';el('scramble-text').textContent=translate("Scramble được mở khi bắt đầu inspection.");
     }
     for(const item of next.scrambles)scrambles.set(item.k,item.moves);
     draft.pending=draft.pending.filter(run=>run.k>next.ack);
     if(draft.k<=next.ack){draft.k=next.ack+1;draft.events=[];draft.preEvents=[];}
     load();save();
     const me=next.players.find(player=>player.id===user),other=next.players.find(player=>player.id!==user);
-    const target=solo?({oneFace:'1 mặt',f2lRush:'F2L',fullSolve:'full'} as Record<string,string>)[next.mode]:'Bạn';
-    el('race-own-name').textContent=me?`${me.name} · ${target}`:'Bạn';
-    if(!solo)el('race-opponent-name').textContent=other?`${other.name} · Đối thủ`:'Đối thủ';
+    const target=solo?({oneFace:translate("1 mặt"),f2lRush:'F2L',fullSolve:'full'} as Record<string,string>)[next.mode]:translate("Bạn");
+    el('race-own-name').textContent=me?`${me.name} · ${target}`:translate("Bạn");
+    if(!solo)el('race-opponent-name').textContent=other?`${other.name}${translate(" · Đối thủ")}`:translate("Đối thủ");
     const view=next.opponent;
     if(opponentRenderer&&view&&Array.isArray(view.state)&&view.state.length===54&&view.state.every(n=>Number.isInteger(n)&&n>=0&&n<=5)){
       const key=`${view.k}:${view.state.join(',')}`;
       if(key!==opponentState){opponentRenderer.setState(Uint8Array.from(view.state));opponentState=key;}
-      el('race-opponent-status').textContent=`Khối ${view.k+1} · ${view.moveCount} nước${next.final?' · Đã kết thúc':''}`;
-    }else if(!solo)el('race-opponent-status').textContent=other?'Chờ inspection để xem Rubik':'Đang chờ đối thủ';
+      el('race-opponent-status').textContent=`${translate("Khối ")}${view.k+1} · ${view.moveCount}${translate(" nước")}${next.final?translate(" · Đã kết thúc"):''}`;
+    }else if(!solo)el('race-opponent-status').textContent=other?translate("Chờ inspection để xem Rubik"):translate("Đang chờ đối thủ");
     el('race-players').replaceChildren(...next.players.map(player=>{
       const li=document.createElement('li');
-      li.textContent=solo?`${player.score.score} khối hoàn thành\nMốc cuối: ${formatTime(player.score.lastEndT)}\nNước đã tính: ${player.score.totalMoves}`:
-        `${player.name}${player.id===user?' (bạn)':''} · ${player.present===false?'Đã rời phòng':player.rematch?'Muốn đấu lại':player.ready?'Sẵn sàng':'Đang chờ'} · ${player.score.score} khối · ${formatTime(player.score.lastEndT)} · ${player.score.totalMoves} nước`;
+      li.textContent=solo?`${player.score.score}${translate(" khối hoàn thành\nMốc cuối: ")}${formatTime(player.score.lastEndT)}${translate("\nNước đã tính: ")}${player.score.totalMoves}`:
+        `${player.name}${player.id===user?translate(" (bạn)"):''} · ${player.present===false?translate("Đã rời phòng"):player.rematch?translate("Muốn đấu lại"):player.ready?translate("Sẵn sàng"):translate("Đang chờ")} · ${player.score.score}${translate(" khối · ")}${formatTime(player.score.lastEndT)} · ${player.score.totalMoves}${translate(" nước")}`;
       return li;
     }));
     if(ready)ready.disabled=next.startMs!==null||next.final||!!next.players.find(p=>p.id===user)?.ready;
@@ -185,9 +186,9 @@ async function boot():Promise<void>{
     if(forfeit)forfeit.disabled=next.final;if(copy)copy.disabled=false;if(join)join.disabled=true;if(leave)leave.disabled=false;
     if(rematch){rematch.hidden=!next.final;rematch.disabled=!next.round||!next.final||!!me?.rematch||next.players.filter(p=>p.present!==false).length!==2;}
     create.disabled=!solo||!next.final;mode.value=next.nextMode??next.mode;mode.disabled=solo?!next.final:!next.round||!(next.final||next.startMs===null);
-    if(solo){create.textContent=next.final?'Chơi lượt mới':'Đang chơi';showTarget(next.mode,!next.final);if(starting)board?.select(next.mode);if(ending)board?.refresh();}
-    if(next.final)el('race-result').textContent=solo?(next.abandoned?'Đã hủy lượt · không xếp hạng':`Đã chốt: ${me!.score.score} khối · mốc cuối ${formatTime(me!.score.lastEndT)}`):next.result==='draw'?'Hòa':next.result?`Người thắng: ${next.players[next.result==='A'?0:1]!.name}`:'Phòng đã đóng';
-    else el('race-result').textContent=draft.pending.length?`${draft.pending.length} khối đang chờ xác nhận`:'Các khối đã gửi được server xác nhận.';
+    if(solo){create.textContent=next.final?translate("Chơi lượt mới"):translate("Đang chơi");showTarget(next.mode,!next.final);if(starting)board?.select(next.mode);if(ending)board?.refresh();}
+    if(next.final)el('race-result').textContent=solo?(next.abandoned?translate("Đã hủy lượt · không xếp hạng"):`${translate("Đã chốt: ")}${me!.score.score}${translate(" khối · mốc cuối ")}${formatTime(me!.score.lastEndT)}`):next.result==='draw'?translate("Hòa"):next.result?`${translate("Người thắng: ")}${next.players[next.result==='A'?0:1]!.name}`:translate("Phòng đã đóng");
+    else el('race-result').textContent=draft.pending.length?`${draft.pending.length}${translate(" khối đang chờ xác nhận")}`:translate("Các khối đã gửi được server xác nhận.");
   };
   const sync=async(action='get',extra:Record<string,unknown>={})=>{
     if(!roomId||disposed||(solo&&room?.final&&action==='get'))return;
@@ -205,16 +206,16 @@ async function boot():Promise<void>{
       const publish=!solo&&action==='get'&&room&&!room.final&&!draft.pending.length&&loaded===draft.k&&
         time()>=-15000&&time()<=room.durationMs&&(draft.preEvents.length>0||draft.events.length>0)&&key!==sentProgress;
       const snapshot=await api(publish?'progress':action,publish?{progress:{k:draft.k,preEvents:draft.preEvents.slice(),events:draft.events.slice()}}:extra);
-      if(snapshot.gone||snapshot.left){resetRoom();message.textContent=snapshot.left?'Đã rời phòng.':'Phòng đã đóng vì không còn người ở lại.';return;}
+      if(snapshot.gone||snapshot.left){resetRoom();message.textContent=snapshot.left?translate("Đã rời phòng."):translate("Phòng đã đóng vì không còn người ở lại.");return;}
       if(publish)sentProgress=key;
       accept(snapshot);
       while(draft.pending.length&&!room!.final){accept(await api('cube_done',{run:draft.pending[0]}));}
-      message.textContent=solo?(room!.final?'Lượt đã được server chốt.':'Đã kết nối · mỗi khối hoàn thành được server xác nhận.'):room!.final?'Trận đã chốt · cả hai bấm Đấu lại để chơi tiếp trong phòng này.':room!.startMs===null?'Đã kết nối phòng. Chọn chế độ rồi cả hai bấm Sẵn sàng.':'Đã kết nối · tiến độ đối thủ cập nhật mỗi giây.';
+      message.textContent=solo?(room!.final?translate("Lượt đã được server chốt."):translate("Đã kết nối · mỗi khối hoàn thành được server xác nhận.")):room!.final?translate("Trận đã chốt · cả hai bấm Đấu lại để chơi tiếp trong phòng này."):room!.startMs===null?translate("Đã kết nối phòng. Chọn chế độ rồi cả hai bấm Sẵn sàng."):translate("Đã kết nối · tiến độ đối thủ cập nhật mỗi giây.");
     }catch(error){
       if(!solo&&(action==='leave'||(error instanceof RoomApiError&&error.status===404))){
-        resetRoom();message.textContent=action==='leave'?'Đã rời trên thiết bị này; nếu mất mạng, server sẽ tự hết hiện diện.':'Phòng đã đóng. Bạn có thể tạo hoặc vào phòng khác.';return;
+        resetRoom();message.textContent=action==='leave'?translate("Đã rời trên thiết bị này; nếu mất mạng, server sẽ tự hết hiện diện."):translate("Phòng đã đóng. Bạn có thể tạo hoặc vào phòng khác.");return;
       }
-      message.textContent=`${error instanceof Error?error.message:'Mất kết nối.'} Hàng chờ được giữ để thử lại.`;
+      message.textContent=`${error instanceof Error?translate(error.message):translate("Mất kết nối.")}${translate(" Hàng chờ được giữ để thử lại.")}`;
       if(!room){create.disabled=false;mode.disabled=!solo;if(join)join.disabled=false;}
       if(ready&&room)ready.disabled=room.startMs!==null||room.final||!!room.players.find(p=>p.id===user)?.ready;
       if(room&&forfeit)forfeit.disabled=room.final;
@@ -243,21 +244,21 @@ async function boot():Promise<void>{
   const enter=async(action:'join'|'create'|'get',id=code?.value.trim()??'')=>{
     if(busy||(room&&!(solo&&room.final)))return;
     roomId=!solo&&id.length===8?id.toUpperCase():id;
-    if(!(solo?/^[a-f0-9]{32}$/:/^(?:[A-Z0-9]{8}|[a-f0-9]{32})$/).test(roomId)){message.textContent=solo?'Mã lượt không hợp lệ.':'Mã phòng gồm 8 chữ hoặc số.';roomId='';return;}
+    if(!(solo?/^[a-f0-9]{32}$/:/^(?:[A-Z0-9]{8}|[a-f0-9]{32})$/).test(roomId)){message.textContent=solo?translate("Mã lượt không hợp lệ."):translate("Mã phòng gồm 8 chữ hoặc số.");roomId='';return;}
     if(code)code.value=roomId;
     room=undefined;origin=undefined;loaded=-1;nextScrambleCheck=0;sentProgress='';scrambles.clear();
-    controller.lockInput('race');controller.reset();el('scramble-text').textContent='Scramble được mở khi bắt đầu inspection.';
+    controller.lockInput('race');controller.reset();el('scramble-text').textContent=translate("Scramble được mở khi bắt đầu inspection.");
     draft={k:0,preEvents:[],events:[],pending:[]};
     try{
       const saved=(solo||roomId.length===32)?localStorage.getItem(storageKey()):null;if(saved)draft=readDraft(saved);
-    }catch{message.textContent='Không đọc được tiến độ local; sẽ khôi phục các khối server đã nhận.';}
+    }catch{message.textContent=translate("Không đọc được tiến độ local; sẽ khôi phục các khối server đã nhận.");}
     await sync(action,{mode:mode.value});
     if(room)history.replaceState(null,'',solo?`/time-limit.html?session=${roomId}`:`/race.html?room=${roomId}`);
   };
   create.onclick=()=>{const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';const id=solo?crypto.randomUUID().replaceAll('-',''):Array.from(crypto.getRandomValues(new Uint8Array(8)),n=>alphabet[n%32]).join('');if(code)code.value=id;create.blur();void enter('create',id);};
   const joinForm=document.querySelector<HTMLFormElement>('#race-join-form');if(joinForm)joinForm.onsubmit=e=>{e.preventDefault();void enter('join');};
   if(ready)ready.onclick=()=>{ready.blur();void sync('ready');};
-  if(copy)copy.onclick=()=>{void navigator.clipboard.writeText(`${location.origin}/race.html?room=${roomId}`).then(()=>{message.textContent='Đã sao chép link mời.';},()=>{message.textContent=`Link mời: ${location.origin}/race.html?room=${roomId}`;});};
+  if(copy)copy.onclick=()=>{void navigator.clipboard.writeText(`${location.origin}/race.html?room=${roomId}`).then(()=>{message.textContent=translate("Đã sao chép link mời.");},()=>{message.textContent=`${translate("Link mời: ")}${location.origin}/race.html?room=${roomId}`;});};
   if(forfeit)forfeit.onclick=()=>dialog.showModal();if(leave)leave.onclick=()=>dialog.showModal();el('race-keep').onclick=()=>dialog.close();
   el('race-confirm-forfeit').onclick=()=>{dialog.close();void sync(solo?'forfeit':'leave');};
   if(rematch)rematch.onclick=()=>{rematch.blur();void sync('rematch');};
@@ -269,7 +270,7 @@ async function boot():Promise<void>{
     const space=(e:KeyboardEvent)=>{if(e.code==='Space'&&!e.repeat&&!e.isComposing&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!e.shiftKey&&!document.querySelector('dialog[open]')&&!e.composedPath().some(t=>t instanceof HTMLElement&&(t.matches('input,textarea,select')||t.isContentEditable))){e.preventDefault();if(!create.disabled)create.click();}};
     window.addEventListener('keydown',space,true);cleanup.push(()=>window.removeEventListener('keydown',space,true));
   }
-  message.textContent=solo?'Chọn danh mục rồi bấm Bắt đầu hoặc Space.':'Tạo phòng hoặc mở link mời từ bạn.';
+  message.textContent=solo?translate("Chọn danh mục rồi bấm Bắt đầu hoặc Space."):translate("Tạo phòng hoặc mở link mời từ bạn.");
   if(!solo){
     mode.disabled=true;
     const depart=()=>{if(roomId.length===8&&accessToken)void fetch('/api/race',{method:'POST',headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},body:JSON.stringify({action:'leave',id:roomId,client:connection,depart:true}),keepalive:true}).catch(()=>{});};
@@ -281,7 +282,7 @@ async function boot():Promise<void>{
   const tick=()=>{if(disposed)return;void sync().finally(()=>{if(!disposed)poll=window.setTimeout(tick,1000);});};
   poll=window.setTimeout(tick,1000);draw();
 }
-void boot().catch(error=>{message.textContent=error instanceof Error?error.message:'Không mở được lượt chơi.';create.disabled=true;if(join)join.disabled=true;});
+void boot().catch(error=>{message.textContent=error instanceof Error?translate(error.message):translate("Không mở được lượt chơi.");create.disabled=true;if(join)join.disabled=true;});
 const dispose=()=>{disposed=true;clearTimeout(poll);cancelAnimationFrame(frame);for(const off of cleanup)off();};
 window.addEventListener('pagehide',event=>{if(!event.persisted)dispose();});
 import.meta.hot?.dispose(dispose);

@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import { newId } from './id.js';
 import { ENGINE_VERSION, parseMove } from '@rubik/engine';
 import { CubeRenderer, viewMove } from '@rubik/renderer';
@@ -16,7 +17,7 @@ let timerUI: ReturnType<typeof attachTimer> | undefined;
 const keySettings = mountKeySettings();
 const viewLabelTimer=window.setInterval(()=>{
  const label=document.querySelector('#view-key-map')!;
- label.textContent=renderer && !document.querySelector<HTMLInputElement>('#view-keys')!.checked?Object.entries(renderer.getViewFaces()).map(([key,face])=>`${key} → ${face}`).join(' · '):'Phím theo hệ trục khối';
+ label.textContent=renderer && !document.querySelector<HTMLInputElement>('#view-keys')!.checked?Object.entries(renderer.getViewFaces()).map(([key,face])=>`${key} → ${face}`).join(' · '):t("Phím theo hệ trục khối");
 },150);
 
 let detachKeyboard: (() => void) | undefined;
@@ -47,7 +48,7 @@ const algorithmError = document.querySelector<HTMLElement>('#algorithm-error')!;
 const contextMessage = document.querySelector<HTMLElement>('#context-message')!;
 const updateMoveControls = (): void => {
   moveControls.disabled = !controller || !contextMessage.hidden;
-  queueStatus.textContent = `Chờ hiển thị: ${renderer?.pendingMoveCount ?? 0} nước`;
+  queueStatus.textContent = `${t("Chờ hiển thị: ")}${renderer?.pendingMoveCount ?? 0}${t(" nước")}`;
 };
 const buildMoveButtons = (): void => {
   moveButtons.replaceChildren();
@@ -76,26 +77,26 @@ try {
   detachDrag = attachDrag(renderer,controller,updateMoveControls);
   detachKeyboard = attachKeyboard(controller, move => {
     updateMoveControls();
-    moveStatus.textContent = `Đang xoay ${move}…`;
+    moveStatus.textContent = `${t("Đang xoay ")}${move}…`;
   }, keySettings.getKeymap,move=>!document.querySelector<HTMLInputElement>('#view-keys')!.checked?viewMove(move,renderer!.getViewFaces()):move);
   renderer.onContextChange = available => {
     if(available) controller!.unlockInput('context'); else controller!.lockInput('context');
     contextMessage.hidden = available;
-    contextMessage.textContent = available ? '' : 'Kết nối đồ họa tạm mất. Đang chờ trình duyệt khôi phục; bạn có thể tải lại trang nếu cần.';
+    contextMessage.textContent = available ? '' : t("Kết nối đồ họa tạm mất. Đang chờ trình duyệt khôi phục; bạn có thể tải lại trang nếu cần.");
     moveControls.disabled = !available;
   };
   renderer.onMoveAnimated = move => {
     updateMoveControls();
-    moveStatus.textContent = `Đã xoay ${move}.`;
+    moveStatus.textContent = `${t("Đã xoay ")}${move}.`;
   };
   renderer.onIdle = () => {
     updateMoveControls();
-    description.textContent = `Rubik ${sizeSelect.value}×${sizeSelect.value} · ${controller!.isSolved() ? 'Trạng thái đã giải' : 'Đang luyện tập'}`;
+    description.textContent = `Rubik ${sizeSelect.value}×${sizeSelect.value} · ${controller!.isSolved() ? t("Trạng thái đã giải") : t("Đang luyện tập")}`;
   };
   buildMoveButtons(); updateMoveControls();
   loading.remove();
 } catch (error) {
-  loading.textContent = 'Không khởi tạo được WebGL. Hãy thử bật tăng tốc đồ họa hoặc dùng trình duyệt khác.';
+  loading.textContent = t("Không khởi tạo được WebGL. Hãy thử bật tăng tốc đồ họa hoặc dùng trình duyệt khác.");
   disableControls();
   console.error(error);
 }
@@ -103,11 +104,11 @@ const onSizeChange = (): void => {
   try {
     const size = Number(sizeSelect.value);
     controller?.setSize(size);
-    description.textContent = `Rubik ${size}×${size} · Trạng thái đã giải`;
-    scrambleText.textContent = 'Chưa có scramble.';
+    description.textContent = `Rubik ${size}×${size}${t(" · Trạng thái đã giải")}`;
+    scrambleText.textContent = t("Chưa có scramble.");
     buildMoveButtons(); updateMoveControls(); moveStatus.textContent = '';
   } catch (error) {
-    description.textContent = 'Không dựng được khối. Hãy tải lại trang để thử lại.';
+    description.textContent = t("Không dựng được khối. Hãy tải lại trang để thử lại.");
     disableControls();
     console.error(error);
   }
@@ -115,8 +116,8 @@ const onSizeChange = (): void => {
 sizeSelect.addEventListener('change', onSizeChange);
 const onReset = (): void => {
   controller?.reset();
-  description.textContent = `Rubik ${sizeSelect.value}×${sizeSelect.value} · Trạng thái đã giải`;
-  scrambleText.textContent = 'Chưa có scramble.';
+  description.textContent = `Rubik ${sizeSelect.value}×${sizeSelect.value}${t(" · Trạng thái đã giải")}`;
+  scrambleText.textContent = t("Chưa có scramble.");
   updateMoveControls(); moveStatus.textContent = '';
 };
 const onScramble = (): void => {
@@ -124,7 +125,7 @@ const onScramble = (): void => {
   if (!moves) return;
   timerUI?.scrambled(seed.value);
   scrambleText.textContent = moves.join(' ');
-  description.textContent = `Rubik ${sizeSelect.value}×${sizeSelect.value} · Đã trộn`;
+  description.textContent = `Rubik ${sizeSelect.value}×${sizeSelect.value}${t(" · Đã trộn")}`;
   updateMoveControls(); moveStatus.textContent = '';
 };
 const onMove = (event: MouseEvent): void => {
@@ -133,7 +134,7 @@ const onMove = (event: MouseEvent): void => {
   const move = event.target.dataset.move;
   if (controller?.applyMove(move, inputTime)) {
     updateMoveControls();
-    moveStatus.textContent = `Đang xoay ${move}…`;
+    moveStatus.textContent = `${t("Đang xoay ")}${move}…`;
   }
 };
 moveButtons.addEventListener('click', onMove);
@@ -148,10 +149,10 @@ const onAlgorithm = (event: SubmitEvent): void => {
     const count = controller?.sequence(algorithm.value, inputTime) ?? 0;
     algorithmError.textContent = '';
     algorithm.removeAttribute('aria-invalid');
-    moveStatus.textContent = count ? `Đã nhận ${count} nước.` : 'Hãy nhập chuỗi nước đi.';
+    moveStatus.textContent = count ? `${t("Đã nhận ")}${count}${t(" nước.")}` : t("Hãy nhập chuỗi nước đi.");
     updateMoveControls();
   } catch (error) {
-    algorithmError.textContent = error instanceof Error ? error.message : 'Chuỗi nước không hợp lệ.';
+    algorithmError.textContent = error instanceof Error ? t(error.message) : t("Chuỗi nước không hợp lệ.");
     algorithm.setAttribute('aria-invalid', 'true');
   }
 };
@@ -164,7 +165,7 @@ instant.addEventListener('change', onInstant);
 
 resetButton.addEventListener('click', onReset);
 scrambleButton.addEventListener('click', onScramble);
-const account=await mountAccount().catch(()=>{document.querySelector('#cloud-message')!.textContent='Chưa tạo được hồ sơ tự động; kiểm tra mạng hoặc bật Anonymous Sign-Ins trong Supabase. Kết quả vẫn lưu trên thiết bị.';return undefined;});
+const account=await mountAccount().catch(()=>{document.querySelector('#cloud-message')!.textContent=t("Chưa tạo được hồ sơ tự động; kiểm tra mạng hoặc bật Anonymous Sign-Ins trong Supabase. Kết quả vẫn lưu trên thiết bị.");return undefined;});
 if(controller) timerUI=attachTimer(controller,()=>{seed.value=newId();onScramble();},account);
 const onPageHide = (event: PageTransitionEvent): void => {
   if (!event.persisted) { account?.dispose();clearInterval(viewLabelTimer); timerUI?.dispose(); detachDrag?.(); detachKeyboard?.(); keySettings.dispose(); controller?.dispose(); }
