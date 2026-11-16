@@ -13,6 +13,17 @@ declare
   challenge uuid; seed text; payload jsonb; global_test_day date:=public.economy_day(clock_timestamp());
   quest_date date; session text; best jsonb;
 begin
+  for idx in 201..210 loop
+    challenge:=gen_random_uuid(); seed:=lpad(to_hex(idx+300),64,'0');
+    perform public.practice_issue(player,challenge,seed,3::smallint);
+    payload:=jsonb_build_object('id','progress-old-'||idx,'seed',seed,'size',3,'scrambleIndex',0,
+      'scrambleSource','generated','penalty','+2');
+    perform public.practice_finish(player,challenge,payload,12,3500,true);
+  end loop;
+  if public.economy_quest_counts(player,global_test_day) <> array[0,0,0,0]
+    or exists(select 1 from public.economy_personal_bests where user_id=player) then
+    raise exception 'Old eligibility leaked into quests or PB';
+  end if;
   for idx in 1..11 loop
     challenge:=gen_random_uuid(); seed:=lpad(to_hex(idx+300),64,'0');
     perform public.practice_issue(player,challenge,seed,3::smallint);
@@ -27,6 +38,19 @@ begin
     then raise exception 'Incorrect single or mo3 payout'; end if;
   best:=public.economy_progress_snapshot(player);
   if (best->>'completed')::integer<>5 then raise exception 'Solo quests 1 and 3 should be finished: %',best; end if;
+
+  -- Daily CB cap does not consume the remaining weekly ZN entitlement.
+  insert into public.economy_pb_rewards(user_id,challenge_id,stat,reward_day,cb,zn) values
+    (player,challenge,'ao5',global_test_day,50,0),(player,challenge,'ao12',global_test_day,50,0);
+  challenge:=gen_random_uuid(); seed:=repeat('f',64);
+  perform public.practice_issue(player,challenge,seed,3::smallint);
+  payload:=jsonb_build_object('id','progress-after-cap','seed',seed,'size',3,'scrambleIndex',0,
+    'scrambleSource','generated','penalty','none');
+  perform public.practice_finish(player,challenge,payload,20,15000,true);
+  if (select sum(cb) from public.economy_pb_rewards where user_id=player)<>200
+    or (select sum(zn) from public.economy_pb_rewards where user_id=player)<>2 then
+    raise exception 'CB daily cap incorrectly blocked PB ZN';
+  end if;
 
   insert into public.time_limit_sessions(id,user_id,mode,seed,start_ms,economy_tracked)
     values(repeat('0',32),player,'fullSolve','old',floor(extract(epoch from clock_timestamp())*1000)::bigint-202000,false);

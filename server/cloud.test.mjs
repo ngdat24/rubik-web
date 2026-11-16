@@ -71,3 +71,54 @@ test('cloud API verifies identities, scopes history, rejects conflicts and does 
     assert.equal(new Set([...page1.rows,...page2.rows].map(row=>row.id)).size,501);
   }finally{await new Promise(r=>{server.closeAllConnections();server.close(r);});}
 });
+
+test('weekly board validates selectors and maintenance requires the exact cron secret',async()=>{
+  let calls=[];
+  const env={SUPABASE_URL:'https://db.test',SUPABASE_ANON_KEY:'public-test',SUPABASE_SECRET_KEY:'private-test',CRON_SECRET:'fixture-cron'};
+  const server=createServer(createCloudHandler({env,fetcher:async(url,options)=>{
+    calls.push({path:new URL(url).pathname,body:JSON.parse(options.body)});
+    return Response.json(new URL(url).pathname.endsWith('/economy_maintain')
+      ? {weeks:1,weeklyAwards:2} : {rows:[],closed:false});
+  }}));
+  await new Promise(r=>server.listen(0,'127.0.0.1',r));
+  const base='http://127.0.0.1:'+server.address().port;
+  try{
+    for(const token of [undefined,'wrong-secret','fixture-crom']){
+      const response=await fetch(base+'/api/economy-maintenance',{headers:token?{Authorization:'Bearer '+token}:{}});
+      assert.equal(response.status,401);
+    }
+    assert.equal((await fetch(base+'/api/economy-maintenance',{method:'POST'})).status,405);
+    for(const query of ['size=1','size=11','size=3&week=invalid'])
+      assert.equal((await fetch(base+'/api/weekly-leaderboard?'+query)).status,400);
+    assert.equal(calls.length,0);
+    const board=await fetch(base+'/api/weekly-leaderboard?size=3&week=previous');
+    assert.equal(board.status,200);assert.match(board.headers.get('cache-control'),/s-maxage=15/);
+    assert.deepEqual(calls[0],{path:'/rest/v1/rpc/economy_weekly_board',body:{p_size:3,p_previous:true}});
+    const response=await fetch(base+'/api/economy-maintenance',{headers:{Authorization:'Bearer fixture-cron'}});
+    assert.equal(response.status,200);assert.equal((await response.json()).weeklyAwards,2);
+    assert.equal(calls[1].path,'/rest/v1/rpc/economy_maintain');
+    delete env.CRON_SECRET;
+    assert.equal((await fetch(base+'/api/economy-maintenance',{headers:{Authorization:'Bearer fixture-cron'}})).status,401);
+    assert.equal(calls.length,2);
+  }finally{server.closeAllConnections();await new Promise(r=>server.close(r));}
+});
+
+test('single Vercel API entry preserves flat route URLs and query validation',async()=>{
+  const names=['SUPABASE_URL','SUPABASE_ANON_KEY','SUPABASE_SECRET_KEY'];
+  const previous=names.map(name=>process.env[name]);
+  Object.assign(process.env,{SUPABASE_URL:'https://fixture.invalid',SUPABASE_ANON_KEY:'fixture-public',SUPABASE_SECRET_KEY:'fixture-private'});
+  const {default:entry}=await import('../api/[route].mjs');
+  const server=createServer(entry);await new Promise(r=>server.listen(0,'127.0.0.1',r));
+  const base='http://127.0.0.1:'+server.address().port;
+  try{
+    for(const name of ['account','player','practice','quests','race','skins','solves','time-limit','wallet'])
+      assert.equal((await fetch(base+'/api/'+name)).status,401,name);
+    for(const path of ['leaderboard?size=1','time-limit-leaderboard?mode=invalid','weekly-leaderboard?size=1'])
+      assert.equal((await fetch(base+'/api/'+path)).status,400,path);
+    assert.equal((await fetch(base+'/api/economy-maintenance')).status,401);
+    assert.equal((await fetch(base+'/api/unknown')).status,404);
+  }finally{
+    server.closeAllConnections();await new Promise(r=>server.close(r));
+    names.forEach((name,i)=>{if(previous[i]===undefined)delete process.env[name];else process.env[name]=previous[i];});
+  }
+});

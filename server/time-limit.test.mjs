@@ -52,3 +52,26 @@ test('Time Limit isolates sessions, verifies all modes, acknowledges once and ra
     assert.equal((await fetch(base+'/api/account',{method:'DELETE',headers:{Authorization:'Bearer anonymous-a'}})).status,200);assert.equal(db.timeLimits.size,0);
   }finally{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
 });
+
+test('Time Limit forwards ticket and reward metadata without exposing the private seed',async()=>{
+  const {handleTimeLimit}=await import('./time-limit.mjs');
+  const user={id:'fixture-user'},id='a'.repeat(32);
+  const room={id,mode:'fullSolve',seed:'private-seed',start_ms:1000,duration_ms:180000,
+    forfeit:null,players:[{id:user.id,name:'Player',ready:true,runs:[]}]};
+  for(const economy of [undefined,
+    {ticket:'free_ticket',fee:0,reward:null},
+    {ticket:'paid_ticket',fee:100,reward:null},
+    {ticket:'insufficient',fee:0,reward:null},
+    {ticket:'practice',fee:0,reward:null},
+    {ticket:'paid_ticket',fee:100,reward:{cb:205,zn:1}}]){
+    const result=await handleTimeLimit({user,method:'GET',url:new URL('https://fixture/api/time-limit?id='+id),
+      request:async(path,options)=>{
+        assert.equal(path,'/rest/v1/rpc/time_limit_with_quests');
+        assert.equal(options.body.p_user,user.id);
+        return {room,now_ms:202000,...(economy?{economy}:{})};
+      }});
+    assert.deepEqual(result.economy,economy);
+    assert.equal('seed' in result,false);
+    assert.equal(result.final,true);
+  }
+});

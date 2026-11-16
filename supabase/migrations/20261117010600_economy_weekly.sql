@@ -32,7 +32,7 @@ language sql stable security invoker set search_path = '' as $$
     verified.user_id,profile.name,verified.effective_ms,verified.id
   from public.practice_challenges verified
   join public.profiles profile on profile.id=verified.user_id
-  where verified.size=p_size and (verified.eligible or verified.size>=6)
+  where verified.size=p_size and (public.economy_solo_eligible(verified) or verified.size>=6)
     and verified.completed_at>=p_week::timestamp at time zone 'Asia/Ho_Chi_Minh'
     and verified.completed_at<(p_week+7)::timestamp at time zone 'Asia/Ho_Chi_Minh'
   order by verified.effective_ms,verified.completed_at,verified.id
@@ -88,7 +88,7 @@ begin
   perform pg_advisory_xact_lock(584027,2);
   for previous_week in
     select distinct public.economy_week(verified.completed_at) from public.practice_challenges verified
-    where verified.eligible and verified.size between 2 and 5
+    where public.economy_solo_eligible(verified) and verified.size between 2 and 5
       and verified.completed_at<current_week::timestamp at time zone 'Asia/Ho_Chi_Minh'
       and not exists(select 1 from public.economy_closed_weeks closed
         where closed.week_start=public.economy_week(verified.completed_at))

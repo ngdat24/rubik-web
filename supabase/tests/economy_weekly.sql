@@ -23,7 +23,8 @@ begin
     (a,'a',3,kickoff,7000,true),(a,'b',3,kickoff+interval '1 second',8000,true),
     (b,'c',3,kickoff+interval '2 seconds',9000,true),(c,'d',3,kickoff+interval '3 seconds',10000,true),
     (c,'e',3,kickoff-interval '1 second',1000,true),(c,'f',3,kickoff+interval '7 days',1200,true),
-    (a,'1',3,kickoff,300,false),(c,'9',6,kickoff,600,true)
+    (a,'1',3,kickoff,300,false),(c,'9',6,kickoff,600,true),
+    (c,'8',3,kickoff,1500,true)
   ) entries(player,seed,size,finish,ms,eligible);
   begin
     perform public.economy_close_week(previous_week+7);

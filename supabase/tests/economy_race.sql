@@ -76,6 +76,17 @@ begin
   if wager.state<>'refunded' or wager.winner is not null
     or public.economy_wallet_snapshot(a)<>'{"cb":1240,"zn":0}'
     or public.economy_wallet_snapshot(b)<>'{"cb":700,"zn":0}' then raise exception 'Lost connection did not refund'; end if;
+  -- Explicit cancellation refunds both stakes once, including retries.
+  round_code:=repeat('d',32);
+  update public.race_lobbies set round_id=round_code,start_ms=stamp,forfeit=null where id=room_code;
+  perform public.economy_lock_race((select r from public.race_lobbies r where id=room_code),100);
+  wager:=public.economy_settle_race(round_code,stamp+1000,true);
+  if wager.state is distinct from 'refunded' or wager.result is distinct from 'cancelled' then
+    raise exception 'Early cancellation did not refund'; end if;
+  perform public.economy_settle_race(round_code,stamp+2000,true);
+  if public.economy_wallet_snapshot(a)<>'{"cb":1240,"zn":0}'
+    or public.economy_wallet_snapshot(b)<>'{"cb":700,"zn":0}' then raise exception 'Cancellation refund repeated'; end if;
+
 end;
 $$;
 rollback;

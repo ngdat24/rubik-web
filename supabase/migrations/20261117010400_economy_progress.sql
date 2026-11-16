@@ -57,7 +57,7 @@ returns integer[] language sql stable set search_path = '' as $$
   select array[count(*) filter(where size=2),count(*) filter(where size=3),
     count(*) filter(where size=4),count(*) filter(where size=5)]::integer[]
   from public.practice_challenges
-  where user_id=p_user and eligible
+  where user_id=p_user and public.economy_solo_eligible(practice_challenges)
     and completed_at>=p_day::timestamp at time zone 'Asia/Ho_Chi_Minh'
     and completed_at<(p_day+1)::timestamp at time zone 'Asia/Ho_Chi_Minh'
 $$;
@@ -118,11 +118,11 @@ declare
   changes jsonb;
 begin
   select * into strict challenge from public.practice_challenges where id=p_challenge;
-  if challenge.eligible is distinct from true or challenge.completed_at is null then return; end if;
+  if not public.economy_solo_eligible(challenge) then return; end if;
   perform public.economy_lock_wallet(challenge.user_id);
   select array_agg(effective_ms order by completed_at desc,id desc) into recent from (
     select effective_ms,completed_at,id from public.practice_challenges
-    where user_id=challenge.user_id and size=challenge.size and eligible
+    where user_id=challenge.user_id and size=challenge.size and public.economy_solo_eligible(practice_challenges)
     order by completed_at desc,id desc limit 12
   ) last_solves;
   prior_count:=cardinality(recent)-1;
@@ -149,7 +149,7 @@ begin
       values(challenge.user_id,challenge.size,kind,score)
       on conflict(user_id,size,stat) do update set time_ms=excluded.time_ms;
     if old_score is null or prior_count<10 or paid_count>=5
-      or today_cb>=200 or old_score-score<greatest(ceil(old_score*0.02),200) then continue; end if;
+      or old_score-score<greatest(ceil(old_score*0.02),200) then continue; end if;
 
     changes:=public.economy_change_balance(challenge.user_id,'CB',least(50,200-today_cb),'personal_best',p_challenge);
     cb:=(changes->>'amount')::integer;
@@ -169,6 +169,7 @@ $$;
 create function public.economy_record_practice_progress()
 returns trigger language plpgsql security invoker set search_path = '' as $$
 begin
+  if not public.economy_solo_eligible(new) then return new; end if;
   perform public.economy_refresh_quests(new.user_id,public.economy_day(new.completed_at),new.id);
   perform public.economy_record_pb(new.id);
   return new;
