@@ -33,3 +33,9 @@
 .language-choices { position: absolute; right: 0; top: calc(100% + 6px); min-width: 140px; padding: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 20px #0002; z-index: 100; display: grid; gap: 4px; }
 .language-choices button { width: 100%; text-align: left; }
 .language-choices button[aria-pressed="true"] { font-weight: 700; background: var(--accent); color: #20261a; }
+
+@media (max-width: 620px) {
+  header { height: auto; min-height: 62px; flex-wrap: wrap; padding: 10px 0; }
+  header .mode-links { order: 1; flex-basis: 100%; }
+  .race-page header > span { order: 2; flex-basis: 100%; font-size: 12px; }
+}

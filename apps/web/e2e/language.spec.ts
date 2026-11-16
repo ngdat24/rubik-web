@@ -22,6 +22,9 @@ test('language selection translates static and dynamic UI and persists across pa
     await expect(page.locator('html')).toHaveAttribute('lang','en');
     expect(await page.locator('body').innerText()).not.toMatch(vietnamese);
     await expect(page.locator('title')).not.toContainText(vietnamese);
+    await page.setViewportSize({width:390,height:844});
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+    await page.setViewportSize({width:1280,height:900});
   }
   await page.goto('/');
   await page.setViewportSize({width:390,height:844});
