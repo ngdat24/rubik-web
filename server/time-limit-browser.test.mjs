@@ -55,11 +55,18 @@ test('Time Limit: three solo modes, offline resume, deadline, cancellation and c
         const held=new Promise(resolve=>{releaseCreate=resolve;});
         await page.route(url=>url.pathname==='/api/time-limit'&&!url.search,async route=>{await held;await route.continue();},{times:1});
       }
-      await page.selectOption('#race-mode',mode);await page.locator('#race-create').focus();await page.keyboard.press('Space');
+      await page.selectOption('#race-mode',mode);
+      await expect(page.locator(`[data-time-mode="${mode}"]`)).toHaveAttribute('aria-pressed','true');
+      const label={oneFace:'1 mặt',f2lRush:'F2L',fullSolve:'full'}[mode];await expect(page.locator('#time-limit-target')).toHaveText('Sẽ chơi: '+label);
+      // Browsing another board must never silently change the next game mode.
+      await page.locator(`[data-time-mode="${mode==='oneFace'?'f2lRush':'oneFace'}"]`).click();
+      await expect(page.locator('#race-mode')).toHaveValue(mode);await expect(page.locator('#time-limit-target')).toHaveText('Sẽ chơi: '+label);
+      await page.locator('#race-create').focus();await page.keyboard.press('Space');
       await expect(page.locator('#race-create')).toBeDisabled();await expect(page.locator('#race-mode')).toBeDisabled();
       if(releaseCreate){await expect(page.locator('#race-message')).toContainText('Đang bắt đầu');releaseCreate();}
       await expect(page.locator('#race-message')).toContainText('Đã kết nối');
       const session=new URL(page.url()).searchParams.get('session');assert.ok(session);assert.equal(db.timeLimits.get(session).duration_ms,180000);
+      assert.equal(db.timeLimits.get(session).mode,mode);await expect(page.locator('#time-limit-target')).toHaveText('Đang chơi: '+label);
       assert.equal((await page.locator('#scramble-text').textContent()).includes('inspection'),true);
       await tick(1000);await expect(page.locator('#race-phase')).toContainText('Đếm ngược');await tick(2500);await expect(page.locator('#race-phase')).toContainText('Inspection');
       await press(['R']);assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem(Object.keys(localStorage).find(k=>k.startsWith('rubik.time-limit.v1:')))).events.length),0);
