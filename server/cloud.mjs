@@ -33,11 +33,17 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
             if(value.message==='profile_required')throw new HttpError(403,'Đặt tên hồ sơ để sử dụng kho skin.');
             if(value.message==='skin_not_owned')throw new HttpError(409,'Bạn chưa sở hữu skin này.');
           }
-          if(value?.code==='P0001'&&path==='/rest/v1/rpc/lobby_action')throw new HttpError(value.message==='Room not found'?404:409,
+          if(value?.code==='PGRST202'&&path==='/rest/v1/rpc/lobby_action_with_escrow'&&
+            body?.p_action!=='stake'&&!body?.p_payload?.stake)
+            return request('/rest/v1/rpc/lobby_action',{method,body,auth});
+          if(value?.code==='P0001'&&['/rest/v1/rpc/lobby_action','/rest/v1/rpc/lobby_action_with_escrow'].includes(path))throw new HttpError(value.message==='Room not found'?404:409,
             value.message==='Set your player name first'?'Hãy đặt tên trước khi vào phòng.':
             value.message==='Room code collision'?'Mã phòng trùng, hãy tạo lại.':
             value.message==='Room not found'?'Phòng đã đóng hoặc không tồn tại.':
             value.message==='Room full'?'Phòng đã đủ hai người.':
+            value.message==='insufficient_balance'?'Một người chơi không đủ CB để đặt cược.':
+            value.message==='Wager changed'?'Mức cược đã đổi. Kiểm tra mức mới trước khi sẵn sàng.':
+            value.message==='Invalid wager change'?'Không thể đổi mức cược lúc này.':
             value.message==='Room limit'?'Bạn đang có quá nhiều phòng mở. Hãy rời phòng cũ.':
             value.message==='Connection replaced'?'Phòng đang mở ở tab khác. Hãy vào lại phòng tại tab này.':
             'Phòng hoặc lựa chọn đã đổi. Hãy đợi đồng bộ rồi thử lại.');

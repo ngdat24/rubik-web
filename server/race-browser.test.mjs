@@ -42,14 +42,14 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
       const context=await browser.newContext({viewport:{width:1280,height:900}});contexts.push(context);
       await context.addInitScript(({token,id,exp})=>localStorage.setItem('sb-cloud-test-auth-token',JSON.stringify({access_token:token,refresh_token:'test',expires_at:exp,expires_in:3600,token_type:'bearer',user:{id,aud:'authenticated',role:'authenticated',email:'test@example.invalid'}})),{token,id,exp});
       const page=await context.newPage();pages.push(page);page.on('pageerror',e=>errors.push(e.message));
-      await page.clock.install();
-      await page.addInitScript(()=>{
+      const pollHook=()=>{
         const original=window.setTimeout;
         window.setTimeout=function(callback,delay,...args){
           if(delay===1000&&typeof callback==='function')window.racePoll=callback;
           return original.call(window,callback,delay,...args);
         };
-      });
+      };
+      await page.addInitScript(pollHook);
       await page.goto(base+'/race.html');
       if(i===1){
         // Initial WebGL setup and the profile request can take longer on CI's
@@ -67,6 +67,11 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
       await expect(page.locator('#viewport canvas')).toBeVisible();await expect(page.locator('#opponent-viewport canvas')).toBeVisible();
       await expect(page.locator('#race-message')).toContainText('Tạo phòng');
       await page.locator('#race-fixed-keys').check();
+      // Let Supabase auth/profile initialization finish with native timers.
+      // The match clock is only needed after both pages have booted.
+      await page.clock.install();
+      await page.evaluate(pollHook);
+      await page.addInitScript(pollHook);
     }
     // Freeze both browser clocks and the fake server. Slow screenshots or CI
     // scheduling must never consume inspection or alter captured event times.

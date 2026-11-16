@@ -4,6 +4,14 @@
 <header><a class="brand" href="/">▦ rubiklab.</a><span>Phòng mời 1v1 · 3×3</span><nav class="mode-links" aria-label="Chế độ chơi"><a href="/time-limit.html">Time Limit</a><a href="/">Luyện tập</a></nav></header>
 <section class="race-lobby"><h1>Đua cùng bạn</h1><p>Cùng chuỗi Rubik, cùng giờ bắt đầu, mỗi trận 3 phút. Server xác minh từng khối; chưa tính Elo.</p>
 <details id="race-lobby-controls" open><summary>Phòng / chế độ</summary><div class="toolbar"><button id="race-create">Tạo phòng</button><label>Chế độ trong phòng <select id="race-mode" disabled><option value="fullSolve">Giải cả khối · 3 phút</option><option value="f2lRush">F2L Rush · 3 phút</option><option value="oneFace">Một mặt bất kỳ · 3 phút</option></select></label></div>
+<div id="race-wager-controls" class="toolbar" hidden>
+  <label for="race-stake">Cược CB mỗi người</label>
+  <select id="race-stake" disabled>
+    <option value="0">Chơi miễn phí</option><option value="100">100 CB</option><option value="200">200 CB</option>
+    <option value="300">300 CB</option><option value="500">500 CB</option>
+  </select>
+  <p id="race-stake-status" class="hint" role="status"></p>
+</div>
 <form id="race-join-form" class="toolbar"><label>Mã phòng <input id="race-code" maxlength="8" autocomplete="off" autocapitalize="characters" required pattern="[A-Za-z0-9]{8}" placeholder="VD: A2BC3D4E"/></label><button id="race-join">Vào phòng</button></form>
 <div class="toolbar"><button id="race-copy" disabled>Sao chép link mời</button><button id="race-ready" disabled>Sẵn sàng</button><button id="race-rematch" hidden disabled>Đấu lại</button><button id="race-leave" disabled>Rời phòng</button></div></details>
 <p class="hint">Cả hai bấm Đấu lại để chơi tiếp cùng mã phòng. Đóng tab/rời trang tự rời sau khoảng 5 giây; mất mạng hoặc tắt máy có thể mất tới 90 giây. Phòng đóng khi không còn ai.</p>
