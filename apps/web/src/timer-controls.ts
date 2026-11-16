@@ -10,7 +10,7 @@ import {scopeHistory} from './history-storage.js';
 import {attachCloudHistory} from './cloud-controls.js';
 import type {CloudAccount} from './account.js';
 
-export function attachTimer(controller: CubeController, newScramble: () => void,account?:CloudAccount) {
+export function attachTimer(controller: CubeController, newScramble: () => void,account?:CloudAccount,onCompleted:(solve:Solve)=>void=()=>{}) {
   scopeHistory(account?.id);
   const history=new SolveHistory();
   let cloud:ReturnType<typeof attachCloudHistory>|undefined;
@@ -30,7 +30,7 @@ export function attachTimer(controller: CubeController, newScramble: () => void,
   const running=()=>timer.phase==='inspecting'||timer.phase==='solving';
   const sync=():void=>{
     if(running())controller.unlockInput('timer');else controller.lockInput('timer');
-    for(const node of document.querySelectorAll<HTMLInputElement|HTMLButtonElement|HTMLSelectElement|HTMLTextAreaElement>('#cube-size,#seed,#scramble,#reset,#move-buttons button,#algorithm-form textarea,#algorithm-form button,#key-settings-open')) node.disabled=running();
+    for(const node of document.querySelectorAll<HTMLInputElement|HTMLButtonElement|HTMLSelectElement|HTMLTextAreaElement>('#cube-size,#seed,#scramble,#practice-online,#reset,#move-buttons button,#algorithm-form textarea,#algorithm-form button,#key-settings-open')) node.disabled=running();
     start.disabled=running();cancel.disabled=!running();
     start.textContent=timer.phase==='finished'||!timer.armed?t("Chuẩn bị scramble"):t("Bắt đầu inspection");
     phaseLabel.textContent={idle:timer.armed?t("Sẵn sàng · Space để inspection"):t("Chờ scramble"),inspecting:t("Inspection · nước xoay lớp đầu tiên bắt đầu giải"),solving:t("Đang giải"),finished:t("Đã kết thúc")}[timer.phase];
@@ -56,7 +56,10 @@ export function attachTimer(controller: CubeController, newScramble: () => void,
     clearTimeout(wake);
     if(timer.phase==='finished'){
       const result=timer.result!;
-      if(history.add(result))leaderboard.completed(result);
+      if(history.add(result)){
+        leaderboard.completed(result);
+        onCompleted(result);
+      }
       historyUI.changed();
       if(result.penalty!=='DNF'){prepareNext(result);return;}
     }
@@ -95,6 +98,7 @@ export function attachTimer(controller: CubeController, newScramble: () => void,
   on(document,'visibilitychange',()=>{if(!document.hidden){timer.advance(performance.now());show();}});
   sync();frame=requestAnimationFrame(refresh);
   return {
+    isRunning:running,
     scrambled(seed:string):void {timer.arm({size:controller.size,seed,scrambleIndex:0});sync();show();},
     dispose():void {leaderboard.dispose();historyUI.dispose();disposed=true;cancelAnimationFrame(frame);clearTimeout(wake);for(const off of listeners)off();unchange();unreplaced();unmove();controller.setMoveGate(undefined);controller.unlockInput('timer');dialog.close();}
   };
