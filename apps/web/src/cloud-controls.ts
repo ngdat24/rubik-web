@@ -42,7 +42,14 @@ export function attachCloudHistory(account:CloudAccount|undefined,history:SolveH
   };
   const board=async()=>{
     const requested=size.value,{rows}=await api('leaderboard?size='+requested);if(disposed||requested!==size.value)return;
-    tbody.replaceChildren();for(const [i,row] of rows.entries()){const tr=document.createElement('tr');for(const text of [String(i+1),row.name,formatTime(row.timeMs)]){const td=document.createElement('td');td.textContent=text;tr.append(td);}tbody.append(tr);}
+    tbody.replaceChildren();for(const [i,row] of rows.entries()){
+      const tr=document.createElement('tr');
+      tr.insertCell().textContent=String(i+1);
+      const cell=tr.insertCell();cell.textContent=row.name;
+      if(row.nameplate==='neon'||row.nameplate==='gold')cell.dataset.nameplate=row.nameplate;
+      tr.insertCell().textContent=formatTime(row.timeMs);
+      tbody.append(tr);
+    }
     if(!rows.length){const td=tbody.insertRow().insertCell();td.colSpan=3;td.textContent=t("Chưa có kết quả.");}
     message.textContent=t("Top 10 lượt giải · 2×2 / 3×3.");
   };

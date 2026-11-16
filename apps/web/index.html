@@ -9,7 +9,7 @@
   </head>
   <body>
     <main>
-<header><a class="brand" href="/" aria-label="Rubik Lab"><span class="brand-cube" aria-hidden="true">▦</span> rubik<span class="brand-light">lab</span><span class="brand-period">.</span></a><span class="header-mode">Không gian luyện tập <span class="live-dot"></span></span><span class="stage">XOAY. TẬP TRUNG. TIẾN BỘ.</span><nav class="mode-links" aria-label="Chế độ chơi"><a href="/time-limit.html">Time Limit</a><a href="/race.html">Đấu 1v1</a></nav><button id="account-open" type="button" hidden>Hồ sơ</button><output id="economy-wallet" class="hint" aria-live="polite" hidden></output></header>
+<header><a class="brand" href="/" aria-label="Rubik Lab"><span class="brand-cube" aria-hidden="true">▦</span> rubik<span class="brand-light">lab</span><span class="brand-period">.</span></a><span class="header-mode">Không gian luyện tập <span class="live-dot"></span></span><span class="stage">XOAY. TẬP TRUNG. TIẾN BỘ.</span><nav class="mode-links" aria-label="Chế độ chơi"><a href="/time-limit.html">Time Limit</a><a href="/race.html">Đấu 1v1</a></nav><button id="account-open" type="button" hidden>Hồ sơ</button><button id="shop-open" type="button"><span>Ví &amp; Cửa hàng</span><output id="economy-wallet" aria-live="polite" hidden></output></button></header>
 <section class="scramble-panel" aria-label="Chuỗi scramble"><div class="scramble-heading"><span class="eyebrow">SCRAMBLE</span></div><p id="scramble-text" aria-live="polite">Chưa có scramble.</p></section>
 <div class="workspace"><aside aria-label="Phiên giải và cài đặt">
 <section id="quest-panel" class="history-panel" aria-labelledby="quest-title" hidden>
@@ -21,6 +21,7 @@
 <button id="key-settings-open" type="button">⌘ &nbsp; Cài đặt phím</button><p id="key-storage-status" role="status"></p>
 <label class="view-toggle"><input id="view-keys" type="checkbox" /> Khóa xoay phím</label><p id="view-key-map" role="status">Phím theo hệ trục khối</p>
 <details id="workspace-tools"><summary>Điều khiển nâng cao</summary>
+<label class="view-toggle"><input id="skin-low-fx" type="checkbox" /> Giảm hiệu ứng &amp; âm thanh</label>
 <div class="seed-toolbar"><label for="seed">Seed</label><input id="seed" type="text" maxlength="256" aria-describedby="seed-help" /></div>
 <p id="seed-help" class="hint">Cùng seed và kích thước cho cùng scramble.</p>
 <button id="practice-online" type="button" hidden>Scramble máy chủ</button>
@@ -36,7 +37,7 @@
         <option value="2">2×2</option><option value="3" selected>3×3</option><option value="4">4×4</option>
         <option value="5">5×5</option><option value="6">6×6</option><option value="7">7×7</option>
         <option value="8">8×8</option><option value="9">9×9</option><option value="10">10×10</option>
-      </select></div><div class="camera-controls"><button id="wardrobe-open" type="button">Kho skin</button><button id="camera-reset" type="button" title="Góc nhìn U/F/R">U/F/R</button><button id="camera-back" type="button" title="Góc nhìn D/B/L">D/B/L</button><button id="reset" type="button">Đặt lại</button></div></div>
+      </select></div><div class="camera-controls"><button id="inventory-open" type="button">Kho skin</button><button id="camera-reset" type="button" title="Góc nhìn U/F/R">U/F/R</button><button id="camera-back" type="button" title="Góc nhìn D/B/L">D/B/L</button><button id="reset" type="button">Đặt lại</button></div></div>
 <section id="viewport" aria-label="Cảnh Rubik 3D"><p id="loading" role="status">Đang khởi tạo cảnh 3D…</p></section>
 <p class="gesture-hint">Kéo lớp để xoay <span>·</span> Kéo nền để đổi góc nhìn <span>·</span> Cuộn để thu phóng</p><p id="context-message" role="status" hidden></p>
 <section class="timer-panel" aria-label="Đồng hồ giải"><div class="time-display"><span class="eyebrow">THỜI GIAN</span><output id="timer-readout" aria-label="Thời gian">0.00</output></div><div class="timer-actions"><p id="timer-phase" role="status" aria-live="polite">Chờ scramble</p><div><button id="scramble" type="button">↝ &nbsp; Xáo trộn</button><button id="timer-start" type="button">Chuẩn bị scramble</button><button id="timer-cancel" type="button" disabled>Hủy lượt</button></div><p id="timer-message" role="status"></p></div></section>
@@ -52,13 +53,16 @@
 </details><p id="leaderboard-message" role="status">Đang kết nối phòng…</p><p class="hint">10 lượt giải nhanh nhất từ trước đến nay; một người có thể xuất hiện nhiều lần. +2 được cộng vào thời gian; DNF không xếp hạng. Chỉnh phạt local không đổi kết quả trên bảng.</p></aside></div>
 <footer><span id="cube-description" aria-live="polite">Rubik 3×3 · Trạng thái đã giải</span><span id="engine-version"></span></footer>
     </main>
-    <dialog id="wardrobe" aria-labelledby="wardrobe-title">
-      <div class="wardrobe-heading"><h2 id="wardrobe-title">Kho skin</h2><button id="wardrobe-close" type="button">Đóng</button></div>
-      <p id="wardrobe-status" role="status"></p>
-      <div id="wardrobe-cards"></div>
-      <div id="wardrobe-preview" hidden>
-        <div class="wardrobe-heading"><h3 id="wardrobe-preview-title"></h3><button id="wardrobe-preview-close" type="button">Đóng xem thử</button></div>
-        <div id="wardrobe-preview-cube" tabindex="0" aria-label="Khối Rubik xem thử"></div>
+    <dialog id="shop-dialog" aria-labelledby="shop-title">
+      <div class="shop-heading"><h2 id="shop-title">Cửa hàng</h2><button id="shop-close" type="button">Đóng</button></div>
+      <output id="shop-wallet" aria-live="polite"></output>
+      <div class="shop-tabs" id="shop-tabs"></div>
+      <div class="shop-confirmation" id="shop-confirmation" hidden></div>
+      <p class="shop-status" id="shop-status" role="status"></p>
+      <div class="shop-content" id="shop-content"></div>
+      <div id="shop-preview" hidden>
+        <div class="shop-heading"><h3 id="shop-preview-title"></h3><button id="shop-preview-close" type="button">Đóng xem thử</button></div>
+        <div id="shop-preview-cube" tabindex="0" aria-label="Khối Rubik xem thử"></div>
       </div>
     </dialog>
     <dialog id="key-settings" aria-labelledby="key-settings-title">

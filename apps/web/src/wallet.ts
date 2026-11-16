@@ -29,11 +29,13 @@ export function mountWallet(account:CloudAccount|undefined) {
   window.addEventListener('rubik-profile-updated',changed);
   window.addEventListener('online',changed);
   document.addEventListener('visibilitychange',changed);
+  window.addEventListener('rubik-shop-updated',changed);
   void refresh();
   return {refresh,dispose:()=>{
     abort.abort();
     window.removeEventListener('rubik-profile-updated',changed);
     window.removeEventListener('online',changed);
     document.removeEventListener('visibilitychange',changed);
+    window.removeEventListener('rubik-shop-updated',changed);
   }};
 }

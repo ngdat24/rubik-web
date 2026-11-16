@@ -13,8 +13,10 @@ import type { CubeLayout, LayoutOptions } from './layout.js';
 import { WESTERN_COLORS, validateDisplayState, validateTheme } from './colors.js';
 import type { ColorTheme } from './colors.js';
 import { InstancedCube } from './instanced-cube.js';
+import { SurfaceMaterials } from './surface.js';
+import type { CubeSurface } from './surface.js';
 
-export interface RendererOptions extends LayoutOptions { size?: number; theme?: ColorTheme; measurePerformance?: boolean; instancing?: boolean }
+export interface RendererOptions extends LayoutOptions { size?: number; theme?: ColorTheme; surface?: CubeSurface; measurePerformance?: boolean; instancing?: boolean }
 export interface MoveSnapshot { move: Move; stateAfter: Uint8Array }
 interface PreparedMove extends MoveSnapshot {
   rotation: ReturnType<typeof rotationFor>;
@@ -34,7 +36,10 @@ function roundedSticker(side: number): ShapeGeometry {
   shape.quadraticCurveTo(-half, half, -half, half - radius);
   shape.lineTo(-half, -half + radius);
   shape.quadraticCurveTo(-half, -half, -half + radius, -half);
-  return new ShapeGeometry(shape, 4);
+  const geometry = new ShapeGeometry(shape, 4);
+  const uv = geometry.getAttribute('uv');
+  for (let index = 0; index < uv.count; index++) uv.setXY(index,uv.getX(index)/side+0.5,uv.getY(index)/side+0.5);
+  return geometry;
 }
 
 /** Display and animation only. Cube state and move application belong to the controller. */
@@ -68,6 +73,8 @@ export class CubeRenderer {
   private readonly instancing: boolean;
   private size = 0;
   private theme: ColorTheme;
+  private surface: CubeSurface | undefined;
+  private surfaceMaterials: SurfaceMaterials | undefined;
   private readonly layoutOptions: LayoutOptions;
   private readonly observer: ResizeObserver;
   private frame = 0;
@@ -77,6 +84,7 @@ export class CubeRenderer {
     const layout = buildLayout(options.size ?? 3, options);
     validateTheme(options.theme ?? WESTERN_COLORS);
     this.theme = [...(options.theme ?? WESTERN_COLORS)];
+    this.surface = options.surface;
     this.layoutOptions = { ...options };
     this.measurePerformance = options.measurePerformance ?? false;
     this.instancing = options.instancing ?? true;
@@ -322,12 +330,27 @@ export class CubeRenderer {
     this.instances?.setTheme(this.theme);
   }
 
+  setSurface(surface?: CubeSurface): void {
+    this.assertActive();
+    if (this.surface === surface) return;
+    this.surface = surface;
+    this.applySurface();
+  }
+
+  private applySurface(): void {
+    this.surfaceMaterials?.dispose();
+    this.surfaceMaterials = new SurfaceMaterials(this.surface ?? {},this.plasticMaterial!,
+      this.materials,this.instances?.stickers.material);
+  }
+
   private assertActive(): void {
     if (this.disposed) throw new Error('Renderer has been disposed');
   }
 
   private releaseCube(): void {
     this.cancelPending();
+    this.surfaceMaterials?.dispose();
+    this.surfaceMaterials = undefined;
     this.instances?.dispose();
     this.instances = undefined;
     this.cubeGroup.clear();
@@ -366,6 +389,7 @@ export class CubeRenderer {
     }
     }
     this.webgl.domElement.setAttribute('aria-label', `Rubik ${layout.size}×${layout.size}; kéo để xoay camera, cuộn để thu phóng`);
+    if (this.surface) this.applySurface();
   }
 
   private readonly resize = (): void => {
@@ -404,6 +428,7 @@ export class CubeRenderer {
     this.notifyIdle();
     if (this.disposed) return;
     this.controls.update();
+    this.surfaceMaterials?.animate(time);
     const renderStart = this.measurePerformance ? performance.now() : 0;
     this.webgl.render(this.scene, this.camera);
     if (this.measurePerformance) this.lastRenderMs = performance.now() - renderStart;

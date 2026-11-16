@@ -8,13 +8,15 @@ import type {MoveEvent} from '@rubik/engine';
 import {attachKeyboard} from './keyboard.js';
 import {attachDrag} from './drag.js';
 import {mountTimeLimitBoard} from './time-limit-board.js';
+import {bindSkinEffects,readSkinLowFx,skinPalette,skinSurface} from './skin-effects.js';
+import type {Appearance} from './skin-effects.js';
 import './style.css';
 
 interface Run {k:number;endT:number;preEvents:MoveEvent[];events:MoveEvent[]}
 interface Snapshot {
   id:string;mode:string;durationMs:number;serverNow:number;startMs:number|null;phase:string;final:boolean;result:'A'|'B'|'draw'|null;
   ack:number;runs:Run[];scrambles:{k:number;moves:string[]}[];
-  players:{id:string;name:string;ready:boolean;present?:boolean;rematch?:boolean;score:{score:number;lastEndT:number;totalMoves:number}}[];
+  players:{id:string;name:string;ready:boolean;present?:boolean;rematch?:boolean;nameplate?:'neon'|'gold';skinId?:string;score:{score:number;lastEndT:number;totalMoves:number}}[];
   opponent?:{id:string;name:string;k:number;state:number[];moveCount:number;updatedAt:number|null}|null;
   abandoned?:boolean;
   economy?:{ticket:'free_ticket'|'paid_ticket'|'practice'|'insufficient'|null;fee:number|null;reward:{cb:number;zn:number}|null};
@@ -74,6 +76,40 @@ async function boot():Promise<void>{
   const opponentRenderer=solo?undefined:new CubeRenderer(el('opponent-viewport'));
   if(opponentRenderer){opponentRenderer.setSize(3);opponentRenderer.setState(solvedState(3));cleanup.push(()=>opponentRenderer.dispose());}
   let opponentState='',sentProgress='';
+  const skinAbort=new AbortController();
+  const requestedSkins=new Map<CubeRenderer,string>();
+  const catalog=new Map<string,Promise<Appearance>>();
+  let effects:ReturnType<typeof bindSkinEffects>|undefined;
+  cleanup.push(()=>{skinAbort.abort();effects?.dispose();});
+  const applySkin=(viewer:CubeRenderer,id?:string)=>{
+    const key=id??'';
+    if ((requestedSkins.get(viewer)??'')===key) return;
+    requestedSkins.set(viewer,key);
+    let loadingAppearance=id ? catalog.get(id) : undefined;
+    if (id&&!loadingAppearance) {
+      loadingAppearance=fetch('/api/skin-appearance?id='+encodeURIComponent(id),{signal:skinAbort.signal})
+        .then(async response=>{
+          if (!response.ok) throw new Error();
+          return (await response.json()).appearance as Appearance;
+        });
+      catalog.set(id,loadingAppearance);
+    }
+    void Promise.resolve(loadingAppearance).then(appearance=>{
+      if (skinAbort.signal.aborted||requestedSkins.get(viewer)!==key) return;
+      viewer.setTheme(skinPalette(appearance));
+      const surface=skinSurface(appearance);
+      if (surface&&readSkinLowFx()) delete surface.pulse;
+      viewer.setSurface(surface);
+      if (viewer===renderer) {
+        effects?.dispose();
+        effects=appearance&&!readSkinLowFx()?bindSkinEffects(renderer,appearance):undefined;
+      }
+    }).catch(()=>{
+      if (id) catalog.delete(id);
+      if (requestedSkins.get(viewer)===key) requestedSkins.delete(viewer);
+    });
+  };
+  renderer.onMoveAnimated=()=>effects?.play();
   renderer.onContextChange=available=>available?controller.unlockInput('context'):controller.lockInput('context');
   const settings=loadSettings(()=>localStorage).settings;
   cleanup.push(attachKeyboard(controller,()=>{},()=>settings.profiles[settings.activeProfile]!.bindings,
@@ -99,6 +135,8 @@ async function boot():Promise<void>{
   const resetRoom=()=>{
     room=undefined;roomId='';origin=undefined;loaded=-1;nextScrambleCheck=0;sentProgress='';queuedAction=undefined;scrambles.clear();
     if(stakeControls)stakeControls.hidden=true;
+    applySkin(renderer);
+    if(opponentRenderer)applySkin(opponentRenderer);
     draft={k:0,preEvents:[],events:[],pending:[]};controller.setMoveGate(undefined);controller.reset();controller.lockInput('race');
     opponentRenderer?.setState(solvedState(3));opponentState='';
     el('race-players').replaceChildren();el('race-result').textContent='';el('scramble-text').textContent=translate("Tạo phòng hoặc nhập mã 8 ký tự để vào phòng.");
@@ -173,6 +211,12 @@ async function boot():Promise<void>{
     load();save();
     const me=next.players.find(player=>player.id===user),other=next.players.find(player=>player.id!==user);
     const target=solo?({oneFace:translate("1 mặt"),f2lRush:'F2L',fullSolve:'full'} as Record<string,string>)[next.mode]:translate("Bạn");
+    if (!solo) {
+      applySkin(renderer,me?.skinId);
+      if(opponentRenderer)applySkin(opponentRenderer,other?.skinId);
+    }
+    el('race-own-name').dataset.nameplate=me?.nameplate??'';
+    if(!solo)el('race-opponent-name').dataset.nameplate=other?.nameplate??'';
     el('race-own-name').textContent=me?`${me.name} · ${target}`:translate("Bạn");
     if(!solo)el('race-opponent-name').textContent=other?`${other.name}${translate(" · Đối thủ")}`:translate("Đối thủ");
     const view=next.opponent;
@@ -183,6 +227,7 @@ async function boot():Promise<void>{
     }else if(!solo)el('race-opponent-status').textContent=other?translate("Chờ inspection để xem Rubik"):translate("Đang chờ đối thủ");
     el('race-players').replaceChildren(...next.players.map(player=>{
       const li=document.createElement('li');
+      if(player.nameplate)li.dataset.nameplate=player.nameplate;
       li.textContent=solo?`${player.score.score}${translate(" khối hoàn thành\nMốc cuối: ")}${formatTime(player.score.lastEndT)}${translate("\nNước đã tính: ")}${player.score.totalMoves}`:
         `${player.name}${player.id===user?translate(" (bạn)"):''} · ${player.present===false?translate("Đã rời phòng"):player.rematch?translate("Muốn đấu lại"):player.ready?translate("Sẵn sàng"):translate("Đang chờ")} · ${player.score.score}${translate(" khối · ")}${formatTime(player.score.lastEndT)} · ${player.score.totalMoves}${translate(" nước")}`;
       return li;

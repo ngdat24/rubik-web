@@ -39,3 +39,8 @@
   header .mode-links { order: 1; flex-basis: 100%; }
   .race-page header > span { order: 2; flex-basis: 100%; font-size: 12px; }
 }
+
+[data-nameplate=neon]{color:#b4fb77!important;box-shadow:inset 2px 0 #789650;text-shadow:0 0 6px #9be45e60}
+[data-nameplate=gold]{color:#ffdb76!important;box-shadow:inset 2px 0 #b78a2b;text-shadow:0 0 8px #eab30880}
+#viewport{position:relative}
+.skin-trail{position:absolute;z-index:1;height:3px;border-radius:3px;opacity:0;pointer-events:none;transform-origin:left center}

@@ -13,7 +13,7 @@ export async function handleLobby({request,user,method,body,url}){
   if(action==='stake'&&![0,100,200,300,500].includes(body.stake))throw new Error('Mức cược không hợp lệ.');
   if(['ready','rematch'].includes(action)&&body.stake!==undefined&&![0,100,200,300,500].includes(body.stake))
     throw new Error('Mức cược không hợp lệ.');
-  const rpc=(action,payload={})=>request('/rest/v1/rpc/lobby_action_with_escrow',{method:'POST',body:{p_user:user.id,p_code:id,p_action:action,p_payload:{client,round,...payload}}});
+  const rpc=(action,payload={})=>request('/rest/v1/rpc/lobby_action_with_nameplates',{method:'POST',body:{p_user:user.id,p_code:id,p_action:action,p_payload:{client,round,...payload}}});
   let snapshot;
   if(action==='cube_done'||action==='progress'){
     const before=await rpc('get');
@@ -37,7 +37,9 @@ export async function handleLobby({request,user,method,body,url}){
   const room=snapshot.room;
   const view=publicRace(room,user.id,snapshot.now_ms);
   return {...view,round:room.round_id,nextMode:room.next_mode,
-    players:view.players.map((p,i)=>({...p,present:room.players[i].present,rematch:room.players[i].rematch})),
+    players:view.players.map((p,i)=>({...p,present:room.players[i].present,rematch:room.players[i].rematch,
+      ...(snapshot.nameplates?.[p.id]?{nameplate:snapshot.nameplates[p.id]}:{}),
+      ...(snapshot.skins?.[p.id]?{skinId:snapshot.skins[p.id]}:{})})),
     left:action==='leave',
     ...(snapshot.stake===undefined?{}:{stake:snapshot.stake,owner:room.owner_id,escrow:snapshot.escrow})};
 }
