@@ -7,7 +7,7 @@ import {join,resolve,dirname,extname,sep} from 'node:path';
 import {createRequire} from 'node:module';
 import {execFileSync} from 'node:child_process';
 import {Cube,invert} from '../packages/engine/dist/index.js';
-import {oneFaceSolved} from '../shared/race-rules.mjs';
+import {oneFaceSolved,raceComplete} from '../shared/race-rules.mjs';
 import {createCloudHandler} from './cloud.mjs';
 import {fakeDatabase} from './test-support.mjs';
 const require=createRequire(new URL('../apps/web/package.json',import.meta.url));
@@ -74,9 +74,11 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
     // has not started yet, so this consumes no countdown or inspection.
     await Promise.all(pages.map(async page=>page.clock.pauseAt(new Date(await page.evaluate(()=>Date.now())+60000))));
     const tick=async ms=>{
-      const responses=pages.map(page=>page.waitForResponse(r=>r.url().includes('/api/race')&&r.status()===200));
+      if(ms>60000){await tick(60000);await tick(ms-60000);return;}
+      const connected=pages.filter(page=>new URL(page.url()).searchParams.has('room'));
+      const responses=connected.map(page=>page.waitForResponse(r=>r.url().includes('/api/race')&&r.status()===200));
       db.advanceRace(ms);await Promise.all(pages.map(page=>page.clock.fastForward(ms)));
-      await Promise.all(pages.map(page=>page.evaluate(()=>window.racePoll())));
+      await Promise.all(connected.map(page=>page.evaluate(()=>window.racePoll())));
       await Promise.all(responses.map(p=>p.then(response=>response.finished())));
       db.advanceRace(32);await Promise.all(pages.map(page=>page.clock.runFor(32)));
     };
@@ -88,14 +90,15 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
     };
     await a.locator('#race-create').click();await expect(a.locator('#race-copy')).toBeEnabled();
     const id=await a.locator('#race-code').inputValue();await b.locator('#race-code').fill(id);await b.locator('#race-join').click();
-    assert.equal(db.rooms.get(id).duration_ms,180000);
+    assert.match(id,/^[A-Z0-9]{8}$/);await expect(a.locator('#race-forfeit')).toHaveCount(0);await expect(a.locator('#race-new')).toHaveCount(0);
+    assert.equal(db.lobbies.get(id).duration_ms,180000);
     await expect(b.locator('#race-players li')).toHaveCount(2);
     const releaseReady=await holdNextPoll(a);
-    await a.locator('#race-ready').click();assert.equal(db.rooms.get(id).players[0].ready,false);
+    await a.locator('#race-ready').click();assert.equal(db.lobbies.get(id).players[0].ready,false);
     await expect(a.locator('#race-ready')).toBeDisabled();await expect(a.locator('#race-message')).toContainText('Đang gửi sẵn sàng');
-    releaseReady();await expect.poll(()=>db.rooms.get(id).players[0].ready).toBe(true);
+    releaseReady();await expect.poll(()=>db.lobbies.get(id).players[0].ready).toBe(true);
     await b.locator('#race-ready').click();
-    await expect.poll(()=>db.rooms.get(id).start_ms).not.toBeNull();
+    await expect.poll(()=>db.lobbies.get(id).start_ms).not.toBeNull();
     await expect(a.locator('#race-ready')).toBeDisabled();await expect(b.locator('#race-ready')).toBeDisabled();
     await tick(1000);
     await expect(a.locator('#race-phase')).toContainText('Đếm ngược');
@@ -128,46 +131,68 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
     const before=await b.locator('#opponent-viewport canvas').screenshot();
     await press(a,['R']);await tick(1000);await tick(1000);
     await expect(b.locator('#race-opponent-status')).toContainText('1 nước');
-    assert.deepEqual(db.rooms.get(id).players[0].live.state,Array.from(new Cube(3).applyMoves(scramble).applyMove('R').state));
-    assert.equal(db.rooms.get(id).players[0].runs.length,0);
+    assert.deepEqual(db.lobbies.get(id).players[0].live.state,Array.from(new Cube(3).applyMoves(scramble).applyMove('R').state));
+    assert.equal(db.lobbies.get(id).players[0].runs.length,0);
     const after=await b.locator('#opponent-viewport canvas').screenshot();assert.notDeepEqual(before,after,'Opponent canvas must change with the received move');
     assert.equal(await b.evaluate(()=>JSON.parse(localStorage.getItem(Object.keys(localStorage).find(k=>k.startsWith('rubik.race.v1:')))).events.length),0);
     await press(a,["R'"]);await tick(1000);
     await contexts[0].setOffline(true);await press(a,invert(scramble,3));
     db.advanceRace(32);await Promise.all(pages.map(page=>page.clock.runFor(32)));
     await expect(a.locator('#race-phase')).toContainText('khối 2');
-    assert.equal(db.rooms.get(id).players[0].runs.length,0);
+    assert.equal(db.lobbies.get(id).players[0].runs.length,0);
     await contexts[0].setOffline(false);await a.reload();
-    await expect.poll(()=>db.rooms.get(id).players[0].runs.length).toBe(1);
+    await expect.poll(()=>db.lobbies.get(id).players[0].runs.length).toBe(1);
     await expect(a.locator('#race-players')).toContainText('1 khối');
     // Re-POST the same receipt through the HTTP/auth/verification stack.
-    const receipt=db.rooms.get(id).players[0].runs[0];
-    const duplicate=await a.evaluate(async({id,run})=>{
+    const receipt=db.lobbies.get(id).players[0].runs[0];
+    const duplicate=await a.evaluate(async({id,run,client,round})=>{
       const auth=JSON.parse(localStorage.getItem('sb-cloud-test-auth-token'));
-      const response=await fetch('/api/race',{method:'POST',headers:{Authorization:'Bearer '+auth.access_token,'Content-Type':'application/json'},body:JSON.stringify({action:'cube_done',id,run})});return {status:response.status,body:await response.json()};
-    },{id,run:receipt});
-    assert.equal(duplicate.status,200);assert.equal(duplicate.body.ack,0);assert.equal(db.rooms.get(id).players[0].runs.length,1);
+      const response=await fetch('/api/race',{method:'POST',headers:{Authorization:'Bearer '+auth.access_token,'Content-Type':'application/json'},body:JSON.stringify({action:'cube_done',id,run,client,round})});return {status:response.status,body:await response.json()};
+    },{id,run:receipt,client:db.lobbies.get(id).players[0].client,round:db.lobbies.get(id).round_id});
+    assert.equal(duplicate.status,200);assert.equal(duplicate.body.ack,0);assert.equal(db.lobbies.get(id).players[0].runs.length,1);
     await tick(184000);
     await expect(a.locator('#race-result')).toHaveText('Người thắng: An');await expect(b.locator('#race-result')).toHaveText('Người thắng: An');
-    // Fresh room exercises explicit forfeit; old room remains immutable.
-    await a.goto(base+'/race.html');await b.goto(base+'/race.html');
+    // Reuse the SAME room and code; changing mode does not rewrite old scores.
+    const previousRound=db.lobbies.get(id).round_id,previousSeed=db.lobbies.get(id).seed;
     await a.selectOption('#race-mode','oneFace');
-    await a.locator('#race-create').click();await expect(a.locator('#race-copy')).toBeEnabled();
-    const second=await a.locator('#race-code').inputValue();await b.locator('#race-code').fill(second);await b.locator('#race-join').click();await expect(b.locator('#race-players li')).toHaveCount(2);
-    await expect(b.locator('#race-mode')).toHaveValue('oneFace');assert.equal(db.rooms.get(second).duration_ms,180000);
-    await a.locator('#race-ready').click();await b.locator('#race-ready').click();
-    await expect(a.locator('#race-ready')).toBeDisabled();await expect(b.locator('#race-ready')).toBeDisabled();
+    await tick(32);await expect(b.locator('#race-mode')).toHaveValue('oneFace');
+    await a.locator('#race-rematch').click();await expect(a.locator('#race-rematch')).toBeDisabled();
+    assert.equal(db.lobbies.get(id).round_id,previousRound);
+    await b.locator('#race-rematch').click();await expect.poll(()=>db.lobbies.get(id).round_id).not.toBe(previousRound);
+    assert.notEqual(db.lobbies.get(id).seed,previousSeed);const second=id;
+    await tick(32);assert.equal(await a.locator('#race-code').inputValue(),id);assert.equal(await b.locator('#race-code').inputValue(),id);
+    assert.equal(db.lobbies.size,1);assert.equal(db.lobbies.get(id).players[0].runs.length,0);
     await tick(1000);await tick(2500);await tick(15000);
     const faceScramble=(await a.locator('#scramble-text').textContent()).trim().split(/\s+/),partial=[],cube=new Cube(3).applyMoves(faceScramble);
     for(const move of invert(faceScramble,3)){partial.push(move);cube.applyMove(move);if(oneFaceSolved(cube.state))break;}
     assert.equal(cube.isSolved(),false);await press(a,partial);
-    await expect.poll(()=>db.rooms.get(second).players[0].runs.length).toBe(1);
-    assert.equal(db.rooms.get(second).players[0].runs[0].result,'face');await expect(a.locator('#race-players')).toContainText('1 khối');
+    await expect.poll(()=>db.lobbies.get(second).players[0].runs.length).toBe(1);
+    assert.equal(db.lobbies.get(second).players[0].runs[0].result,'face');await expect(a.locator('#race-players')).toContainText('1 khối');
+    await tick(184000);await expect(a.locator('#race-result')).toContainText('Người thắng');
+    await a.selectOption('#race-mode','f2lRush');await tick(32);await expect(b.locator('#race-mode')).toHaveValue('f2lRush');
+    await a.locator('#race-rematch').click();await b.locator('#race-rematch').click();await tick(1000);await tick(2500);await tick(15000);
+    assert.equal(db.lobbies.get(id).mode,'f2lRush');assert.equal(db.lobbies.size,1);
+    const f2lScramble=(await a.locator('#scramble-text').textContent()).trim().split(/\s+/),f2lCube=new Cube(3).applyMoves(f2lScramble),f2lMoves=[];
+    for(const m of invert(f2lScramble,3)){f2lCube.applyMove(m);f2lMoves.push(m);if(raceComplete(f2lCube.state,'f2lRush'))break;}
+    await press(a,f2lMoves);await expect.poll(()=>db.lobbies.get(id).players[0].runs.length).toBe(1);
     await b.locator('#race-lobby-controls summary').click();
-    const releaseForfeit=await holdNextPoll(b);
-    await b.locator('#race-forfeit').click();await b.locator('#race-confirm-forfeit').click();
-    assert.equal(db.rooms.get(second).forfeit,null);releaseForfeit();
-    await expect(b.locator('#race-result')).toHaveText('Người thắng: An');
+    const releaseLeave=await holdNextPoll(b);
+    await b.locator('#race-leave').click();await b.locator('#race-confirm-forfeit').click();
+    assert.equal(db.lobbies.get(second).forfeit,null);releaseLeave();
+    await expect(b.locator('#race-message')).toHaveText('Đã rời phòng.');await tick(32);
+    await expect(a.locator('#race-result')).toHaveText('Người thắng: An');assert.equal(db.lobbies.has(id),true);
+    await a.locator('#race-leave').click();await a.locator('#race-confirm-forfeit').click();await expect(a.locator('#race-create')).toBeEnabled();
+    assert.equal(db.lobbies.has(id),false);assert.equal(new URL(a.url()).search,'');
+    // Regression: leaving then creating/joining never reuses the old invite.
+    await a.locator('#race-create').click();await expect(a.locator('#race-copy')).toBeEnabled();const third=await a.locator('#race-code').inputValue();assert.notEqual(third,id);
+    await b.locator('#race-code').fill(third);await b.locator('#race-join').click();await expect(b.locator('#race-players li')).toHaveCount(2);
+    // Navigation sends a short departure lease; another member remains in room.
+    await b.goto(base+'/');db.advanceRace(6000);await a.clock.fastForward(6000);await a.evaluate(()=>window.racePoll());
+    await expect.poll(()=>db.lobbies.get(third).players.find(p=>p.id===ids[1]).present).toBe(false);
+    const lastClient=db.lobbies.get(third).players.find(p=>p.id===ids[0]).client;
+    await a.close();db.advanceRace(90001);
+    const closed=await db.fetcher('https://db.test/rest/v1/rpc/lobby_action',{body:JSON.stringify({p_user:ids[0],p_code:third,p_action:'get',p_payload:{client:lastClient}})});
+    assert.equal((await closed.json()).gone,true);assert.equal(db.lobbies.has(third),false);
     assert.equal(db.solves.size,0);assert.deepEqual(errors,[]);
   }finally{await browser?.close();if(server)await new Promise(r=>server.close(r));rmSync(dir,{recursive:true,force:true});}
 });

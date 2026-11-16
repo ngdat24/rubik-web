@@ -13,11 +13,13 @@ interface Run {k:number;endT:number;preEvents:MoveEvent[];events:MoveEvent[]}
 interface Snapshot {
   id:string;mode:string;durationMs:number;serverNow:number;startMs:number|null;phase:string;final:boolean;result:'A'|'B'|'draw'|null;
   ack:number;runs:Run[];scrambles:{k:number;moves:string[]}[];
-  players:{id:string;name:string;ready:boolean;score:{score:number;lastEndT:number;totalMoves:number}}[];
+  players:{id:string;name:string;ready:boolean;present?:boolean;rematch?:boolean;score:{score:number;lastEndT:number;totalMoves:number}}[];
   opponent?:{id:string;name:string;k:number;state:number[];moveCount:number;updatedAt:number|null}|null;
   abandoned?:boolean;
+  round?:string;nextMode?:string;gone?:boolean;left?:boolean;
 }
 interface Draft {k:number;preEvents:MoveEvent[];events:MoveEvent[];pending:Run[]}
+class RoomApiError extends Error {constructor(message:string,readonly status:number){super(message);}}
 function readDraft(text:string):Draft{
   const value=JSON.parse(text) as Draft;
   const events=(items:MoveEvent[],max:number)=>Array.isArray(items)&&items.length<=max&&items.every(e=>e&&typeof e.m==='string'&&e.m.length<=12&&Number.isSafeInteger(e.t)&&e.t>=0);
@@ -30,7 +32,8 @@ const solo=document.body.dataset.mode==='time-limit';
 const message=el('race-message'),clock=el('race-clock'),phase=el('race-phase');
 const code=document.querySelector<HTMLInputElement>('#race-code'),mode=el<HTMLSelectElement>('race-mode');
 const create=el<HTMLButtonElement>('race-create'),join=document.querySelector<HTMLButtonElement>('#race-join'),ready=document.querySelector<HTMLButtonElement>('#race-ready');
-const copy=document.querySelector<HTMLButtonElement>('#race-copy'),forfeit=el<HTMLButtonElement>('race-forfeit');
+const copy=document.querySelector<HTMLButtonElement>('#race-copy'),forfeit=document.querySelector<HTMLButtonElement>('#race-forfeit');
+const leave=document.querySelector<HTMLButtonElement>('#race-leave'),rematch=document.querySelector<HTMLButtonElement>('#race-rematch');
 const dialog=el<HTMLDialogElement>('race-forfeit-dialog');
 let disposed=false,frame=0,poll=0;
 const cleanup:(()=>void)[]=[];
@@ -68,17 +71,32 @@ async function boot():Promise<void>{
     move=>el<HTMLInputElement>('race-fixed-keys').checked?move:viewMove(move,renderer.getViewFaces())));
   cleanup.push(attachDrag(renderer,controller,()=>{}));
   let room:Snapshot|undefined,roomId='',busy=false,origin:number|undefined,loaded=-1,loading=false;
+  const connection=crypto.randomUUID().replaceAll('-','');let accessToken='';
   let queuedAction:{action:string;extra:Record<string,unknown>}|undefined;
   let nextScrambleCheck=0;
   const pendingAction=(action:string)=>{
-    message.textContent=({create:solo?'Đang bắt đầu lượt…':'Đang tạo phòng…',join:'Đang vào phòng…',ready:'Đang gửi sẵn sàng…',forfeit:solo?'Đang hủy lượt…':'Đang gửi bỏ cuộc…'} as Record<string,string>)[action]??'Đang kết nối…';
+    message.textContent=({create:solo?'Đang bắt đầu lượt…':'Đang tạo phòng…',join:'Đang vào phòng…',ready:'Đang gửi sẵn sàng…',forfeit:'Đang hủy lượt…',leave:'Đang rời phòng…',rematch:'Đang gửi đấu lại…',mode:'Đang đổi chế độ…'} as Record<string,string>)[action]??'Đang kết nối…';
     if(action==='create'||action==='join'){create.disabled=true;mode.disabled=true;if(join)join.disabled=true;}
     if(action==='ready'&&ready)ready.disabled=true;
-    if(action==='forfeit')forfeit.disabled=true;
+    if(action==='forfeit'&&forfeit)forfeit.disabled=true;
+    if(action==='leave'&&leave)leave.disabled=true;
+    if(action==='rematch'&&rematch)rematch.disabled=true;
+    if(action==='mode')mode.disabled=true;
   };
   let draft:Draft={k:0,preEvents:[],events:[],pending:[]};
   const scrambles=new Map<number,string[]>();
-  const storageKey=()=>`rubik.${solo?'time-limit':'race'}.v1:${user}:${roomId}`;
+  const storageKey=()=>`rubik.${solo?'time-limit':'race'}.v1:${user}:${roomId}${room?.round?':'+room.round:''}`;
+  const resetRoom=()=>{
+    room=undefined;roomId='';origin=undefined;loaded=-1;nextScrambleCheck=0;sentProgress='';queuedAction=undefined;scrambles.clear();
+    draft={k:0,preEvents:[],events:[],pending:[]};controller.setMoveGate(undefined);controller.reset();controller.lockInput('race');
+    opponentRenderer?.setState(solvedState(3));opponentState='';
+    el('race-players').replaceChildren();el('race-result').textContent='';el('scramble-text').textContent='Tạo phòng hoặc nhập mã 8 ký tự để vào phòng.';
+    create.disabled=false;if(join)join.disabled=false;if(ready)ready.disabled=true;if(copy)copy.disabled=true;if(leave)leave.disabled=true;
+    if(rematch){rematch.hidden=true;rematch.disabled=true;}mode.disabled=true;if(code)code.value='';
+    el<HTMLDetailsElement>('race-lobby-controls').open=true;
+    el('race-opponent-status').textContent='Đang chờ đối thủ';
+    history.replaceState(null,'','/race.html');
+  };
   const save=()=>{try{localStorage.setItem(storageKey(),JSON.stringify(draft));}catch{message.textContent='Không lưu được hàng chờ trên thiết bị. Giữ trang mở để gửi kết quả.';}};
   const time=(stamp=performance.now())=>origin===undefined?-18001:Math.floor(stamp-origin);
   const load=()=>{
@@ -111,21 +129,33 @@ async function boot():Promise<void>{
   const api=async(action:string,extra:Record<string,unknown>={}):Promise<Snapshot>=>{
     const {data:{session:current}}=await client.auth.getSession();
     if(current?.user.id!==user)throw new Error('Phiên hồ sơ đã đổi. Hãy tải lại trang.');
+    accessToken=current.access_token;
     const started=performance.now();
     const endpoint=solo?'/api/time-limit':'/api/race';
-    const response=await fetch(action==='get'?`${endpoint}?id=${roomId}`:endpoint,{
+    const response=await fetch(action==='get'?`${endpoint}?id=${roomId}${!solo?'&client='+connection:''}`:endpoint,{
       method:action==='get'?'GET':'POST',headers:{Authorization:`Bearer ${current.access_token}`,'Content-Type':'application/json'},
-      ...(action==='get'?{}:{body:JSON.stringify({id:roomId,action,...extra})}),signal:AbortSignal.timeout(8000)});
-    const value=await response.json();if(!response.ok)throw new Error(value.error??'Không kết nối được phòng.');
+      ...(action==='get'?{}:{body:JSON.stringify({id:roomId,action:!solo&&roomId.length===32&&action==='leave'?'forfeit':action,...(!solo?{client:connection,round:room?.round,mode:room?.nextMode??mode.value}:{}),...extra})}),signal:AbortSignal.timeout(8000)});
+    const value=await response.json();if(!response.ok)throw new RoomApiError(value.error??'Không kết nối được phòng.',response.status);
     const next=value as Snapshot;
+    if(!solo&&action==='leave'&&roomId.length===32)next.left=true;
+    if(next.round&&next.round!==room?.round)origin=undefined;
     // Establish a monotonic input origin once per page/match. Network polls never
     // move a running clock backwards or rewrite already captured event timestamps.
     if(origin===undefined&&next.startMs!==null)origin=started+(performance.now()-started)/2+(next.startMs+18000-next.serverNow);
     return next;
   };
   const accept=(next:Snapshot)=>{
+    const changedRound=!!next.round&&next.round!==room?.round;
     const starting=room?.startMs==null&&next.startMs!==null,ending=!room?.final&&next.final;
     room=next;
+    if(changedRound){
+      loaded=-1;nextScrambleCheck=0;sentProgress='';scrambles.clear();opponentState='';
+      controller.setMoveGate(undefined);controller.reset();controller.lockInput('race');
+      renderer.setState(solvedState(3));opponentRenderer?.setState(solvedState(3));
+      draft={k:0,preEvents:[],events:[],pending:[]};
+      try{const saved=localStorage.getItem(storageKey());if(saved)draft=readDraft(saved);}catch{/* Invalid/absent draft never leaks into another round. */}
+      el('race-result').textContent='';el('scramble-text').textContent='Scramble được mở khi bắt đầu inspection.';
+    }
     for(const item of next.scrambles)scrambles.set(item.k,item.moves);
     draft.pending=draft.pending.filter(run=>run.k>next.ack);
     if(draft.k<=next.ack){draft.k=next.ack+1;draft.events=[];draft.preEvents=[];}
@@ -143,15 +173,15 @@ async function boot():Promise<void>{
     el('race-players').replaceChildren(...next.players.map(player=>{
       const li=document.createElement('li');
       li.textContent=solo?`${player.score.score} khối hoàn thành\nMốc cuối: ${formatTime(player.score.lastEndT)}\nNước đã tính: ${player.score.totalMoves}`:
-        `${player.name}${player.id===user?' (bạn)':''} · ${player.ready?'Sẵn sàng':'Đang chờ'} · ${player.score.score} khối · ${formatTime(player.score.lastEndT)} · ${player.score.totalMoves} nước`;
+        `${player.name}${player.id===user?' (bạn)':''} · ${player.present===false?'Đã rời phòng':player.rematch?'Muốn đấu lại':player.ready?'Sẵn sàng':'Đang chờ'} · ${player.score.score} khối · ${formatTime(player.score.lastEndT)} · ${player.score.totalMoves} nước`;
       return li;
     }));
     if(ready)ready.disabled=next.startMs!==null||next.final||!!next.players.find(p=>p.id===user)?.ready;
-    if(starting)el<HTMLDetailsElement>('race-lobby-controls').open=false;
+    if(starting||(changedRound&&next.startMs!==null))el<HTMLDetailsElement>('race-lobby-controls').open=false;
     if(next.final)el<HTMLDetailsElement>('race-lobby-controls').open=true;
-    const nextLink=document.querySelector<HTMLElement>('#race-new');if(nextLink)nextLink.hidden=!next.final;
-    forfeit.disabled=next.final;if(copy)copy.disabled=false;if(join)join.disabled=true;
-    create.disabled=!solo||!next.final;mode.value=next.mode;mode.disabled=!solo||!next.final;
+    if(forfeit)forfeit.disabled=next.final;if(copy)copy.disabled=false;if(join)join.disabled=true;if(leave)leave.disabled=false;
+    if(rematch){rematch.hidden=!next.final;rematch.disabled=!next.round||!next.final||!!me?.rematch||next.players.filter(p=>p.present!==false).length!==2;}
+    create.disabled=!solo||!next.final;mode.value=next.nextMode??next.mode;mode.disabled=solo?!next.final:!next.round||!(next.final||next.startMs===null);
     if(solo){create.textContent=next.final?'Chơi lượt mới':'Đang chơi';if(starting)board?.select(next.mode);if(ending)board?.refresh();}
     if(next.final)el('race-result').textContent=solo?(next.abandoned?'Đã hủy lượt · không xếp hạng':`Đã chốt: ${me!.score.score} khối · mốc cuối ${formatTime(me!.score.lastEndT)}`):next.result==='draw'?'Hòa':next.result?`Người thắng: ${next.players[next.result==='A'?0:1]!.name}`:'Phòng đã đóng';
     else el('race-result').textContent=draft.pending.length?`${draft.pending.length} khối đang chờ xác nhận`:'Các khối đã gửi được server xác nhận.';
@@ -161,7 +191,7 @@ async function boot():Promise<void>{
     if(busy){
       // Background polling must not consume a ready/forfeit click. Forfeit
       // takes priority if both actions arrive while a request is in flight.
-      if((action==='ready'||action==='forfeit')&&queuedAction?.action!=='forfeit')queuedAction={action,extra};
+      if(['ready','forfeit','rematch','mode','leave'].includes(action)&&!['forfeit','leave'].includes(queuedAction?.action??''))queuedAction={action,extra};
       if(action!=='get')pendingAction(action);
       return;
     }
@@ -172,15 +202,20 @@ async function boot():Promise<void>{
       const publish=!solo&&action==='get'&&room&&!room.final&&!draft.pending.length&&loaded===draft.k&&
         time()>=-15000&&time()<=room.durationMs&&(draft.preEvents.length>0||draft.events.length>0)&&key!==sentProgress;
       const snapshot=await api(publish?'progress':action,publish?{progress:{k:draft.k,preEvents:draft.preEvents.slice(),events:draft.events.slice()}}:extra);
+      if(snapshot.gone||snapshot.left){resetRoom();message.textContent=snapshot.left?'Đã rời phòng.':'Phòng đã đóng vì không còn người ở lại.';return;}
       if(publish)sentProgress=key;
       accept(snapshot);
       while(draft.pending.length&&!room!.final){accept(await api('cube_done',{run:draft.pending[0]}));}
-      message.textContent=solo?(room!.final?'Lượt đã được server chốt.':'Đã kết nối · mỗi khối hoàn thành được server xác nhận.'):room!.final?'Trận đã được server chốt.':room!.startMs===null?'Đã kết nối phòng. Mời bạn bằng link; cả hai bấm Sẵn sàng để bắt đầu.':'Đã kết nối · tiến độ đối thủ cập nhật mỗi giây.';
+      message.textContent=solo?(room!.final?'Lượt đã được server chốt.':'Đã kết nối · mỗi khối hoàn thành được server xác nhận.'):room!.final?'Trận đã chốt · cả hai bấm Đấu lại để chơi tiếp trong phòng này.':room!.startMs===null?'Đã kết nối phòng. Chọn chế độ rồi cả hai bấm Sẵn sàng.':'Đã kết nối · tiến độ đối thủ cập nhật mỗi giây.';
     }catch(error){
+      if(!solo&&(action==='leave'||(error instanceof RoomApiError&&error.status===404))){
+        resetRoom();message.textContent=action==='leave'?'Đã rời trên thiết bị này; nếu mất mạng, server sẽ tự hết hiện diện.':'Phòng đã đóng. Bạn có thể tạo hoặc vào phòng khác.';return;
+      }
       message.textContent=`${error instanceof Error?error.message:'Mất kết nối.'} Hàng chờ được giữ để thử lại.`;
-      if(!room){create.disabled=false;mode.disabled=false;if(join)join.disabled=false;}
+      if(!room){create.disabled=false;mode.disabled=!solo;if(join)join.disabled=false;}
       if(ready&&room)ready.disabled=room.startMs!==null||room.final||!!room.players.find(p=>p.id===user)?.ready;
-      if(room)forfeit.disabled=room.final;
+      if(room&&forfeit)forfeit.disabled=room.final;
+      if(room&&!solo){mode.disabled=!(room.final||room.startMs===null);if(leave)leave.disabled=false;if(rematch)rematch.disabled=!room.final||!!room.players.find(p=>p.id===user)?.rematch;}
     }
     finally{
       busy=false;
@@ -204,22 +239,26 @@ async function boot():Promise<void>{
   }));
   const enter=async(action:'join'|'create'|'get',id=code?.value.trim()??'')=>{
     if(busy||(room&&!(solo&&room.final)))return;
-    roomId=id;if(!/^[a-f0-9]{32}$/.test(roomId)){message.textContent='Mã lượt gồm 32 ký tự a–f / 0–9.';return;}
+    roomId=!solo&&id.length===8?id.toUpperCase():id;
+    if(!(solo?/^[a-f0-9]{32}$/:/^(?:[A-Z0-9]{8}|[a-f0-9]{32})$/).test(roomId)){message.textContent=solo?'Mã lượt không hợp lệ.':'Mã phòng gồm 8 chữ hoặc số.';roomId='';return;}
+    if(code)code.value=roomId;
     room=undefined;origin=undefined;loaded=-1;nextScrambleCheck=0;sentProgress='';scrambles.clear();
     controller.lockInput('race');controller.reset();el('scramble-text').textContent='Scramble được mở khi bắt đầu inspection.';
     draft={k:0,preEvents:[],events:[],pending:[]};
     try{
-      const saved=localStorage.getItem(storageKey());if(saved)draft=readDraft(saved);
+      const saved=(solo||roomId.length===32)?localStorage.getItem(storageKey()):null;if(saved)draft=readDraft(saved);
     }catch{message.textContent='Không đọc được tiến độ local; sẽ khôi phục các khối server đã nhận.';}
     await sync(action,{mode:mode.value});
     if(room)history.replaceState(null,'',solo?`/time-limit.html?session=${roomId}`:`/race.html?room=${roomId}`);
   };
-  create.onclick=()=>{const id=crypto.randomUUID().replaceAll('-','');if(code)code.value=id;create.blur();void enter('create',id);};
+  create.onclick=()=>{const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';const id=solo?crypto.randomUUID().replaceAll('-',''):Array.from(crypto.getRandomValues(new Uint8Array(8)),n=>alphabet[n%32]).join('');if(code)code.value=id;create.blur();void enter('create',id);};
   const joinForm=document.querySelector<HTMLFormElement>('#race-join-form');if(joinForm)joinForm.onsubmit=e=>{e.preventDefault();void enter('join');};
   if(ready)ready.onclick=()=>{ready.blur();void sync('ready');};
   if(copy)copy.onclick=()=>{void navigator.clipboard.writeText(`${location.origin}/race.html?room=${roomId}`).then(()=>{message.textContent='Đã sao chép link mời.';},()=>{message.textContent=`Link mời: ${location.origin}/race.html?room=${roomId}`;});};
-  forfeit.onclick=()=>dialog.showModal();el('race-keep').onclick=()=>dialog.close();
-  el('race-confirm-forfeit').onclick=()=>{dialog.close();void sync('forfeit');};
+  if(forfeit)forfeit.onclick=()=>dialog.showModal();if(leave)leave.onclick=()=>dialog.showModal();el('race-keep').onclick=()=>dialog.close();
+  el('race-confirm-forfeit').onclick=()=>{dialog.close();void sync(solo?'forfeit':'leave');};
+  if(rematch)rematch.onclick=()=>{rematch.blur();void sync('rematch');};
+  if(!solo)mode.onchange=()=>{if(room)void sync('mode',{mode:mode.value});};
   el('race-camera').onclick=()=>renderer.resetCamera();
   if(opponentRenderer)el('race-opponent-camera').onclick=()=>opponentRenderer.resetCamera();
   const speed=document.querySelector<HTMLInputElement>('#race-speed');if(speed)speed.oninput=()=>{renderer.setSpeed(Number(speed.value));el('race-speed-value').textContent=speed.value+' ms';};
@@ -228,6 +267,13 @@ async function boot():Promise<void>{
     window.addEventListener('keydown',space,true);cleanup.push(()=>window.removeEventListener('keydown',space,true));
   }
   message.textContent=solo?'Chọn danh mục rồi bấm Bắt đầu hoặc Space.':'Tạo phòng hoặc mở link mời từ bạn.';
+  if(!solo){
+    mode.disabled=true;
+    const depart=()=>{if(roomId.length===8&&accessToken)void fetch('/api/race',{method:'POST',headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},body:JSON.stringify({action:'leave',id:roomId,client:connection,depart:true}),keepalive:true}).catch(()=>{});};
+    const returnToPage=(event:PageTransitionEvent)=>{if(event.persisted)location.reload();};
+    window.addEventListener('pagehide',depart);window.addEventListener('pageshow',returnToPage);
+    cleanup.push(()=>{depart();window.removeEventListener('pagehide',depart);window.removeEventListener('pageshow',returnToPage);});
+  }
   const invite=new URLSearchParams(location.search).get(solo?'session':'room');if(invite){if(code)code.value=invite;await enter(solo?'get':'join',invite);}
   const tick=()=>{if(disposed)return;void sync().finally(()=>{if(!disposed)poll=window.setTimeout(tick,1000);});};
   poll=window.setTimeout(tick,1000);draw();
