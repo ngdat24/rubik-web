@@ -43,6 +43,9 @@ async function boot():Promise<void>{
   if(!account)throw new Error('Phòng online cần cấu hình Supabase/Vercel. Chế độ LAN chưa phục vụ phòng này.');
   cleanup.push(account.dispose);
   const board=solo?mountTimeLimitBoard():undefined;if(board)cleanup.push(board.dispose);
+  const targetLabel=document.querySelector<HTMLElement>('#time-limit-target');
+  const showTarget=(value:string,playing=false)=>{if(targetLabel)targetLabel.textContent=(playing?'Đang chơi: ':'Sẽ chơi: ')+({oneFace:'1 mặt',f2lRush:'F2L',fullSolve:'full'} as Record<string,string>)[value];};
+  if(solo){showTarget(mode.value);mode.onchange=()=>{showTarget(mode.value);board?.select(mode.value);};}
   const {client}=account,user=account.id;
   const renderer=new CubeRenderer(el('viewport'));renderer.setSpeed(40);
   const controller=new CubeController(renderer);controller.lockInput('race');
@@ -182,7 +185,7 @@ async function boot():Promise<void>{
     if(forfeit)forfeit.disabled=next.final;if(copy)copy.disabled=false;if(join)join.disabled=true;if(leave)leave.disabled=false;
     if(rematch){rematch.hidden=!next.final;rematch.disabled=!next.round||!next.final||!!me?.rematch||next.players.filter(p=>p.present!==false).length!==2;}
     create.disabled=!solo||!next.final;mode.value=next.nextMode??next.mode;mode.disabled=solo?!next.final:!next.round||!(next.final||next.startMs===null);
-    if(solo){create.textContent=next.final?'Chơi lượt mới':'Đang chơi';if(starting)board?.select(next.mode);if(ending)board?.refresh();}
+    if(solo){create.textContent=next.final?'Chơi lượt mới':'Đang chơi';showTarget(next.mode,!next.final);if(starting)board?.select(next.mode);if(ending)board?.refresh();}
     if(next.final)el('race-result').textContent=solo?(next.abandoned?'Đã hủy lượt · không xếp hạng':`Đã chốt: ${me!.score.score} khối · mốc cuối ${formatTime(me!.score.lastEndT)}`):next.result==='draw'?'Hòa':next.result?`Người thắng: ${next.players[next.result==='A'?0:1]!.name}`:'Phòng đã đóng';
     else el('race-result').textContent=draft.pending.length?`${draft.pending.length} khối đang chờ xác nhận`:'Các khối đã gửi được server xác nhận.';
   };
