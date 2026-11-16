@@ -1,4 +1,10 @@
 export const english: Record<string, string> = {
+  "Full 3×3 có 1 vé miễn phí và tối đa 2 vé giá 100 CB mỗi ngày. Vé được tính sau đếm ngược. Hết vé hoặc thiếu CB, bạn vẫn có thể tập miễn phí.": "Full 3×3 has one free ticket and up to two 100 CB tickets each day. Tickets are used after countdown. You can keep practising for free when out of tickets or CB.",
+  "Thưởng Time Limit": "Time Limit reward",
+  "Đã dùng vé miễn phí": "Free ticket used",
+  "Đã dùng vé 100 CB": "100 CB ticket used",
+  "Lượt luyện tập miễn phí": "Free practice session",
+  "Thiếu 100 CB. Lượt này chuyển sang luyện tập miễn phí.": "Requires 100 CB. Switched to a free practice session.",
   "Nhiệm vụ ngày": "Daily quests",
   "Kỷ lục cá nhân": "Personal bests",
   "Giải 10 lượt 2×2, 5 lượt 3×3, 3 lượt 4×4 hoặc 1 lượt 5×5": "Solve 10 2×2, 5 3×3, 3 4×4 or 1 5×5",

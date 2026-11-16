@@ -14,5 +14,5 @@ export async function handleTimeLimit({request,user,method,body,url}){
     const run=verifyRaceCube(room,player,body.run,before.now_ms);
     snapshot=await rpc(action,{run,moveCost:raceScore([run],room.mode,room.duration_ms).totalMoves});
   }else snapshot=await rpc(action,action==='create'?{mode:body.mode,seed:randomBytes(32).toString('hex')}:{});
-  return {...publicRace(snapshot.room,user.id,snapshot.now_ms),abandoned:!!snapshot.room.forfeit};
+  return {...publicRace(snapshot.room,user.id,snapshot.now_ms),abandoned:!!snapshot.room.forfeit,economy:snapshot.economy};
 }

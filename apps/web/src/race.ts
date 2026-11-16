@@ -17,6 +17,7 @@ interface Snapshot {
   players:{id:string;name:string;ready:boolean;present?:boolean;rematch?:boolean;score:{score:number;lastEndT:number;totalMoves:number}}[];
   opponent?:{id:string;name:string;k:number;state:number[];moveCount:number;updatedAt:number|null}|null;
   abandoned?:boolean;
+  economy?:{ticket:'free_ticket'|'paid_ticket'|'practice'|'insufficient'|null;fee:number|null;reward:{cb:number;zn:number}|null};
   round?:string;nextMode?:string;gone?:boolean;left?:boolean;
 }
 interface Draft {k:number;preEvents:MoveEvent[];events:MoveEvent[];pending:Run[]}
@@ -187,6 +188,16 @@ async function boot():Promise<void>{
     if(rematch){rematch.hidden=!next.final;rematch.disabled=!next.round||!next.final||!!me?.rematch||next.players.filter(p=>p.present!==false).length!==2;}
     create.disabled=!solo||!next.final;mode.value=next.nextMode??next.mode;mode.disabled=solo?!next.final:!next.round||!(next.final||next.startMs===null);
     if(solo){create.textContent=next.final?translate("Chơi lượt mới"):translate("Đang chơi");showTarget(next.mode,!next.final);if(starting)board?.select(next.mode);if(ending)board?.refresh();}
+    if(solo) {
+      const reward=next.economy?.reward;
+      const ticket=next.economy?.ticket;
+      el('time-limit-reward').textContent=reward
+        ? translate('Thưởng Time Limit')+` · ${reward.cb} CB · ${reward.zn} ZN`
+        : ticket==='free_ticket' ? translate('Đã dùng vé miễn phí')
+          : ticket==='paid_ticket' ? translate('Đã dùng vé 100 CB')
+          : ticket==='practice' ? translate('Lượt luyện tập miễn phí')
+          : ticket==='insufficient' ? translate('Thiếu 100 CB. Lượt này chuyển sang luyện tập miễn phí.') : '';
+    }
     if(next.final)el('race-result').textContent=solo?(next.abandoned?translate("Đã hủy lượt · không xếp hạng"):`${translate("Đã chốt: ")}${me!.score.score}${translate(" khối · mốc cuối ")}${formatTime(me!.score.lastEndT)}`):next.result==='draw'?translate("Hòa"):next.result?`${translate("Người thắng: ")}${next.players[next.result==='A'?0:1]!.name}`:translate("Phòng đã đóng");
     else el('race-result').textContent=draft.pending.length?`${draft.pending.length}${translate(" khối đang chờ xác nhận")}`:translate("Các khối đã gửi được server xác nhận.");
   };
