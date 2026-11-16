@@ -7,14 +7,16 @@ function isEditing(event: Event): boolean {
 }
 
 /** Timestamp is the face-key keydown, never the earlier selector or the animation. */
-export function attachKeyboard(controller: CubeController, onMove: (move: string) => void, getKeymap: () => Keymap = () => DEFAULT_KEYMAP, transform: (move:string)=>string = move=>move): () => void {
+export function attachKeyboard(controller: CubeController, onMove: (move: string) => void, getKeymap: () => Keymap = () => DEFAULT_KEYMAP, transform: (move:string)=>string = move=>move, preview?:HTMLElement): () => void {
   const held = new Set<string>();
   const clear = (): void => { held.clear(); };
   const onFocus = (event: FocusEvent): void => { if (isEditing(event)) clear(); };
   const onKeyUp = (event: KeyboardEvent): void => { held.delete(event.code); };
   const onKeyDown = (event: KeyboardEvent): void => {
+    const modal = document.querySelector('dialog[open], [aria-modal="true"]');
+    const allowedInPreview = preview && modal?.contains(preview) && preview.contains(document.activeElement);
     if (event.isComposing || isEditing(event) || !controller.inputEnabled ||
-        document.querySelector('dialog[open], [aria-modal="true"]') || event.ctrlKey || event.metaKey) { clear(); return; }
+        (preview ? !allowedInPreview : Boolean(modal)) || event.ctrlKey || event.metaKey) { clear(); return; }
     if (event.defaultPrevented || event.repeat) return;
     if (event.code === 'KeyW' || /^Digit[0-9]$/.test(event.code)) {
       held.add(event.code); event.preventDefault(); return;
