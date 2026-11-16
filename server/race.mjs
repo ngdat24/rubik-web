@@ -4,6 +4,10 @@ import {Cube,parseMove,scoreRun,compare} from '../packages/engine/dist/index.js'
 import {raceComplete,raceScramble} from '../shared/race-rules.mjs';
 
 export {raceComplete};
+export function raceScore(runs,mode,durationMs){
+  return scoreRun(mode==='oneFace'?runs.map(run=>({...run,result:run.result==='face'?'solved':run.result})):runs,
+    {mode:mode==='oneFace'?'fullSolve':mode,size:3,durationMs});
+}
 /** Cosmetic progress is replayed but never awards score or acknowledges a cube. */
 export function verifyRaceProgress(room,player,value,now){
   if(!value||!Number.isSafeInteger(value.k)||value.k<0||value.k>999)throw new Error('Chỉ số khối không hợp lệ.');
@@ -55,8 +59,7 @@ export function publicRace(room,user,now){
   const elapsed=room.start_ms===null?-1:now-room.start_ms;
   const phase=room.forfeit||elapsed>=18000+room.duration_ms?'ended':elapsed<0?'lobby':elapsed<3000?'countdown':elapsed<18000?'inspecting':'running';
   const final=!!room.forfeit||elapsed>=21000+room.duration_ms;
-  const scores=players.map(p=>scoreRun(room.mode==='oneFace'?p.runs.map(run=>({...run,result:run.result==='face'?'solved':run.result})):p.runs,
-    {mode:room.mode==='oneFace'?'fullSolve':room.mode,size:3,durationMs:room.duration_ms}));
+  const scores=players.map(p=>raceScore(p.runs,room.mode,room.duration_ms));
   const result=final&&players.length===2?(room.forfeit?(players[0].id===room.forfeit?'B':'A'):compare(scores[0],scores[1])):null;
   const k=me.runs.length;
   const other=players.find(p=>p.id!==user);

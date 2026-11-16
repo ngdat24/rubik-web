@@ -6,6 +6,7 @@ import {raceComplete} from '../../../shared/race-rules.mjs';
 import type {MoveEvent} from '@rubik/engine';
 import {attachKeyboard} from './keyboard.js';
 import {attachDrag} from './drag.js';
+import {mountTimeLimitBoard} from './time-limit-board.js';
 import './style.css';
 
 interface Run {k:number;endT:number;preEvents:MoveEvent[];events:MoveEvent[]}
@@ -14,6 +15,7 @@ interface Snapshot {
   ack:number;runs:Run[];scrambles:{k:number;moves:string[]}[];
   players:{id:string;name:string;ready:boolean;score:{score:number;lastEndT:number;totalMoves:number}}[];
   opponent?:{id:string;name:string;k:number;state:number[];moveCount:number;updatedAt:number|null}|null;
+  abandoned?:boolean;
 }
 interface Draft {k:number;preEvents:MoveEvent[];events:MoveEvent[];pending:Run[]}
 function readDraft(text:string):Draft{
@@ -24,10 +26,11 @@ function readDraft(text:string):Draft{
   return value;
 }
 const el=<T extends HTMLElement>(id:string)=>document.getElementById(id) as T;
+const solo=document.body.dataset.mode==='time-limit';
 const message=el('race-message'),clock=el('race-clock'),phase=el('race-phase');
-const code=el<HTMLInputElement>('race-code'),mode=el<HTMLSelectElement>('race-mode');
-const create=el<HTMLButtonElement>('race-create'),join=el<HTMLButtonElement>('race-join'),ready=el<HTMLButtonElement>('race-ready');
-const copy=el<HTMLButtonElement>('race-copy'),forfeit=el<HTMLButtonElement>('race-forfeit');
+const code=document.querySelector<HTMLInputElement>('#race-code'),mode=el<HTMLSelectElement>('race-mode');
+const create=el<HTMLButtonElement>('race-create'),join=document.querySelector<HTMLButtonElement>('#race-join'),ready=document.querySelector<HTMLButtonElement>('#race-ready');
+const copy=document.querySelector<HTMLButtonElement>('#race-copy'),forfeit=el<HTMLButtonElement>('race-forfeit');
 const dialog=el<HTMLDialogElement>('race-forfeit-dialog');
 let disposed=false,frame=0,poll=0;
 const cleanup:(()=>void)[]=[];
@@ -36,6 +39,7 @@ async function boot():Promise<void>{
   const account=await browserAccount();
   if(!account)throw new Error('Phòng online cần cấu hình Supabase/Vercel. Chế độ LAN chưa phục vụ phòng này.');
   cleanup.push(account.dispose);
+  const board=solo?mountTimeLimitBoard():undefined;if(board)cleanup.push(board.dispose);
   const {client}=account,user=account.id;
   const profileRequest=async(name?:string)=>{
     const response=await fetch('/api/player',{method:name===undefined?'GET':'POST',headers:{Authorization:'Bearer '+await account.token(),'Content-Type':'application/json'},...(name===undefined?{}:{body:JSON.stringify({name})}),signal:AbortSignal.timeout(10000)});
@@ -54,8 +58,8 @@ async function boot():Promise<void>{
   if(disposed)return;
   const renderer=new CubeRenderer(el('viewport'));renderer.setSpeed(40);
   const controller=new CubeController(renderer);controller.lockInput('race');
-  const opponentRenderer=new CubeRenderer(el('opponent-viewport'));opponentRenderer.setSize(3);opponentRenderer.setState(solvedState(3));
-  cleanup.push(()=>opponentRenderer.dispose());
+  const opponentRenderer=solo?undefined:new CubeRenderer(el('opponent-viewport'));
+  if(opponentRenderer){opponentRenderer.setSize(3);opponentRenderer.setState(solvedState(3));cleanup.push(()=>opponentRenderer.dispose());}
   let opponentState='',sentProgress='';
   renderer.onContextChange=available=>available?controller.unlockInput('context'):controller.lockInput('context');
   const settings=loadSettings(()=>localStorage).settings;
@@ -66,7 +70,7 @@ async function boot():Promise<void>{
   let queuedAction:{action:string;extra:Record<string,unknown>}|undefined;
   let draft:Draft={k:0,preEvents:[],events:[],pending:[]};
   const scrambles=new Map<number,string[]>();
-  const storageKey=()=>`rubik.race.v1:${user}:${roomId}`;
+  const storageKey=()=>`rubik.${solo?'time-limit':'race'}.v1:${user}:${roomId}`;
   const save=()=>{try{localStorage.setItem(storageKey(),JSON.stringify(draft));}catch{message.textContent='Không lưu được hàng chờ trên thiết bị. Giữ trang mở để gửi kết quả.';}};
   const time=(stamp=performance.now())=>origin===undefined?-18001:Math.floor(stamp-origin);
   const load=()=>{
@@ -87,15 +91,16 @@ async function boot():Promise<void>{
     const t=time();
     const active=!!room&&!room.final&&loaded===draft.k&&origin!==undefined&&t>=-15000&&t<=room.durationMs;
     if(active)controller.unlockInput('race');else controller.lockInput('race');
-    clock.textContent=!room||origin===undefined?'—':t< -15000?String(Math.ceil((-15000-t)/1000)):t<0?String(Math.ceil(-t/1000)):formatTime(Math.max(0,room.durationMs-t));
-    phase.textContent=!room?'Chưa vào phòng':room.final?'Kết thúc':origin===undefined?'Chờ hai người sẵn sàng':t< -15000?'Đếm ngược':t<0?'Inspection · chỉ x/y/z':t<=room.durationMs?(loaded===draft.k?`Đang giải khối ${draft.k+1}`:'Chờ scramble tiếp theo…'):'Hết giờ · đang chốt kết quả';
+    clock.textContent=!room||origin===undefined||room.abandoned?'—':t< -15000?String(Math.ceil((-15000-t)/1000)):t<0?String(Math.ceil(-t/1000)):formatTime(Math.max(0,room.durationMs-t));
+    phase.textContent=!room?(solo?'Chưa bắt đầu':'Chưa vào phòng'):room.final?'Kết thúc':origin===undefined?(solo?'Đang đồng bộ giờ':'Chờ hai người sẵn sàng'):t< -15000?'Đếm ngược':t<0?'Inspection · chỉ x/y/z':t<=room.durationMs?(loaded===draft.k?`Đang giải khối ${draft.k+1}`:'Chờ scramble tiếp theo…'):'Hết giờ · đang chốt kết quả';
     frame=requestAnimationFrame(draw);
   };
   const api=async(action:string,extra:Record<string,unknown>={}):Promise<Snapshot>=>{
     const {data:{session:current}}=await client.auth.getSession();
     if(current?.user.id!==user)throw new Error('Phiên hồ sơ đã đổi. Hãy tải lại trang.');
     const started=performance.now();
-    const response=await fetch(action==='get'?`/api/race?id=${roomId}`:'/api/race',{
+    const endpoint=solo?'/api/time-limit':'/api/race';
+    const response=await fetch(action==='get'?`${endpoint}?id=${roomId}`:endpoint,{
       method:action==='get'?'GET':'POST',headers:{Authorization:`Bearer ${current.access_token}`,'Content-Type':'application/json'},
       ...(action==='get'?{}:{body:JSON.stringify({id:roomId,action,...extra})}),signal:AbortSignal.timeout(8000)});
     const value=await response.json();if(!response.ok)throw new Error(value.error??'Không kết nối được phòng.');
@@ -106,36 +111,40 @@ async function boot():Promise<void>{
     return next;
   };
   const accept=(next:Snapshot)=>{
-    const starting=room?.startMs==null&&next.startMs!==null;
+    const starting=room?.startMs==null&&next.startMs!==null,ending=!room?.final&&next.final;
     room=next;
     for(const item of next.scrambles)scrambles.set(item.k,item.moves);
     draft.pending=draft.pending.filter(run=>run.k>next.ack);
     if(draft.k<=next.ack){draft.k=next.ack+1;draft.events=[];draft.preEvents=[];}
     load();save();
     const me=next.players.find(player=>player.id===user),other=next.players.find(player=>player.id!==user);
-    el('race-own-name').textContent=me?`${me.name} · Bạn`:'Bạn';
-    el('race-opponent-name').textContent=other?`${other.name} · Đối thủ`:'Đối thủ';
+    const target=solo?({oneFace:'1 mặt',f2lRush:'F2L',fullSolve:'full'} as Record<string,string>)[next.mode]:'Bạn';
+    el('race-own-name').textContent=me?`${me.name} · ${target}`:'Bạn';
+    if(!solo)el('race-opponent-name').textContent=other?`${other.name} · Đối thủ`:'Đối thủ';
     const view=next.opponent;
-    if(view&&Array.isArray(view.state)&&view.state.length===54&&view.state.every(n=>Number.isInteger(n)&&n>=0&&n<=5)){
+    if(opponentRenderer&&view&&Array.isArray(view.state)&&view.state.length===54&&view.state.every(n=>Number.isInteger(n)&&n>=0&&n<=5)){
       const key=`${view.k}:${view.state.join(',')}`;
       if(key!==opponentState){opponentRenderer.setState(Uint8Array.from(view.state));opponentState=key;}
       el('race-opponent-status').textContent=`Khối ${view.k+1} · ${view.moveCount} nước${next.final?' · Đã kết thúc':''}`;
-    }else el('race-opponent-status').textContent=other?'Chờ inspection để xem Rubik':'Đang chờ đối thủ';
+    }else if(!solo)el('race-opponent-status').textContent=other?'Chờ inspection để xem Rubik':'Đang chờ đối thủ';
     el('race-players').replaceChildren(...next.players.map(player=>{
       const li=document.createElement('li');
-      li.textContent=`${player.name}${player.id===user?' (bạn)':''} · ${player.ready?'Sẵn sàng':'Đang chờ'} · ${player.score.score} khối · ${formatTime(player.score.lastEndT)} · ${player.score.totalMoves} nước`;
+      li.textContent=solo?`${player.score.score} khối hoàn thành\nMốc cuối: ${formatTime(player.score.lastEndT)}\nNước đã tính: ${player.score.totalMoves}`:
+        `${player.name}${player.id===user?' (bạn)':''} · ${player.ready?'Sẵn sàng':'Đang chờ'} · ${player.score.score} khối · ${formatTime(player.score.lastEndT)} · ${player.score.totalMoves} nước`;
       return li;
     }));
-    ready.disabled=next.startMs!==null||next.final||!!next.players.find(p=>p.id===user)?.ready;
+    if(ready)ready.disabled=next.startMs!==null||next.final||!!next.players.find(p=>p.id===user)?.ready;
     if(starting)el<HTMLDetailsElement>('race-lobby-controls').open=false;
     if(next.final)el<HTMLDetailsElement>('race-lobby-controls').open=true;
-    el('race-new').hidden=!next.final;
-    forfeit.disabled=next.final;copy.disabled=false;create.disabled=join.disabled=true;mode.value=next.mode;mode.disabled=true;
-    if(next.final)el('race-result').textContent=next.result==='draw'?'Hòa':next.result?`Người thắng: ${next.players[next.result==='A'?0:1]!.name}`:'Phòng đã đóng';
+    const nextLink=document.querySelector<HTMLElement>('#race-new');if(nextLink)nextLink.hidden=!next.final;
+    forfeit.disabled=next.final;if(copy)copy.disabled=false;if(join)join.disabled=true;
+    create.disabled=!solo||!next.final;mode.value=next.mode;mode.disabled=!solo||!next.final;
+    if(solo){create.textContent=next.final?'Chơi lượt mới':'Đang chơi';if(starting)board?.select(next.mode);if(ending)board?.refresh();}
+    if(next.final)el('race-result').textContent=solo?(next.abandoned?'Đã hủy lượt · không xếp hạng':`Đã chốt: ${me!.score.score} khối · mốc cuối ${formatTime(me!.score.lastEndT)}`):next.result==='draw'?'Hòa':next.result?`Người thắng: ${next.players[next.result==='A'?0:1]!.name}`:'Phòng đã đóng';
     else el('race-result').textContent=draft.pending.length?`${draft.pending.length} khối đang chờ xác nhận`:'Các khối đã gửi được server xác nhận.';
   };
   const sync=async(action='get',extra:Record<string,unknown>={})=>{
-    if(!roomId||disposed)return;
+    if(!roomId||disposed||(solo&&room?.final&&action==='get'))return;
     if(busy){
       // Background polling must not consume a ready/forfeit click. Forfeit
       // takes priority if both actions arrive while a request is in flight.
@@ -145,13 +154,13 @@ async function boot():Promise<void>{
     busy=true;
     try{
       const key=`${draft.k}:${draft.preEvents.length}:${draft.events.length}`;
-      const publish=action==='get'&&room&&!room.final&&!draft.pending.length&&loaded===draft.k&&
+      const publish=!solo&&action==='get'&&room&&!room.final&&!draft.pending.length&&loaded===draft.k&&
         time()>=-15000&&time()<=room.durationMs&&(draft.preEvents.length>0||draft.events.length>0)&&key!==sentProgress;
       const snapshot=await api(publish?'progress':action,publish?{progress:{k:draft.k,preEvents:draft.preEvents.slice(),events:draft.events.slice()}}:extra);
       if(publish)sentProgress=key;
       accept(snapshot);
       while(draft.pending.length&&!room!.final){accept(await api('cube_done',{run:draft.pending[0]}));}
-      message.textContent=room!.final?'Trận đã được server chốt.':room!.startMs===null?'Đã kết nối phòng. Mời bạn bằng link; cả hai bấm Sẵn sàng để bắt đầu.':'Đã kết nối · tiến độ đối thủ cập nhật mỗi giây.';
+      message.textContent=solo?(room!.final?'Lượt đã được server chốt.':'Đã kết nối · mỗi khối hoàn thành được server xác nhận.'):room!.final?'Trận đã được server chốt.':room!.startMs===null?'Đã kết nối phòng. Mời bạn bằng link; cả hai bấm Sẵn sàng để bắt đầu.':'Đã kết nối · tiến độ đối thủ cập nhật mỗi giây.';
     }catch(error){message.textContent=`${error instanceof Error?error.message:'Mất kết nối.'} Hàng chờ được giữ để thử lại.`;}
     finally{
       busy=false;
@@ -173,30 +182,37 @@ async function boot():Promise<void>{
     }
     save();
   }));
-  const enter=async(action:'join'|'create')=>{
-    if(busy||room)return;
-    roomId=code.value.trim();if(!/^[a-f0-9]{32}$/.test(roomId)){message.textContent='Mã phòng gồm 32 ký tự a–f / 0–9.';return;}
+  const enter=async(action:'join'|'create'|'get',id=code?.value.trim()??'')=>{
+    if(busy||(room&&!(solo&&room.final)))return;
+    roomId=id;if(!/^[a-f0-9]{32}$/.test(roomId)){message.textContent='Mã lượt gồm 32 ký tự a–f / 0–9.';return;}
+    room=undefined;origin=undefined;loaded=-1;sentProgress='';scrambles.clear();
+    controller.lockInput('race');controller.reset();el('scramble-text').textContent='Scramble được mở khi bắt đầu inspection.';
     draft={k:0,preEvents:[],events:[],pending:[]};
     try{
       const saved=localStorage.getItem(storageKey());if(saved)draft=readDraft(saved);
     }catch{message.textContent='Không đọc được tiến độ local; sẽ khôi phục các khối server đã nhận.';}
     await sync(action,{mode:mode.value});
-    if(room)history.replaceState(null,'',`/race.html?room=${roomId}`);
+    if(room)history.replaceState(null,'',solo?`/time-limit.html?session=${roomId}`:`/race.html?room=${roomId}`);
   };
-  create.onclick=()=>{code.value=crypto.randomUUID().replaceAll('-','');void enter('create');};
-  el<HTMLFormElement>('race-join-form').onsubmit=e=>{e.preventDefault();void enter('join');};
-  ready.onclick=()=>{ready.blur();void sync('ready');};
-  copy.onclick=()=>{void navigator.clipboard.writeText(`${location.origin}/race.html?room=${roomId}`).then(()=>{message.textContent='Đã sao chép link mời.';},()=>{message.textContent=`Link mời: ${location.origin}/race.html?room=${roomId}`;});};
+  create.onclick=()=>{const id=crypto.randomUUID().replaceAll('-','');if(code)code.value=id;create.blur();void enter('create',id);};
+  const joinForm=document.querySelector<HTMLFormElement>('#race-join-form');if(joinForm)joinForm.onsubmit=e=>{e.preventDefault();void enter('join');};
+  if(ready)ready.onclick=()=>{ready.blur();void sync('ready');};
+  if(copy)copy.onclick=()=>{void navigator.clipboard.writeText(`${location.origin}/race.html?room=${roomId}`).then(()=>{message.textContent='Đã sao chép link mời.';},()=>{message.textContent=`Link mời: ${location.origin}/race.html?room=${roomId}`;});};
   forfeit.onclick=()=>dialog.showModal();el('race-keep').onclick=()=>dialog.close();
   el('race-confirm-forfeit').onclick=()=>{dialog.close();void sync('forfeit');};
   el('race-camera').onclick=()=>renderer.resetCamera();
-  el('race-opponent-camera').onclick=()=>opponentRenderer.resetCamera();
-  message.textContent='Tạo phòng hoặc mở link mời từ bạn.';
-  const invite=new URLSearchParams(location.search).get('room');if(invite){code.value=invite;await enter('join');}
+  if(opponentRenderer)el('race-opponent-camera').onclick=()=>opponentRenderer.resetCamera();
+  const speed=document.querySelector<HTMLInputElement>('#race-speed');if(speed)speed.oninput=()=>{renderer.setSpeed(Number(speed.value));el('race-speed-value').textContent=speed.value+' ms';};
+  if(solo){
+    const space=(e:KeyboardEvent)=>{if(e.code==='Space'&&!e.repeat&&!e.isComposing&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!e.shiftKey&&!document.querySelector('dialog[open]')&&!e.composedPath().some(t=>t instanceof HTMLElement&&(t.matches('input,textarea,select')||t.isContentEditable))){e.preventDefault();if(!create.disabled)create.click();}};
+    window.addEventListener('keydown',space,true);cleanup.push(()=>window.removeEventListener('keydown',space,true));
+  }
+  message.textContent=solo?'Chọn danh mục rồi bấm Bắt đầu hoặc Space.':'Tạo phòng hoặc mở link mời từ bạn.';
+  const invite=new URLSearchParams(location.search).get(solo?'session':'room');if(invite){if(code)code.value=invite;await enter(solo?'get':'join',invite);}
   const tick=()=>{if(disposed)return;void sync().finally(()=>{if(!disposed)poll=window.setTimeout(tick,1000);});};
   poll=window.setTimeout(tick,1000);draw();
 }
-void boot().catch(error=>{message.textContent=error instanceof Error?error.message:'Không mở được phòng.';create.disabled=join.disabled=true;});
+void boot().catch(error=>{message.textContent=error instanceof Error?error.message:'Không mở được lượt chơi.';create.disabled=true;if(join)join.disabled=true;});
 const dispose=()=>{disposed=true;clearTimeout(poll);cancelAnimationFrame(frame);for(const off of cleanup)off();};
 window.addEventListener('pagehide',event=>{if(!event.persisted)dispose();});
 import.meta.hot?.dispose(dispose);
