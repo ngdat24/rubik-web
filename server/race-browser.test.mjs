@@ -84,17 +84,35 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
       db.advanceRace(32);await Promise.all(pages.map(page=>page.clock.runFor(32)));
     };
     const [a,b]=pages;
-    const holdNextPoll=async page=>{
-      let release,entered;const hold=new Promise(resolve=>{release=resolve;}),started=new Promise(resolve=>{entered=resolve;});
-      await page.route(url=>url.pathname==='/api/race'&&url.searchParams.has('id'),async route=>{entered();await hold;await route.continue();},{times:1});
-      await page.evaluate(()=>window.racePoll());await started;return release;
+    const holdNextPoll=async(page,skipFirstPoll=false)=>{
+      let release,entered=false;
+      const hold=new Promise(resolve=>{release=resolve;});
+      const matcher=url=>url.pathname==='/api/race'&&url.searchParams.has('id');
+      const handler=async route=>{entered=true;await hold;await route.continue();};
+      await page.route(matcher,handler,{times:1});
+      // A busy sync can ignore a poll. With frozen browser clocks there is no
+      // automatic next tick, so retry explicitly instead of waiting forever.
+      // Exercise that no-op deterministically on the first ready test.
+      if(skipFirstPoll)await page.evaluate(()=>{
+        const original=window.racePoll;
+        window.racePoll=()=>{window.racePoll=original;};
+      });
+      try{
+        await expect.poll(async()=>{
+          if(!entered)await page.evaluate(()=>window.racePoll());
+          return entered;
+        },{timeout:10000,message:'A race GET must enter the hold before testing queued input'}).toBe(true);
+        return release;
+      }catch(error){
+        release();await page.unroute(matcher,handler);throw error;
+      }
     };
     await a.locator('#race-create').click();await expect(a.locator('#race-copy')).toBeEnabled();
     const id=await a.locator('#race-code').inputValue();await b.locator('#race-code').fill(id);await b.locator('#race-join').click();
     assert.match(id,/^[A-Z0-9]{8}$/);await expect(a.locator('#race-forfeit')).toHaveCount(0);await expect(a.locator('#race-new')).toHaveCount(0);
     assert.equal(db.lobbies.get(id).duration_ms,180000);
     await expect(b.locator('#race-players li')).toHaveCount(2);
-    const releaseReady=await holdNextPoll(a);
+    const releaseReady=await holdNextPoll(a,true);
     await a.locator('#race-ready').click();assert.equal(db.lobbies.get(id).players[0].ready,false);
     await expect(a.locator('#race-ready')).toBeDisabled();await expect(a.locator('#race-message')).toContainText('Đang gửi sẵn sàng');
     releaseReady();await expect.poll(()=>db.lobbies.get(id).players[0].ready).toBe(true);
