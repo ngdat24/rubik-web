@@ -38,7 +38,7 @@ begin
       then raise exception 'Starter reward missing'; end if;
   end loop;
   wallet := public.economy_wallet_snapshot(player);
-  if wallet <> '{"cb":950,"zn":0}' then raise exception 'Unexpected Solo or starter total: %',wallet; end if;
+  if (select sum(amount) from public.currency_ledger where user_id=player and reason in ('solo_solve','starter_reward'))<>950 then raise exception 'Unexpected Solo or starter total'; end if;
   if (select count(*) from public.economy_receipts where user_id=player and kind='solo')<>35 then
     raise exception 'Missing receipt for a capped payout';
   end if;

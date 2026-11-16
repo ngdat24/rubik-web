@@ -1,4 +1,11 @@
 export const english: Record<string, string> = {
+  "Nhiệm vụ ngày": "Daily quests",
+  "Kỷ lục cá nhân": "Personal bests",
+  "Giải 10 lượt 2×2, 5 lượt 3×3, 3 lượt 4×4 hoặc 1 lượt 5×5": "Solve 10 2×2, 5 3×3, 3 4×4 or 1 5×5",
+  "Hoàn thành một phiên Time Limit Full 3×3": "Complete a Full 3×3 Time Limit session",
+  "Giải 10 lượt 3×3 hợp lệ": "Complete 10 eligible 3×3 solves",
+  "Đã xong": "Completed",
+  "Chuỗi chuyên cần": "Daily streak",
   "Đặt tên hồ sơ để mở ví.": "Set your profile name to open your wallet.",
   "Chưa tải được số dư.": "Unable to load your balance.",
   "Scramble máy chủ": "Server scramble",

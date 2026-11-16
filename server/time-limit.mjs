@@ -7,7 +7,7 @@ export async function handleTimeLimit({request,user,method,body,url}){
   const id=method==='GET'?url.searchParams.get('id'):body.id;
   if(!['get','create','cube_done','forfeit'].includes(action)||typeof id!=='string'||!/^[a-f0-9]{32}$/.test(id))throw new Error('Lượt Time Limit không hợp lệ.');
   if(action==='create'&&!TIME_LIMIT_MODES.includes(body.mode))throw new Error('Danh mục Time Limit không hợp lệ.');
-  const rpc=(action,payload={})=>request('/rest/v1/rpc/time_limit_action',{method:'POST',body:{p_user:user.id,p_id:id,p_action:action,p_payload:payload}});
+  const rpc=(action,payload={})=>request('/rest/v1/rpc/time_limit_with_quests',{method:'POST',body:{p_user:user.id,p_id:id,p_action:action,p_payload:payload}});
   let snapshot;
   if(action==='cube_done'){
     const before=await rpc('get'),room=before.room,player=room.players[0];
