@@ -2,14 +2,14 @@
 
 Đối chiếu ngày 16/11/2026. Repository: [ngdat24/rubik-web](https://github.com/ngdat24/rubik-web).
 
-Đây là bản tổng kết triển khai, không phải cam kết tính năng tương lai. Mốc đã merge được kiểm tra: `main` tại `81c5d0d`, gồm PR #34 Time Limit. PR #35 sửa độ trễ còn mở tại thời điểm viết. Tài liệu này thuộc một PR riêng, chưa tự merge.
+Đây là bản tổng kết triển khai, không phải cam kết tính năng tương lai. Mốc đối chiếu khi dọn tài liệu: `main` tại `87b54f5`, đã có PR #34 Time Limit, #35 sửa độ trễ, #36 tổng kết/workflow và #38 hướng dẫn cộng tác viên.
 
 ## A. Cách đọc trạng thái dự án
 
 - **Đã merge:** code đã có trên `main`; phải kiểm tra deployment tương ứng nếu muốn xác nhận bản đang phục vụ người dùng.
 - **Có trên PR:** có thể thử Preview của PR đó; chưa được coi là đã phát hành trên production.
 - **Chưa triển khai:** không suy từ roadmap, tên mode hoặc một hàm engine rằng đã có trọn tính năng.
-- README, STATUS, PLAN, roadmap và các bản handoff cũ là ảnh chụp theo thời điểm. Một số còn ghi email/mật khẩu, leaderboard mỗi người một kỷ lục hoặc 1v1 là tương lai; chúng đã bị thay bởi code/PR mới. Không tự sửa các file đó trong lần viết này.
+- Các kế hoạch/trạng thái/handoff cũ trùng lặp đã được dọn; dùng bản tổng kết này và spec để tra cứu, rồi đối chiếu code/PR mới nhất. Lịch sử các file từng commit vẫn có trong Git.
 
 Web production: <https://rubik-web-ngdattttt.vercel.app>.
 
@@ -155,9 +155,9 @@ PR #34 đã merge, mốc `81c5d0d`:
 
 Đây là phần solo time attack thực tế đã làm; không giữ các thời lượng theo Elo/45 giây trong roadmap cũ làm mô tả sản phẩm hiện tại.
 
-### 11. Sửa độ trễ — PR #35 chưa merge tại thời điểm viết
+### 11. Sửa độ trễ — PR #35 đã merge
 
-Nhánh `codex/online-latency`, commit `487a487`:
+Nhánh `codex/online-latency`: phần sửa chính `487a487`, bổ sung chờ khởi động test CI `2991fc3`; merge vào main tại `871408f`:
 
 - Cấu hình Vercel Functions `icn1` Seoul, cùng vùng Supabase, thay đường API qua Mỹ.
 - Chủ động lấy scramble khi hết đếm ngược, không chỉ đợi chu kỳ polling phản hồi rồi chờ thêm 1 giây.
@@ -166,7 +166,7 @@ Nhánh `codex/online-latency`, commit `487a487`:
 - Đo cùng thiết bị với API leaderboard không cache: production Mỹ 897–1.108 ms; Preview Seoul 360–423 ms, mỗi bên 3 request. Đây không phải load test hay phép đo mọi thao tác bằng phiên người dùng.
 - Local: lint/typecheck/build, 317 unit tests, 2 Time Limit và 11 race tests đạt, gồm kiểm tra Chrome.
 
-**Chưa coi các sửa này có trên production.** Xem [PR #35](https://github.com/ngdat24/rubik-web/pull/35) và trạng thái merge mới nhất trước khi bàn giao tiếp.
+Sau merge đã xác nhận production chạy API Seoul và trả 200 cho các trang/API được kiểm tra; CI main `b70d765` đạt sau khi merge cả #35/#36. Đây là kết quả tại thời điểm kiểm tra, không phải cam kết uptime hay độ trễ mọi thao tác.
 
 ### 12. Những phần chưa được coi là đã triển khai
 
@@ -345,8 +345,8 @@ Chủ repo mời collaborator và chọn một issue UI nhỏ. Bạn clone, ch�
 
 - Quy ước áp dụng trong repo: [AGENTS.md](../AGENTS.md).
 - Spec: [docs/spec](spec/), đặc biệt timer/input/data contract; nhật ký [decisions.md](spec/decisions.md).
-- Backend handoff cũ: [phase-9-backend-deployment-handoff.md](phase-9-backend-deployment-handoff.md); đọc cùng các thay đổi name-only/1v1/Time Limit mới ở trên.
-- PR quan trọng: [#26](https://github.com/ngdat24/rubik-web/pull/26), [#27](https://github.com/ngdat24/rubik-web/pull/27), [#28](https://github.com/ngdat24/rubik-web/pull/28), [#30](https://github.com/ngdat24/rubik-web/pull/30), [#31](https://github.com/ngdat24/rubik-web/pull/31), [#32](https://github.com/ngdat24/rubik-web/pull/32), [#33](https://github.com/ngdat24/rubik-web/pull/33), [#34](https://github.com/ngdat24/rubik-web/pull/34), [#35 đang chờ tại lúc viết](https://github.com/ngdat24/rubik-web/pull/35).
+- Hướng dẫn người mới: [collaborator-getting-started.md](collaborator-getting-started.md).
+- PR quan trọng: [#26](https://github.com/ngdat24/rubik-web/pull/26), [#27](https://github.com/ngdat24/rubik-web/pull/27), [#28](https://github.com/ngdat24/rubik-web/pull/28), [#30](https://github.com/ngdat24/rubik-web/pull/30), [#31](https://github.com/ngdat24/rubik-web/pull/31), [#32](https://github.com/ngdat24/rubik-web/pull/32), [#33](https://github.com/ngdat24/rubik-web/pull/33), [#34](https://github.com/ngdat24/rubik-web/pull/34), [#35](https://github.com/ngdat24/rubik-web/pull/35), [#36](https://github.com/ngdat24/rubik-web/pull/36), [#38](https://github.com/ngdat24/rubik-web/pull/38).
 - GitHub giải thích conflict: [Merge conflicts](https://docs.github.com/en/pull-requests/reference/merge-conflicts).
 
 Nếu đọc sau ngày đối chiếu, fetch và xem PR/main/deployment hiện hành trước khi coi các số commit, trạng thái PR hoặc số test là còn mới.
