@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import { attachLeaderboard } from './leaderboard.js';
 import { newId } from './id.js';
 import { SolveHistory, SolveTimer } from '@rubik/timer';
@@ -31,8 +32,8 @@ export function attachTimer(controller: CubeController, newScramble: () => void,
     if(running())controller.unlockInput('timer');else controller.lockInput('timer');
     for(const node of document.querySelectorAll<HTMLInputElement|HTMLButtonElement|HTMLSelectElement|HTMLTextAreaElement>('#cube-size,#seed,#scramble,#reset,#move-buttons button,#algorithm-form textarea,#algorithm-form button,#key-settings-open')) node.disabled=running();
     start.disabled=running();cancel.disabled=!running();
-    start.textContent=timer.phase==='finished'||!timer.armed?'Chuẩn bị scramble':'Bắt đầu inspection';
-    phaseLabel.textContent={idle:timer.armed?'Sẵn sàng · Space để inspection':'Chờ scramble',inspecting:'Inspection · nước xoay lớp đầu tiên bắt đầu giải',solving:'Đang giải',finished:'Đã kết thúc'}[timer.phase];
+    start.textContent=timer.phase==='finished'||!timer.armed?t("Chuẩn bị scramble"):t("Bắt đầu inspection");
+    phaseLabel.textContent={idle:timer.armed?t("Sẵn sàng · Space để inspection"):t("Chờ scramble"),inspecting:t("Inspection · nước xoay lớp đầu tiên bắt đầu giải"),solving:t("Đang giải"),finished:t("Đã kết thúc")}[timer.phase];
   };
   const show=():void=>{
     const elapsed=timer.elapsed(performance.now());
@@ -65,7 +66,7 @@ export function attachTimer(controller: CubeController, newScramble: () => void,
   const unmove=controller.onMoveApplied(e=>timer.recordMove(e.move,e.stateAfter,e.t));
   controller.setMoveGate((move,stamp)=>timer.canApply(move,stamp));
   const begin=(stamp:number):void=>{
-    if(controller.lockedBy.has('context')){message.textContent='Đang chờ khôi phục đồ họa.';return;}
+    if(controller.lockedBy.has('context')){message.textContent=t("Đang chờ khôi phục đồ họa.");return;}
     message.textContent='';
     if(timer.phase==='finished'){newScramble();return;}
     if(timer.phase!=='idle')return;

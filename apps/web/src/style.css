@@ -27,3 +27,9 @@
 .time-limit-page #race-players{list-style:none;white-space:pre-line;padding-left:0}
 
 .mode-links{display:flex;align-items:center;gap:12px;font-size:12px}.mode-links a{white-space:nowrap}@media(max-width:620px){header{gap:10px}.mode-links{gap:8px;font-size:11px}header .header-mode{display:none}}
+
+.language-menu { position: relative; margin-left: auto; flex-shrink: 0; }
+.language-menu summary { cursor: pointer; padding: 8px 12px; border: 1px solid var(--line, #d5d9cc); border-radius: 8px; font-size: 13px; }
+.language-choices { position: absolute; right: 0; top: calc(100% + 6px); min-width: 140px; padding: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 20px #0002; z-index: 100; display: grid; gap: 4px; }
+.language-choices button { width: 100%; text-align: left; }
+.language-choices button[aria-pressed="true"] { font-weight: 700; background: var(--accent); color: #20261a; }
