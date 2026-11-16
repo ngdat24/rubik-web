@@ -8,7 +8,7 @@ export function mountWallet(account:CloudAccount|undefined) {
   let latest=0;
   balance.hidden=!account;
   async function refresh() {
-    if (!account || abort.signal.aborted) return;
+    if (!account || document.hidden || abort.signal.aborted) return;
     const current=++latest;
     try {
       const response=await fetch('/api/wallet',{
@@ -28,10 +28,12 @@ export function mountWallet(account:CloudAccount|undefined) {
   const changed=()=>void refresh();
   window.addEventListener('rubik-profile-updated',changed);
   window.addEventListener('online',changed);
+  document.addEventListener('visibilitychange',changed);
   void refresh();
   return {refresh,dispose:()=>{
     abort.abort();
     window.removeEventListener('rubik-profile-updated',changed);
     window.removeEventListener('online',changed);
+    document.removeEventListener('visibilitychange',changed);
   }};
 }

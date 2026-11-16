@@ -14,6 +14,7 @@ import {mountPracticeChallenge} from './practice-challenge.js';
 import {mountWallet} from './wallet.js';
 import {mountQuestProgress} from './quest-progress.js';
 import {mountWeeklyBoard} from './weekly-board.js';
+import {mountWardrobe} from './wardrobe.js';
 
 let detachDrag: (()=>void) | undefined;
 let timerUI: ReturnType<typeof attachTimer> | undefined;
@@ -174,16 +175,17 @@ const account=await mountAccount().catch(()=>{document.querySelector('#cloud-mes
 const wallet=mountWallet(account);
 const quests=mountQuestProgress(account);
 const weekly=mountWeeklyBoard();
+const wardrobe=mountWardrobe(account,colors=>renderer?.setTheme(colors));
 const practice = controller && mountPracticeChallenge(account,controller,value=>{seed.value=value;return onScramble();},
   ()=>timerUI?.isRunning() ?? false);
 if(controller) timerUI=attachTimer(controller,()=>{seed.value=newId();onScramble();},account,
   solve=>{if(practice)void practice.completed(solve).then(()=>Promise.all([wallet.refresh(),quests.refresh()]));});
 const onPageHide = (event: PageTransitionEvent): void => {
-  if (!event.persisted) { practice?.dispose(); wallet.dispose(); quests.dispose(); weekly.dispose(); account?.dispose();clearInterval(viewLabelTimer); timerUI?.dispose(); detachDrag?.(); detachKeyboard?.(); keySettings.dispose(); controller?.dispose(); }
+  if (!event.persisted) { practice?.dispose(); wardrobe.dispose(); wallet.dispose(); quests.dispose(); weekly.dispose(); account?.dispose();clearInterval(viewLabelTimer); timerUI?.dispose(); detachDrag?.(); detachKeyboard?.(); keySettings.dispose(); controller?.dispose(); }
 };
 window.addEventListener('pagehide', onPageHide);
 if (import.meta.hot) import.meta.hot.dispose(() => {
-  practice?.dispose();
+  practice?.dispose(); wardrobe.dispose();
   wallet.dispose();
   quests.dispose();
   weekly.dispose();

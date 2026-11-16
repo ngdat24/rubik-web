@@ -36,7 +36,7 @@
         <option value="2">2×2</option><option value="3" selected>3×3</option><option value="4">4×4</option>
         <option value="5">5×5</option><option value="6">6×6</option><option value="7">7×7</option>
         <option value="8">8×8</option><option value="9">9×9</option><option value="10">10×10</option>
-      </select></div><div class="camera-controls"><button id="camera-reset" type="button" title="Góc nhìn U/F/R">U/F/R</button><button id="camera-back" type="button" title="Góc nhìn D/B/L">D/B/L</button><button id="reset" type="button">Đặt lại</button></div></div>
+      </select></div><div class="camera-controls"><button id="wardrobe-open" type="button">Kho skin</button><button id="camera-reset" type="button" title="Góc nhìn U/F/R">U/F/R</button><button id="camera-back" type="button" title="Góc nhìn D/B/L">D/B/L</button><button id="reset" type="button">Đặt lại</button></div></div>
 <section id="viewport" aria-label="Cảnh Rubik 3D"><p id="loading" role="status">Đang khởi tạo cảnh 3D…</p></section>
 <p class="gesture-hint">Kéo lớp để xoay <span>·</span> Kéo nền để đổi góc nhìn <span>·</span> Cuộn để thu phóng</p><p id="context-message" role="status" hidden></p>
 <section class="timer-panel" aria-label="Đồng hồ giải"><div class="time-display"><span class="eyebrow">THỜI GIAN</span><output id="timer-readout" aria-label="Thời gian">0.00</output></div><div class="timer-actions"><p id="timer-phase" role="status" aria-live="polite">Chờ scramble</p><div><button id="scramble" type="button">↝ &nbsp; Xáo trộn</button><button id="timer-start" type="button">Chuẩn bị scramble</button><button id="timer-cancel" type="button" disabled>Hủy lượt</button></div><p id="timer-message" role="status"></p></div></section>
@@ -52,6 +52,15 @@
 </details><p id="leaderboard-message" role="status">Đang kết nối phòng…</p><p class="hint">10 lượt giải nhanh nhất từ trước đến nay; một người có thể xuất hiện nhiều lần. +2 được cộng vào thời gian; DNF không xếp hạng. Chỉnh phạt local không đổi kết quả trên bảng.</p></aside></div>
 <footer><span id="cube-description" aria-live="polite">Rubik 3×3 · Trạng thái đã giải</span><span id="engine-version"></span></footer>
     </main>
+    <dialog id="wardrobe" aria-labelledby="wardrobe-title">
+      <div class="wardrobe-heading"><h2 id="wardrobe-title">Kho skin</h2><button id="wardrobe-close" type="button">Đóng</button></div>
+      <p id="wardrobe-status" role="status"></p>
+      <div id="wardrobe-cards"></div>
+      <div id="wardrobe-preview" hidden>
+        <div class="wardrobe-heading"><h3 id="wardrobe-preview-title"></h3><button id="wardrobe-preview-close" type="button">Đóng xem thử</button></div>
+        <div id="wardrobe-preview-cube" tabindex="0" aria-label="Khối Rubik xem thử"></div>
+      </div>
+    </dialog>
     <dialog id="key-settings" aria-labelledby="key-settings-title">
       <h2 id="key-settings-title">Cài đặt bàn phím</h2>
       <div class="toolbar key-file-actions"><button id="key-reset" type="button">Khôi phục mặc định</button><button id="key-export" type="button">Xuất JSON</button><label>Nhập JSON <input id="key-import" type="file" accept=".json,application/json" /></label><button id="key-settings-close" type="button">Đóng</button></div>
