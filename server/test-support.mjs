@@ -27,7 +27,7 @@ export function fakeDatabase({raceClock=Date.now}={}){
       for(const [id,room] of lobbies)if(room.players.some(p=>p.id===user))lobbies.delete(id);
       return new Response(null,{status:204});
     }
-    if(url.pathname.endsWith('/time_limit_action')){
+    if(url.pathname.endsWith('/time_limit_with_quests')){
       const {p_id:id,p_user:user,p_action:action,p_payload:payload}=body,now=raceClock()+raceOffset;
       const fail=()=>response({code:'P0001'},400);
       if(action==='create'&&!timeLimits.has(id)){

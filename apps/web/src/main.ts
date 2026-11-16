@@ -12,6 +12,7 @@ import { mountKeySettings } from './key-settings.js';
 import {mountAccount} from './account.js';
 import {mountPracticeChallenge} from './practice-challenge.js';
 import {mountWallet} from './wallet.js';
+import {mountQuestProgress} from './quest-progress.js';
 
 let detachDrag: (()=>void) | undefined;
 let timerUI: ReturnType<typeof attachTimer> | undefined;
@@ -170,17 +171,19 @@ resetButton.addEventListener('click', onReset);
 scrambleButton.addEventListener('click', onScramble);
 const account=await mountAccount().catch(()=>{document.querySelector('#cloud-message')!.textContent=t("Chưa tạo được hồ sơ tự động; kiểm tra mạng hoặc bật Anonymous Sign-Ins trong Supabase. Kết quả vẫn lưu trên thiết bị.");return undefined;});
 const wallet=mountWallet(account);
+const quests=mountQuestProgress(account);
 const practice = controller && mountPracticeChallenge(account,controller,value=>{seed.value=value;return onScramble();},
   ()=>timerUI?.isRunning() ?? false);
 if(controller) timerUI=attachTimer(controller,()=>{seed.value=newId();onScramble();},account,
-  solve=>{if(practice)void practice.completed(solve).then(wallet.refresh);});
+  solve=>{if(practice)void practice.completed(solve).then(()=>Promise.all([wallet.refresh(),quests.refresh()]));});
 const onPageHide = (event: PageTransitionEvent): void => {
-  if (!event.persisted) { practice?.dispose(); wallet.dispose(); account?.dispose();clearInterval(viewLabelTimer); timerUI?.dispose(); detachDrag?.(); detachKeyboard?.(); keySettings.dispose(); controller?.dispose(); }
+  if (!event.persisted) { practice?.dispose(); wallet.dispose(); quests.dispose(); account?.dispose();clearInterval(viewLabelTimer); timerUI?.dispose(); detachDrag?.(); detachKeyboard?.(); keySettings.dispose(); controller?.dispose(); }
 };
 window.addEventListener('pagehide', onPageHide);
 if (import.meta.hot) import.meta.hot.dispose(() => {
   practice?.dispose();
   wallet.dispose();
+  quests.dispose();
   account?.dispose();
   clearInterval(viewLabelTimer);
   timerUI?.dispose();

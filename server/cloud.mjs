@@ -21,7 +21,10 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
           if(value?.code==='23505')throw new HttpError(409,path.startsWith('/rest/v1/profiles?')?'Tên này đã có người dùng. Hãy chọn tên khác.':'ID đã được sử dụng.');
           if(value?.code==='40001')throw new HttpError(409,'Dữ liệu đã thay đổi trên thiết bị khác. Hãy tải bản server trước khi sửa tiếp.');
           if(value?.code==='54000')throw new HttpError(413,'Đã đạt giới hạn 10.000 bản ghi mỗi tài khoản.');
-          if(value?.code==='P0001'&&value.message==='profile_required'&&path==='/rest/v1/rpc/economy_wallet_snapshot')
+          if(value?.code==='PGRST202'&&path==='/rest/v1/rpc/time_limit_with_quests')
+            return request('/rest/v1/rpc/time_limit_action',{method,body,auth});
+          if(value?.code==='P0001'&&value.message==='profile_required'&&
+            ['/rest/v1/rpc/economy_wallet_snapshot','/rest/v1/rpc/economy_progress_snapshot'].includes(path))
             throw new HttpError(403,'Đặt tên hồ sơ để mở ví.');
           if(value?.code==='P0001'&&path.startsWith('/rest/v1/rpc/practice_')&&Object.hasOwn(practiceErrorMessages,value.message))
             throw new HttpError(value.message==='profile_required'?403:409,practiceErrorMessages[value.message]);
@@ -33,7 +36,7 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
             value.message==='Room limit'?'Bạn đang có quá nhiều phòng mở. Hãy rời phòng cũ.':
             value.message==='Connection replaced'?'Phòng đang mở ở tab khác. Hãy vào lại phòng tại tab này.':
             'Phòng hoặc lựa chọn đã đổi. Hãy đợi đồng bộ rồi thử lại.');
-          if(value?.code==='P0001'&&path==='/rest/v1/rpc/time_limit_action')throw new HttpError(409,
+          if(value?.code==='P0001'&&['/rest/v1/rpc/time_limit_action','/rest/v1/rpc/time_limit_with_quests'].includes(path))throw new HttpError(409,
             value.message==='Set your player name first'?'Hãy đặt tên trước khi bắt đầu Time Limit.':
             value.message==='Time Limit start limit'?'Bạn đã bắt đầu quá nhiều lượt trong giờ qua. Hãy thử lại sau.':
             'Lượt không tồn tại, không thuộc hồ sơ này, hoặc khối gửi sai thứ tự/quá hạn.');
@@ -57,7 +60,7 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
         const rows=await request('/rest/v1/rpc/leaderboard',{method:'POST',body:{p_size:size}});
         res.setHeader('Cache-Control','public, s-maxage=15, stale-while-revalidate=15');return send(200,{rows});
       }
-      if(!['player','solves','account','race','time-limit','practice','wallet'].includes(route)||!['GET','POST','DELETE'].includes(req.method))throw new HttpError(404,'Không có API này.');
+      if(!['player','solves','account','race','time-limit','practice','wallet','quests'].includes(route)||!['GET','POST','DELETE'].includes(req.method))throw new HttpError(404,'Không có API này.');
       const token=/^Bearer (\S+)$/.exec(req.headers.authorization??'')?.[1];if(!token||token.length>8192)throw new HttpError(401,'Cần phiên hồ sơ hợp lệ.');
       const user=await request('/auth/v1/user',{auth:token});if(!user?.id||(!user.email_confirmed_at&&user.is_anonymous!==true))throw new HttpError(401,'Phiên hồ sơ không hợp lệ. Hãy tải lại trang.');
       const allowed=await request('/rest/v1/rpc/consume_quota',{method:'POST',body:{p_user:user.id,p_kind:req.method==='GET'?'read':'write'}});
@@ -68,6 +71,10 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
         else{let length=0;const chunks=[];for await(const chunk of req){length+=chunk.length;if(length>300000)throw new HttpError(413,'Dữ liệu quá lớn.');chunks.push(chunk);}body=JSON.parse(Buffer.concat(chunks).toString('utf8'));}
         if(!body||typeof body!=='object'||Array.isArray(body))throw new HttpError(400,'Dữ liệu không hợp lệ.');
         if(Buffer.byteLength(JSON.stringify(body))>300000)throw new HttpError(413,'Dữ liệu quá lớn.');
+      }
+      if(route==='quests'){
+        if(req.method!=='GET')throw new HttpError(405,'Phương thức không hợp lệ.');
+        return send(200,await request('/rest/v1/rpc/economy_progress_snapshot',{method:'POST',body:{p_user:user.id}}));
       }
       if(route==='wallet'){
         if(req.method!=='GET')throw new HttpError(405,'Phương thức không hợp lệ.');
