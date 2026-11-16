@@ -41,6 +41,9 @@ async function boot():Promise<void>{
   cleanup.push(account.dispose);
   const board=solo?mountTimeLimitBoard():undefined;if(board)cleanup.push(board.dispose);
   const {client}=account,user=account.id;
+  const renderer=new CubeRenderer(el('viewport'));renderer.setSpeed(40);
+  const controller=new CubeController(renderer);controller.lockInput('race');
+  cleanup.push(()=>controller.dispose());
   const profileRequest=async(name?:string)=>{
     const response=await fetch('/api/player',{method:name===undefined?'GET':'POST',headers:{Authorization:'Bearer '+await account.token(),'Content-Type':'application/json'},...(name===undefined?{}:{body:JSON.stringify({name})}),signal:AbortSignal.timeout(10000)});
     const value=await response.json();if(!response.ok)throw new Error(value.error??'Chưa lưu được tên.');return value;
@@ -56,8 +59,6 @@ async function boot():Promise<void>{
     };});
   }
   if(disposed)return;
-  const renderer=new CubeRenderer(el('viewport'));renderer.setSpeed(40);
-  const controller=new CubeController(renderer);controller.lockInput('race');
   const opponentRenderer=solo?undefined:new CubeRenderer(el('opponent-viewport'));
   if(opponentRenderer){opponentRenderer.setSize(3);opponentRenderer.setState(solvedState(3));cleanup.push(()=>opponentRenderer.dispose());}
   let opponentState='',sentProgress='';
@@ -65,9 +66,16 @@ async function boot():Promise<void>{
   const settings=loadSettings(()=>localStorage).settings;
   cleanup.push(attachKeyboard(controller,()=>{},()=>settings.profiles[settings.activeProfile]!.bindings,
     move=>el<HTMLInputElement>('race-fixed-keys').checked?move:viewMove(move,renderer.getViewFaces())));
-  cleanup.push(attachDrag(renderer,controller,()=>{}),()=>controller.dispose());
+  cleanup.push(attachDrag(renderer,controller,()=>{}));
   let room:Snapshot|undefined,roomId='',busy=false,origin:number|undefined,loaded=-1,loading=false;
   let queuedAction:{action:string;extra:Record<string,unknown>}|undefined;
+  let nextScrambleCheck=0;
+  const pendingAction=(action:string)=>{
+    message.textContent=({create:solo?'Đang bắt đầu lượt…':'Đang tạo phòng…',join:'Đang vào phòng…',ready:'Đang gửi sẵn sàng…',forfeit:solo?'Đang hủy lượt…':'Đang gửi bỏ cuộc…'} as Record<string,string>)[action]??'Đang kết nối…';
+    if(action==='create'||action==='join'){create.disabled=true;mode.disabled=true;if(join)join.disabled=true;}
+    if(action==='ready'&&ready)ready.disabled=true;
+    if(action==='forfeit')forfeit.disabled=true;
+  };
   let draft:Draft={k:0,preEvents:[],events:[],pending:[]};
   const scrambles=new Map<number,string[]>();
   const storageKey=()=>`rubik.${solo?'time-limit':'race'}.v1:${user}:${roomId}`;
@@ -89,6 +97,11 @@ async function boot():Promise<void>{
   const draw=()=>{
     if(disposed)return;
     const t=time();
+    // Fetch at the countdown boundary instead of waiting for the next poll
+    // (which is scheduled one second AFTER its previous response arrives).
+    if(room&&!room.final&&origin!==undefined&&t>=-15000&&t<0&&loaded<0&&!busy&&performance.now()>=nextScrambleCheck){
+      nextScrambleCheck=performance.now()+500;void sync();
+    }
     const active=!!room&&!room.final&&loaded===draft.k&&origin!==undefined&&t>=-15000&&t<=room.durationMs;
     if(active)controller.unlockInput('race');else controller.lockInput('race');
     clock.textContent=!room||origin===undefined||room.abandoned?'—':t< -15000?String(Math.ceil((-15000-t)/1000)):t<0?String(Math.ceil(-t/1000)):formatTime(Math.max(0,room.durationMs-t));
@@ -149,9 +162,11 @@ async function boot():Promise<void>{
       // Background polling must not consume a ready/forfeit click. Forfeit
       // takes priority if both actions arrive while a request is in flight.
       if((action==='ready'||action==='forfeit')&&queuedAction?.action!=='forfeit')queuedAction={action,extra};
+      if(action!=='get')pendingAction(action);
       return;
     }
     busy=true;
+    if(action!=='get')pendingAction(action);
     try{
       const key=`${draft.k}:${draft.preEvents.length}:${draft.events.length}`;
       const publish=!solo&&action==='get'&&room&&!room.final&&!draft.pending.length&&loaded===draft.k&&
@@ -161,10 +176,15 @@ async function boot():Promise<void>{
       accept(snapshot);
       while(draft.pending.length&&!room!.final){accept(await api('cube_done',{run:draft.pending[0]}));}
       message.textContent=solo?(room!.final?'Lượt đã được server chốt.':'Đã kết nối · mỗi khối hoàn thành được server xác nhận.'):room!.final?'Trận đã được server chốt.':room!.startMs===null?'Đã kết nối phòng. Mời bạn bằng link; cả hai bấm Sẵn sàng để bắt đầu.':'Đã kết nối · tiến độ đối thủ cập nhật mỗi giây.';
-    }catch(error){message.textContent=`${error instanceof Error?error.message:'Mất kết nối.'} Hàng chờ được giữ để thử lại.`;}
+    }catch(error){
+      message.textContent=`${error instanceof Error?error.message:'Mất kết nối.'} Hàng chờ được giữ để thử lại.`;
+      if(!room){create.disabled=false;mode.disabled=false;if(join)join.disabled=false;}
+      if(ready&&room)ready.disabled=room.startMs!==null||room.final||!!room.players.find(p=>p.id===user)?.ready;
+      if(room)forfeit.disabled=room.final;
+    }
     finally{
       busy=false;
-      if(queuedAction){const next=queuedAction;queuedAction=undefined;queueMicrotask(()=>{void sync(next.action,next.extra);});}
+      if(queuedAction){const next=queuedAction;queuedAction=undefined;pendingAction(next.action);queueMicrotask(()=>{void sync(next.action,next.extra);});}
     }
   };
   cleanup.push(controller.onMoveApplied(event=>{
@@ -185,7 +205,7 @@ async function boot():Promise<void>{
   const enter=async(action:'join'|'create'|'get',id=code?.value.trim()??'')=>{
     if(busy||(room&&!(solo&&room.final)))return;
     roomId=id;if(!/^[a-f0-9]{32}$/.test(roomId)){message.textContent='Mã lượt gồm 32 ký tự a–f / 0–9.';return;}
-    room=undefined;origin=undefined;loaded=-1;sentProgress='';scrambles.clear();
+    room=undefined;origin=undefined;loaded=-1;nextScrambleCheck=0;sentProgress='';scrambles.clear();
     controller.lockInput('race');controller.reset();el('scramble-text').textContent='Scramble được mở khi bắt đầu inspection.';
     draft={k:0,preEvents:[],events:[],pending:[]};
     try{
