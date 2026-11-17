@@ -18,6 +18,7 @@ test('Champion translates dynamic preview and keeps language across sizes and Pr
   await expect(page).toHaveURL(/lang=en/);
   await expect(page.locator('#stage canvas')).toBeVisible();
   await expect(page.locator('#variant-copy')).toContainText('white corner tile');
+  await expect(page.locator('#title')).toHaveAttribute('placeholder','Apex Speed 2×2');
   const text=(await page.locator('body').innerText()).replaceAll('ĐS','');
   expect(text).not.toMatch(/[ăâđêôơưĂÂĐÊÔƠƯ\u1ea0-\u1ef9]/);
   await page.setViewportSize({width:390,height:844});

@@ -597,6 +597,7 @@ export const english: Record<string, string> = {
   "Champion · Xem thử & nhận skin độc quyền": "Champion · Preview and claim an exclusive skin",
   "Skin Vàng độc quyền cho nhà vô địch": "Exclusive Gold skin for champions",
   "Vận Tốc Đỉnh Cao": "Apex Speed",
+  "Vận Tốc Đỉnh Cao 2×2": "Apex Speed 2×2",
   "Xem thử Rubik": "Rubik preview",
   "Kiểu khung": "Frame style",
   "Không viền": "Borderless",
