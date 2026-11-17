@@ -67,9 +67,11 @@ test('fake browser clock advances DOM timestamps and late input cannot create a 
 test('touch layer starts solving and touch Cancel restores idle without a history entry',async({browser})=>{
  const context=await browser.newContext({hasTouch:true,viewport:{width:390,height:844}}),page=await context.newPage();
  await page.goto('/?diagnostics=1');await expect(page.locator('canvas')).toBeVisible();await page.locator('#scramble').tap();await page.locator('#timer-start').tap();await page.locator('canvas').scrollIntoViewIfNeeded();
- const {x,y}=await page.evaluate(()=>(window as any).rubikDiagnostics(true).pickTargets.find((p:any)=>Math.floor(p.index/9)===2));
+ const {x,y}=await page.evaluate(()=>(window as any).rubikDiagnostics(true).pickTargets.find((p:any)=>p.index===22));
  const cdp=await context.newCDPSession(page);
- await cdp.send('Input.synthesizeScrollGesture',{x,y,xDistance:-100,yDistance:0,speed:500,gestureSourceType:'touch'});
+ await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
+ for(let step=1;step<=12;step++)await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+step*18,y}]});
+ await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
  await expect(page.locator('#timer-phase')).toContainText('Đang giải');await page.locator('#timer-cancel').tap();await page.locator('#timer-confirm-cancel').tap();
  await expect(page.locator('#timer-phase')).toContainText('Sẵn sàng');await expect(page.locator('#solve-history li')).toHaveCount(0);await context.close();
 });

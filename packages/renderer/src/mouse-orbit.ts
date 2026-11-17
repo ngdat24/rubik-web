@@ -7,6 +7,7 @@ export function mouseOrbit(canvas:HTMLCanvasElement,camera:PerspectiveCamera,ena
   const down=(e:PointerEvent)=>{
     if(e.pointerType!=='mouse'||e.button!==0||!enabled())return;
     e.preventDefault();e.stopImmediatePropagation();
+    canvas.tabIndex=0;canvas.focus({preventScroll:true});
     pointer={id:e.pointerId,x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId);
   };
   const move=(e:PointerEvent)=>{
