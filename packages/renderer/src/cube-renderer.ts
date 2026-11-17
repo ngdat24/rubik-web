@@ -335,6 +335,7 @@ export class CubeRenderer {
     }
     if(this.fillLight)this.fillLight.intensity=options.fillLightIntensity??0;
     this.rebuild(layout);
+    this.artwork?.reset(state);
     this.paint(state);
     this.requestDraw();
   }
@@ -344,7 +345,7 @@ export class CubeRenderer {
     this.assertActive();
     validateDisplayState(state, this.size);
     this.cancelPending();
-    this.artwork?.reset();
+    this.artwork?.reset(state);
     this.paint(state);
     this.notifyIdle();
   }

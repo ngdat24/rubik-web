@@ -208,5 +208,27 @@ test('PCB artwork follows physical stickers through turns, queue clearing and sn
     for(const uv of [result.restoredUv,result.resetUv])uv.forEach((value,i)=>assert.ok(Math.abs(value-result.originalUv[i])<1e-6));
     assert.deepEqual(result.clearedCrop,result.beforeCrop);
     assert.equal(result.reappliedTile,0);assert.equal(result.pending,0);assert.equal(result.released,0);
+    const champion=await page.evaluate(async()=>{
+      const {CubeRenderer}=await import('/packages/renderer/src/cube-renderer.ts');
+      const {CubeController}=await import('/packages/controller/src/index.ts');
+      const design=await import('/apps/web/src/champion-design.ts');
+      const options=design.championRendererOptions(await design.loadChampionDesign(2),'borderless',2);
+      const r=new CubeRenderer(document.querySelector('#cube'),options),c=new CubeController(r,2);
+      await new Promise((resolve,reject)=>{const end=performance.now()+10000;const check=()=>{
+        if(r.stickers.every(m=>m.material.map?.image?.width))resolve();
+        else if(performance.now()>end)reject(Error('Champion texture timeout'));else setTimeout(check,20);
+      };check();});
+      const counts=[];
+      for(let seed=0;seed<10;seed++){
+        c.scramble('champion-browser-'+seed);
+        const state=c.cube.state;
+        counts.push([0,3].map(color=>r.stickers.filter((m,i)=>state[i]===color&&m.material.map.offset.x<.01&&m.material.map.offset.y>.49).length));
+      }
+      c.reset();const state=c.cube.state;
+      counts.push([0,3].map(color=>r.stickers.filter((m,i)=>state[i]===color&&m.material.map.offset.x<.01&&m.material.map.offset.y>.49).length));
+      c.dispose();return counts;
+    });
+    champion.forEach(count=>assert.deepEqual(count,[1,1],'each snapshot must show one signature and one logo'));
+
   }finally{await browser?.close();await vite?.close();}
 });
