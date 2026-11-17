@@ -113,6 +113,7 @@ test('shop translates catalogue, preview, confirmation and season in English', {
     const handler=createCloudHandler({env:{SUPABASE_URL:'https://db.test',SUPABASE_ANON_KEY:'public-test',SUPABASE_SERVICE_ROLE_KEY:'private-test'},
       fetcher:(url,options)=>db.fetcher(url,new URL(url).pathname==='/auth/v1/user'?{...options,headers:{...options.headers,Authorization:'Bearer anonymous-a'}}:options)});
     server=createServer((req,res)=>{
+      if(req.url.startsWith('/api/champion')){res.setHeader('Content-Type','application/json');return res.end(JSON.stringify({awards:[]}));}
       if(req.url.startsWith('/api/shop')){res.setHeader('Content-Type','application/json');return res.end(JSON.stringify(state));}
       if(req.url.startsWith('/api/'))return void handler(req,res);
       const file=resolve(dir,'.'+new URL(req.url,'http://localhost').pathname.replace(/^\/$/,'/index.html'));

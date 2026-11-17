@@ -10,7 +10,8 @@ import { attachKeyboard } from './keyboard.js';
 import { attachTimer } from './timer-controls.js';
 import { mountKeySettings } from './key-settings.js';
 import {mountAccount} from './account.js';
-import {championAwards} from './champion-account.js';
+import {mountChampionFrame} from './champion-frame.js';
+import {mountChampionMotion} from './champion-motion.js';
 import {mountPracticeChallenge} from './practice-challenge.js';
 import {mountWallet} from './wallet.js';
 import {mountQuestProgress} from './quest-progress.js';
@@ -35,33 +36,21 @@ const loading = document.querySelector<HTMLElement>('#loading')!;
 let controller: CubeController | undefined;
 let renderer: CubeRenderer | undefined;
 const accountReady=mountAccount().catch(()=>{document.querySelector('#cloud-message')!.textContent=t("Chưa tạo được hồ sơ tự động; kiểm tra mạng hoặc bật Anonymous Sign-Ins trong Supabase. Kết quả vẫn lưu trên thiết bị.");return undefined;});
-const championQuery=new URLSearchParams(location.search);
-let championVariant=championQuery.get('champion');
-const championSize=championQuery?.get('championSize')==='2'?2:3;
-let championName:string|undefined;
-if(!import.meta.env.DEV && (championVariant==='classic'||championVariant==='borderless')){
-  const championAccount=await accountReady;
-  const award=championAccount?await championAwards(championAccount).then(rows=>rows.find(row=>row.size===championSize)).catch(()=>undefined):undefined;
-  if(award?.variant===championVariant)championName=award.name??undefined;
-  else championVariant=null;
-}
-const champion=championVariant==='classic'||championVariant==='borderless'?await Promise.all([
-  import('./champion-design.js'),import('./champion-frame.js'),import('./champion-motion.js')
-]).then(async ([style,frame,motion])=>{
-  const design=await style.loadChampionDesign(championSize);
-  return {options:style.championRendererOptions(design,championVariant,championSize),
-    name:championName??(import.meta.env.DEV?style.readChampionClaim(championSize)?.name:undefined)??design.name,sound:design.interaction_fx.sound_file,
-    createFrame:frame.mountChampionFrame,createMotion:motion.mountChampionMotion};
-}).catch(error=>{console.error(error);return undefined;}):undefined;
-let championFrame:ReturnType<NonNullable<typeof champion>['createFrame']>|undefined;
-let championMotion:ReturnType<NonNullable<typeof champion>['createMotion']>|undefined;
+type ChampionStyle={options:import('@rubik/renderer').RendererOptions;name:string;sound:string;size:2|3};
+const championStyles=new Map<number,ChampionStyle>();
+let champion:ChampionStyle|undefined;
+let championSize:2|3=3;
+let championFrame:ReturnType<typeof import('./champion-frame.js').mountChampionFrame>|undefined;
+let championMotion:ReturnType<typeof import('./champion-motion.js').mountChampionMotion>|undefined;
+let appearanceKey='';
+const championRevisions=new Map<number,number>();
 document.querySelector('#engine-version')!.textContent = `Engine ${ENGINE_VERSION}`;
 let equippedAppearance:Appearance|undefined;
 let equippedEffects:ReturnType<typeof bindSkinEffects>|undefined;
 const lowFx=document.querySelector<HTMLInputElement>('#skin-low-fx')!;
 lowFx.checked=readSkinLowFx();
 const sizeSelect = document.querySelector<HTMLSelectElement>('#cube-size')!;
-if(champion)sizeSelect.value=String(championSize);
+
 const description = document.querySelector<HTMLElement>('#cube-description')!;
 const seed = document.querySelector<HTMLInputElement>('#seed')!;
 const scrambleButton = document.querySelector<HTMLButtonElement>('#scramble')!;
@@ -103,16 +92,12 @@ const disableControls = (): void => {
 };
 try {
   const diagnosticsEnabled = new URLSearchParams(location.search).has('diagnostics');
-  renderer = new CubeRenderer(container, {...champion?.options,measurePerformance: diagnosticsEnabled,
+  renderer = new CubeRenderer(container, {measurePerformance: diagnosticsEnabled,
     instancing: !(diagnosticsEnabled && new URLSearchParams(location.search).has('mesh'))});
   if (diagnosticsEnabled) Object.defineProperty(window, 'rubikDiagnostics', {value: (picking=false) => ({...renderer?.getDiagnostics(),...(picking?{pickTargets:renderer?.getPickTargets()}:{})}), configurable: true});
   renderer.setSpeed(Number(speed.value));
-  controller = new CubeController(renderer,champion?championSize:3);
-  if(champion){
-    championFrame=champion.createFrame(container,champion.name,championSize);
-    championMotion=champion.createMotion(container,renderer,controller,champion.sound,()=>controller?.size===championSize&&!lowFx.checked,championSize);
-  }
-  detachDrag = attachDrag(renderer,controller,updateMoveControls,championMotion?.commit);
+  controller = new CubeController(renderer,3);
+  detachDrag = attachDrag(renderer,controller,updateMoveControls,(move,stamp,x,y)=>championMotion?championMotion.commit(move,stamp,x,y):controller!.applyMove(move,stamp));
   detachKeyboard = attachKeyboard(controller, move => {
     updateMoveControls();
     moveStatus.textContent = `${t("Đang xoay ")}${move}…`;
@@ -140,17 +125,23 @@ try {
   console.error(error);
 }
 const updateAppearance=()=>{
-  if (!renderer) return;
+  if (!renderer||timerUI?.isRunning()) return;
   equippedEffects?.dispose();
   equippedEffects=undefined;
   const detailed=controller?.size===3;
-  const usesChampion=Boolean(champion && controller?.size===championSize);
-  championFrame?.show(usesChampion);
-  if(champion && usesChampion){
-    renderer.setTheme(champion.options.theme!);
-    renderer.setSurface(champion.options.surface);
-    return;
+  champion=championStyles.get(controller!.size);
+  const key=champion?`${champion.size}:${champion.name}`:'normal';
+  if(appearanceKey!==key){
+    appearanceKey=key;
+    championMotion?.dispose();championFrame?.dispose();championMotion=undefined;championFrame=undefined;
+    renderer.setAppearance(champion?.options??{},controller!.cube.state);
+    if(champion){
+      championSize=champion.size;
+      championFrame=mountChampionFrame(container,champion.name,champion.size);
+      championMotion=mountChampionMotion(container,renderer,controller!,champion.sound,()=>!lowFx.checked,champion.size);
+    }
   }
+  if(champion)return;
   renderer.setTheme(skinPalette(equippedAppearance));
   const surface=detailed?skinSurface(equippedAppearance):undefined;
   if (surface && lowFx.checked) delete surface.pulse;
@@ -234,11 +225,20 @@ const wallet=mountWallet(account);
 const quests=mountQuestProgress(account);
 const weekly=mountWeeklyBoard();
 const shop=mountShop(account,appearance=>{equippedAppearance=appearance;updateAppearance();},
-  ()=>!timerUI?.isRunning(),()=>lowFx.checked);
+  ()=>!timerUI?.isRunning(),()=>lowFx.checked,async(size,award)=>{
+    const revision=(championRevisions.get(size)??0)+1;championRevisions.set(size,revision);
+    if(!award){championStyles.delete(size);updateAppearance();return;}
+    const style=await import('./champion-design.js');
+    const design=await style.loadChampionDesign(size);
+    if(revision!==championRevisions.get(size))return;
+    championStyles.set(size,{options:style.championRendererOptions(design,'borderless',size),name:award.name??design.name,sound:design.interaction_fx.sound_file,size});
+    updateAppearance();
+  });
 const practice = controller && mountPracticeChallenge(account,controller,value=>{seed.value=value;return onScramble();},
   ()=>timerUI?.isRunning() ?? false);
 if(controller) timerUI=attachTimer(controller,()=>{seed.value=newId();onScramble();},account,
   solve=>{
+    queueMicrotask(updateAppearance);
     if(solve.penalty!=='DNF'){
       if(solve.size===championSize&&!lowFx.checked)championFrame?.celebrate();
       equippedEffects?.play(true);

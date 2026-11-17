@@ -8,6 +8,9 @@ import {newId} from './id.js';
 import {bindSkinEffects,skinPalette,skinSurface} from './skin-effects.js';
 import type {Appearance} from './skin-effects.js';
 import './shop.css';
+import {championInventory} from './champion-inventory.js';
+import type {ChampionAward} from './champion-account.js';
+import type {ChampionSize} from './champion-design.js';
 
 type Currency = 'CB' | 'ZN';
 type Tier = 'white' | 'blue' | 'purple' | 'gold' | 'red';
@@ -89,7 +92,8 @@ class ShopRequestError extends Error {
 }
 
 export function mountShop(account:CloudAccount|undefined, equip:(appearance?:Appearance)=>void,
-  canPreview:()=>boolean,lowFx:()=>boolean
+  canPreview:()=>boolean,lowFx:()=>boolean,
+  equipChampion:(size:ChampionSize,award?:ChampionAward)=>Promise<void>=async()=>{}
 ) {
   const dialog = document.querySelector<HTMLDialogElement>('#shop-dialog')!;
   const wallet = document.querySelector<HTMLOutputElement>('#shop-wallet')!;
@@ -112,8 +116,12 @@ export function mountShop(account:CloudAccount|undefined, equip:(appearance?:App
   const missingPreviews = new Set<string>();
   let busy = false;
   let error = '';
+  let inventorySize:ChampionSize=3;
+  let previewRevision=0;
+  const champions=championInventory(account,()=>render(),equipChampion,canPreview,()=>void load());
 
   const closePreview = () => {
+    previewRevision++;
     releasePreview?.();
     releasePreview = undefined;
     preview.hidden = true;
@@ -129,10 +137,11 @@ export function mountShop(account:CloudAccount|undefined, equip:(appearance?:App
     active = tab;
     render();
   };
-  const showPreview = (skin:Skin) => {
+  const showPreview = async(skin:Skin,championSize?:ChampionSize) => {
     if (!canPreview()) {status.textContent=t('Chờ lượt giải kết thúc để xem thử skin.');return;}
     closePreview();
     closeConfirm();
+    const revision=previewRevision;
     content.hidden = true;
     preview.hidden = false;
     document.querySelector('#shop-preview-title')!.textContent = t(skin.name);
@@ -141,16 +150,23 @@ export function mountShop(account:CloudAccount|undefined, equip:(appearance?:App
     try {
       const surface = skinSurface(skin.appearance);
       if (surface && lowFx()) delete surface.pulse;
-      renderer = new CubeRenderer(previewCube,{theme:skinPalette(skin.appearance),...(surface ? {surface} : {})});
-      controller = new CubeController(renderer);
-      const detach = attachDrag(renderer,controller,()=>{});
+      const championDesign=championSize?await import('./champion-design.js'):undefined;
+      const design=championDesign?await championDesign.loadChampionDesign(championSize):undefined;
+      if(revision!==previewRevision||abort.signal.aborted)return;
+      renderer = new CubeRenderer(previewCube,design&&championDesign?championDesign.championRendererOptions(design,'borderless',championSize):{size:3,theme:skinPalette(skin.appearance),...(surface ? {surface} : {})});
+      controller = new CubeController(renderer,championSize??3);
+      const motion=design?await import('./champion-motion.js'):undefined;
+      if(revision!==previewRevision||abort.signal.aborted){controller.dispose();return;}
+      const championMotion=motion&&design?motion.mountChampionMotion(previewCube,renderer,controller,design.interaction_fx.sound_file,()=>!lowFx(),championSize):undefined;
+      const detach = attachDrag(renderer,controller,()=>{},championMotion?.commit);
       const detachKeys = attachKeyboard(controller,()=>{},undefined,undefined,previewCube);
       const effects = bindSkinEffects(renderer,lowFx()?undefined:skin.appearance);
       renderer.onMoveAnimated = () => effects.play();
-      releasePreview = () => {effects.dispose();detachKeys();detach();controller?.dispose();};
+      releasePreview = () => {championMotion?.dispose();effects.dispose();detachKeys();detach();controller?.dispose();};
       previewCube.focus();
     } catch {
       if (controller) controller.dispose(); else renderer?.dispose();
+      if(revision!==previewRevision||abort.signal.aborted)return;
       closePreview();
       status.textContent = t('Chưa thể mở bản xem thử 3D.');
     }
@@ -290,20 +306,31 @@ export function mountShop(account:CloudAccount|undefined, equip:(appearance?:App
     }
   };
   const showInventory = (state:Snapshot) => {
-    const championLink=node('a','Champion · 2×2 / 3×3');
-    championLink.href='/champion.html?lang='+language;
-    content.append(championLink);
+    const sizes=node('div');sizes.className='shop-tabs';sizes.setAttribute('aria-label',t('Kích thước skin'));
+    for(const size of [2,3] as const){
+      const trigger=button(`Skin ${size}×${size}`,()=>{inventorySize=size;closeConfirm();render();});
+      trigger.setAttribute('aria-pressed',String(inventorySize===size));sizes.append(trigger);
+    }
+    content.append(sizes);
+    if(champions.error)content.append(node('p',champions.error));
     const grid = node('div');
     grid.className = 'shop-grid';
-    const equipped = state.inventory.some(item=>item.kind === 'skin' && item.equipped);
-    if (equipped) content.append(button(t('Dùng màu Rubik mặc định'),() =>
-      void load({action:'equip_skin',id:null,requestId:newId()}),busy || Boolean(pending)));
+    const equipped = inventorySize===3&&state.inventory.some(item=>item.kind === 'skin' && item.equipped);
+    if (equipped||champions.isEquipped(inventorySize)) content.append(button(t('Dùng màu Rubik mặc định'),() => {
+      if(!canPreview()){status.textContent=t('Chờ lượt giải kết thúc để đổi skin.');return;}
+      void champions.clear(inventorySize);
+      if(inventorySize===3)void load({action:'equip_skin',id:null,requestId:newId()});
+    },busy || champions.busy || Boolean(pending)));
+    const championCard=champions.card(inventorySize,()=>void showPreview({id:'champion',name:`Champion ${inventorySize}×${inventorySize}`,tier:'gold',appearance:{}},inventorySize));
+    if(championCard)grid.append(championCard);
     for (const item of state.inventory) {
+      if(inventorySize===2)continue;
       if (item.skin) {
         grid.append(skinCard(item.skin,card=>{
-          if (item.equipped) card.append(node('p',t('Đang trang bị')));
+          if (item.equipped&&!champions.isEquipped(3)) card.append(node('p',t('Đang trang bị')));
           else card.append(button(t('Trang bị'),() =>
-            void load({action:'equip_skin',id:item.id,requestId:newId()}),busy || Boolean(pending)));
+            {if(!canPreview()){status.textContent=t('Chờ lượt giải kết thúc để đổi skin.');return;}
+              void champions.clear(3).then(()=>load({action:'equip_skin',id:item.id,requestId:newId()}));},busy || champions.busy || Boolean(pending)));
         }));
       } else {
         const card = node('article');
@@ -391,6 +418,7 @@ export function mountShop(account:CloudAccount|undefined, equip:(appearance?:App
       const state:Snapshot = await response.json();
       if (abort.signal.aborted) return;
       snapshot = state;
+      if(!action)await champions.refresh();
       if (action) {
         pending = undefined;
         window.dispatchEvent(new Event('rubik-shop-updated'));
@@ -421,8 +449,11 @@ export function mountShop(account:CloudAccount|undefined, equip:(appearance?:App
   window.addEventListener('rubik-profile-updated',profileUpdated);
   render();
   void load();
+  const requestedSize=new URLSearchParams(location.search).get('inventory');
+  if(requestedSize==='2'||requestedSize==='3'){inventorySize=Number(requestedSize) as ChampionSize;open('inventory');}
   return {dispose:()=>{
     abort.abort();
+    champions.dispose();
     window.removeEventListener('rubik-profile-updated',profileUpdated);
     closePreview();
     closeConfirm();

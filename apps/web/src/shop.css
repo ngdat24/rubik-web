@@ -33,6 +33,12 @@
 #viewport,#shop-preview-cube{position:relative;overflow:hidden}
 .shop-card img{display:block;width:100%;height:125px;object-fit:contain;margin:4px 0}
 .shop-card img[hidden]{display:none}
+.champion-card h3{color:#f4d36a}
+.champion-name-form{margin-top:14px;padding-top:12px;border-top:1px solid #514a2d}
+.champion-name-form label{display:flex;flex-direction:column;gap:6px;font-size:12px}
+.champion-name-form input{box-sizing:border-box;width:100%;min-width:0;padding:8px 10px;border:1px solid #706744;border-radius:7px;background:#20221c;color:inherit;font:inherit}
+.champion-name-form p{margin-top:8px}
+.champion-skin-name{overflow-wrap:anywhere;color:#ead58d!important}
 @media(max-width:780px){
   main>header:has(#shop-open){height:auto;min-height:76px;padding-block:8px;flex-wrap:wrap;gap:6px 12px}
 }

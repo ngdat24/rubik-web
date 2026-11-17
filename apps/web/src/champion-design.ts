@@ -41,14 +41,13 @@ export async function loadChampionDesign(size:ChampionSize=3):Promise<ChampionCo
   return design;
 }
 
-export function championRendererOptions(design:ChampionConfig,variant:ChampionVariant,size:ChampionSize=3):RendererOptions {
-  const classic=variant==='classic';
+export function championRendererOptions(design:ChampionConfig,_variant:ChampionVariant,size:ChampionSize=3):RendererOptions {
   const assets=championSizeAssets(size);
-  const appearance:Appearance={...design,body:{...design.body,...(classic?{texture_map:championAssets+'carbon_frame.png'}:{})},layers:{
+  const appearance:Appearance={...design,body:{...design.body},layers:{
     ...design.layers,
     layer_1_base:{
       ...design.layers!.layer_1_base!,
-      tile_atlases:Object.fromEntries(championFaces.map(face=>[face,assets+variant+'_'+face.toLowerCase()+'.png']))
+      tile_atlases:Object.fromEntries(championFaces.map(face=>[face,assets+'borderless_'+face.toLowerCase()+'.png']))
     }
   }};
   const color=(hex:string)=>Number.parseInt(hex.slice(1),16);
@@ -56,8 +55,8 @@ export function championRendererOptions(design:ChampionConfig,variant:ChampionVa
     size,detailSize:size,optimize:true,
     theme:skinPalette(design),
     surface:skinSurface(appearance)!,
-    gapRatio:classic?.04:design.geometry.gap_ratio,
-    stickerInsetRatio:classic?.066:design.geometry.sticker_inset_ratio,
+    gapRatio:design.geometry.gap_ratio,
+    stickerInsetRatio:design.geometry.sticker_inset_ratio,
     centerCornerRatio:design.geometry.center_corner_ratio,
     fillLightIntensity:1.15,
     resinCoreColor:color(design.body.inner_core.color),
