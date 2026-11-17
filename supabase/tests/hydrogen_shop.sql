@@ -37,6 +37,22 @@ begin
   end if;
   state := public.skin_shop_action(player,'equip_skin',jsonb_build_object('id',first_skin),gen_random_uuid());
   if not (state->'inventory'->0->>'equipped')::boolean then raise exception 'Equip failed'; end if;
+  state := public.skin_inventory(player,false,null);
+  if state->>'equipped' is distinct from first_skin then raise exception 'Legacy read missed shop equip'; end if;
+  if jsonb_array_length(state->'skins'->0->'colors')<>6 then raise exception 'Legacy palette malformed'; end if;
+  perform public.skin_inventory(player,true,null);
+  if exists(select 1 from public.user_inventory where user_id=player and kind='skin' and is_equipped)
+    then raise exception 'Legacy unequip did not clear shop inventory'; end if;
+  perform public.skin_inventory(player,true,first_skin);
+  if not exists(select 1 from public.user_inventory where user_id=player and item_id=first_skin and is_equipped)
+    then raise exception 'Legacy equip did not update shop inventory'; end if;
+  begin
+    perform public.skin_inventory(player,true,'s1_red_crimson_core');
+    raise exception 'Legacy endpoint accepted unowned skin';
+  exception when raise_exception then
+    if sqlerrm<>'skin_not_owned' then raise; end if;
+  end;
+
   begin
     perform public.skin_shop_action(player,'buy_skin','{"offerId":"s1_red_crimson_core"}',gen_random_uuid());
     raise exception 'Direct red purchase was accepted';

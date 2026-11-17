@@ -135,7 +135,7 @@ export function mountShop(account:CloudAccount|undefined, equip:(appearance?:App
     closeConfirm();
     content.hidden = true;
     preview.hidden = false;
-    document.querySelector('#shop-preview-title')!.textContent = skin.name;
+    document.querySelector('#shop-preview-title')!.textContent = t(skin.name);
     let renderer:CubeRenderer|undefined;
     let controller:CubeController|undefined;
     try {
@@ -181,7 +181,7 @@ export function mountShop(account:CloudAccount|undefined, equip:(appearance?:App
       swatch.style.backgroundColor = '#' + color.toString(16).padStart(6,'0');
       colors.append(swatch);
     }
-    card.append(node('p',t(tiers[skin.tier])),node('h3',skin.name),colors,
+    card.append(node('p',t(tiers[skin.tier])),node('h3',t(skin.name)),colors,
       button(t('Thử trên khối 3D'),()=>showPreview(skin),busy));
     if (/^[a-z0-9_-]+$/i.test(skin.id) && !missingPreviews.has(skin.id)) {
       const thumbnail = node('img');
@@ -213,7 +213,7 @@ export function mountShop(account:CloudAccount|undefined, equip:(appearance?:App
       }
       grid.append(skinCard(skin, card => {
         if (offer.purchased || owned.has(skin.id)) card.append(node('p',t(offer.purchased ? 'Đã mua' : 'Đã sở hữu')));
-        else card.append(purchase(skin.name,offer.price,offer.currency,{action:'buy_skin',offerId:offer.id}));
+        else card.append(purchase(t(skin.name),offer.price,offer.currency,{action:'buy_skin',offerId:offer.id}));
       }));
     }
     const rerollAvailable = state.offers.some(offer=>offer.skin && !offer.purchased);
@@ -279,7 +279,7 @@ export function mountShop(account:CloudAccount|undefined, equip:(appearance?:App
       const claim = season.milestones.includes(n) ? ` · ${t('Đã nhận')}` : '';
       milestones.append(node('li',`${n} · ${t(prize)}${claim}`));
     }
-    content.append(node('h3',season.name),node('p',format('Kết thúc {date}',{date:dateTime(season.endsAt)})),
+    content.append(node('h3',t(season.name)),node('p',format('Kết thúc {date}',{date:dateTime(season.endsAt)})),
       node('p',format('{count} lượt đã quay',{count:season.spins})),progress,milestones,
       node('p',odds(state.catalog.wheel.bands)));
     if (completed) content.append(node('p',t('Bạn đã hoàn thành vòng quay mùa giải.')));
@@ -325,7 +325,7 @@ export function mountShop(account:CloudAccount|undefined, equip:(appearance?:App
     for (const prize of prizes) {
       const parts:string[] = [];
       if (prize.milestone) parts.push(format('Mốc {count}',{count:prize.milestone}));
-      if (prize.skin) parts.push(prize.skin.name);
+      if (prize.skin) parts.push(t(prize.skin.name));
       if (prize.currency && prize.amount !== undefined) parts.push(money(prize.amount,prize.currency));
       if (prize.utility) parts.push(t('Âm thanh mùa giải'));
       if (prize.refund) parts.push(format('Trùng · hoàn {price}',{price:money(prize.refund.amount,prize.refund.currency)}));

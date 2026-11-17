@@ -597,6 +597,34 @@ begin
 end;
 $$;
 
+-- Keep older deployed wardrobe clients on the same inventory as the shop.
+create or replace function public.skin_inventory(p_user uuid,p_equip boolean,p_skin text)
+returns jsonb language plpgsql security invoker set search_path = '' as $$
+declare equipped text; catalogue jsonb;
+begin
+  perform public.economy_lock_wallet(p_user);
+  if p_equip then
+    if p_skin is not null and not exists(select 1 from public.shop_skins
+      where id=p_skin and tier='white' and season_id is null) then raise exception 'skin_not_owned'; end if;
+    if p_skin is not null and not exists(select 1 from public.user_inventory
+      where user_id=p_user and kind='skin' and item_id=p_skin) then raise exception 'skin_not_owned'; end if;
+    perform public.skin_shop_action(p_user,'equip_skin',jsonb_build_object('id',p_skin),gen_random_uuid());
+  end if;
+  select item_id into equipped from public.user_inventory
+    where user_id=p_user and kind='skin' and is_equipped;
+  select coalesce(jsonb_agg(jsonb_build_object('id',skin.id,'name',skin.name,
+    'colors',array(select ('x'||substring(skin.appearance->'layers'->'layer_1_base'->'face_colors'->>face from 2))::bit(24)::integer
+      from unnest(array['U','R','F','D','L','B']) with ordinality faces(face,ord) order by ord),
+    'owned',owned.item_id is not null) order by skin.id),'[]') into catalogue
+    from public.shop_skins skin left join public.user_inventory owned
+      on owned.user_id=p_user and owned.kind='skin' and owned.item_id=skin.id
+    where skin.tier='white' and skin.season_id is null;
+  return jsonb_build_object('equipped',equipped,'skins',catalogue);
+end;
+$$;
+revoke all on function public.skin_inventory(uuid,boolean,text) from public,anon,authenticated;
+grant execute on function public.skin_inventory(uuid,boolean,text) to service_role;
+
 revoke all on function public.shop_change_balance(uuid,text,integer,text,uuid),
   public.shop_charge_rename(), public.shop_nameplate(uuid), public.leaderboard_with_nameplates(integer),
   public.lobby_action_with_nameplates(uuid,text,text,jsonb), public.shop_skin_appearance(text),

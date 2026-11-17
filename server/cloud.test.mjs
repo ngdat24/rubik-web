@@ -122,3 +122,47 @@ test('single Vercel API entry preserves flat route URLs and query validation',as
     names.forEach((name,i)=>{if(previous[i]===undefined)delete process.env[name];else process.env[name]=previous[i];});
   }
 });
+
+
+test('shop API scopes transactions to the session, validates purchases and preserves retry IDs',async()=>{
+  const user='11111111-1111-4111-8111-111111111111',reference='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  const calls=[];let failure;
+  const server=createServer(createCloudHandler({env:{SUPABASE_URL:'https://fixture.invalid',SUPABASE_ANON_KEY:'fixture-public',SUPABASE_SECRET_KEY:'fixture-private'},fetcher:async(input,options)=>{
+    const path=new URL(input).pathname,body=options.body&&JSON.parse(options.body);
+    if(path==='/auth/v1/user')return Response.json({id:user,is_anonymous:true});
+    if(path.endsWith('/consume_quota'))return Response.json(true);
+    calls.push({path,body});
+    return failure?Response.json({code:'P0001',message:failure},{status:400}):Response.json({cb:100,zn:1});
+  }}));
+  await new Promise(r=>server.listen(0,'127.0.0.1',r));const base='http://127.0.0.1:'+server.address().port;
+  const call=(data,token=true)=>fetch(base+'/api/shop',{method:data?'POST':'GET',headers:{...(token?{Authorization:'Bearer fixture'}:{}),...(data?{'Content-Type':'application/json'}:{})},...(data?{body:JSON.stringify(data)}:{})});
+  try{
+    assert.equal((await call(undefined,false)).status,401);
+    assert.equal(calls.length,0);
+    assert.equal((await call()).status,200);
+    assert.deepEqual(calls.pop().body,{p_user:user,p_action:'get',p_data:{},p_reference:null});
+    for(const action of [
+      {action:'buy_skin',offerId:reference},{action:'reroll'},
+      {action:'equip_skin',id:null},{action:'equip_utility',id:null,slot:'sound'},
+      {action:'buy_utility',id:'fx_sound_purple_01',currency:'ZN'},
+      {action:'open_crate',crate:'core',quantity:10},{action:'spin',season:'season_01',quantity:5}
+    ]){
+      const body={...action,requestId:reference,p_user:'other-user',price:0};
+      assert.equal((await call(body)).status,200);
+      const first=calls.at(-1);assert.equal(first.path,'/rest/v1/rpc/skin_shop_action');
+      assert.equal(first.body.p_user,user);assert.equal(first.body.p_reference,reference);
+      assert.equal(Object.hasOwn(first.body.p_data,'price'),false);
+      assert.equal((await call(body)).status,200);assert.deepEqual(calls.at(-1),first);
+    }
+    const count=calls.length;
+    for(const action of [
+      {action:'spin',season:'season_01',quantity:-1},{action:'open_crate',crate:'core',quantity:100},
+      {action:'buy_skin',offerId:'s1_red_crimson_core'},{action:'equip_utility',id:null,slot:'unknown'},
+      {action:'buy_utility',id:'fx_sound_purple_01',currency:'USD'}
+    ])assert.equal((await call({...action,requestId:reference})).status,400);
+    assert.equal(calls.length,count);
+    failure='insufficient_balance';
+    const denied=await call({action:'spin',season:'season_01',quantity:1,requestId:reference});
+    assert.equal(denied.status,409);assert.equal((await denied.json()).error,'Số dư không đủ.');
+  }finally{server.closeAllConnections();await new Promise(r=>server.close(r));}
+});
