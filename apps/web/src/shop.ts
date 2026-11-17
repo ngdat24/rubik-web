@@ -187,7 +187,6 @@ export function mountShop(account:CloudAccount|undefined, equip:(appearance?:App
       const thumbnail = node('img');
       thumbnail.alt = '';
       thumbnail.hidden = true;
-      thumbnail.loading = 'lazy';
       thumbnail.onload = () => {thumbnail.hidden = false;};
       thumbnail.onerror = () => {missingPreviews.add(skin.id);thumbnail.remove();};
       thumbnail.src = '/assets/skins/'+skin.id+'/preview.png';

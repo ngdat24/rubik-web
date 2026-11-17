@@ -72,6 +72,7 @@ export class CubeRenderer {
   private instances: InstancedCube | undefined;
   private readonly instancing: boolean;
   private size = 0;
+  private stickerColors = new Uint8Array(0);
   private theme: ColorTheme;
   private surface: CubeSurface | undefined;
   private surfaceMaterials: SurfaceMaterials | undefined;
@@ -240,8 +241,10 @@ export class CubeRenderer {
 
   private paint(state: Uint8Array): void {
     if (this.instances) { this.instances.paint(state, this.theme); return; }
+    this.stickerColors.set(state);
     for (let index = 0; index < this.stickers.length; index++) {
-      this.stickers[index]!.material = this.materials[state[index]!]!;
+      const color = state[index]!;
+      this.stickers[index]!.material = this.surfaceMaterials?.stickerFor(color,index%9) ?? this.materials[color]!;
     }
   }
 
@@ -326,7 +329,8 @@ export class CubeRenderer {
     this.assertActive();
     validateTheme(theme);
     this.theme = [...theme];
-    for (let color = 0; color < 6; color++) this.materials[color]!.color.setHex(theme[color]!);
+    if (this.surfaceMaterials) this.surfaceMaterials.setTheme(this.theme);
+    else for (let color = 0; color < 6; color++) this.materials[color]!.color.setHex(theme[color]!);
     this.instances?.setTheme(this.theme);
   }
 
@@ -340,7 +344,8 @@ export class CubeRenderer {
   private applySurface(): void {
     this.surfaceMaterials?.dispose();
     this.surfaceMaterials = new SurfaceMaterials(this.surface ?? {},this.plasticMaterial!,
-      this.materials,this.instances?.stickers.material);
+      this.materials,this.instances?.stickers.material,this.theme,this.size===3);
+    if (!this.instances) this.paint(this.stickerColors);
   }
 
   private assertActive(): void {
@@ -365,6 +370,7 @@ export class CubeRenderer {
   private rebuild(layout: CubeLayout): void {
     this.releaseCube();
     this.size = layout.size;
+    this.stickerColors = Uint8Array.from(layout.slots,slot=>slot.face);
     this.geometry = new BoxGeometry(layout.cubieSize, layout.cubieSize, layout.cubieSize);
     this.stickerGeometry = roundedSticker(layout.stickerSize);
     this.plasticMaterial = new MeshStandardMaterial({ color: 0x171b19, roughness: 0.7 });

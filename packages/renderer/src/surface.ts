@@ -1,15 +1,19 @@
-import {CanvasTexture, Color, SRGBColorSpace, TextureLoader} from 'three';
-import type {MeshStandardMaterial, Texture} from 'three';
+import {CanvasTexture, Color, MeshStandardMaterial, SRGBColorSpace, TextureLoader} from 'three';
+import type {Texture} from 'three';
 
 export interface CubeSurface {
-  body?: {color:number; roughness:number; metalness:number};
+  body?: {color:number; roughness:number; metalness:number; map?:string};
   stickers?: {
     roughness:number; metalness:number; opacity:number; pattern?:string;
-    maps?:readonly (string|undefined)[]; normalMap?:string; normalScale:number;
+    maps?:readonly (string|undefined)[]; tileAtlases?:readonly (string|undefined)[];
+    centerMap?:string; centerBumpMap?:string; centerBumpScale?:number;
+    replaceColor?:boolean; normalMap?:string; normalScale:number;
   };
   glow?: {color:number; intensity:number; map?:string};
   pulse?: {speed:number; secondary:number};
 }
+
+const isSkinTexture = (path:string|undefined): path is string => Boolean(path && /^\/assets\/skins\/[a-z0-9_-]+\/[a-z0-9_-]+\.png$/i.test(path));
 
 function makePattern(type:string, mask=false):CanvasTexture|undefined {
   const canvas = document.createElement('canvas');
@@ -49,6 +53,9 @@ function makePattern(type:string, mask=false):CanvasTexture|undefined {
 export class SurfaceMaterials {
   private readonly textures:Texture[] = [];
   private readonly loader = new TextureLoader();
+  private readonly albedoMaterials = new Set<MeshStandardMaterial>();
+  private readonly tiles: MeshStandardMaterial[][] = [];
+  private readonly allStickers: readonly MeshStandardMaterial[];
   private readonly secondary = new Color();
   private readonly primary = new Color();
   private disposed = false;
@@ -57,16 +64,21 @@ export class SurfaceMaterials {
     private readonly surface:CubeSurface,
     body:MeshStandardMaterial,
     private readonly stickers:readonly MeshStandardMaterial[],
-    shared:MeshStandardMaterial|undefined
+    shared:MeshStandardMaterial|undefined,
+    theme:readonly number[],
+    tiled:boolean
   ) {
     body.color.setHex(surface.body?.color ?? 0x171b19);
     body.roughness = surface.body?.roughness ?? 0.7;
     body.metalness = surface.body?.metalness ?? 0;
+    body.map = null;
+    body.needsUpdate = true;
+    this.attach(body,'map',surface.body?.map);
     const style = surface.stickers;
     const pattern = style?.pattern ? this.retain(makePattern(style.pattern)) : null;
     const mask = surface.glow ? this.retain(makePattern('border',true)) : null;
     const materials = shared ? [...stickers,shared] : stickers;
-    for (const [index, material] of materials.entries()) {
+    const configure = (material:MeshStandardMaterial,map:string|undefined) => {
       material.roughness = style?.roughness ?? 0.65;
       material.metalness = style?.metalness ?? 0;
       material.opacity = style?.opacity ?? 1;
@@ -79,11 +91,30 @@ export class SurfaceMaterials {
       material.emissiveIntensity = surface.glow?.intensity ?? 0;
       material.emissiveMap = mask;
       material.needsUpdate = true;
-      this.attach(material,'map',style?.maps?.[index]);
+      this.attach(material,'map',map,style?.replaceColor);
       this.attach(material,'normalMap',style?.normalMap);
       this.attach(material,'emissiveMap',surface.glow?.map);
+    };
+    materials.forEach((material,index)=>configure(material,style?.maps?.[index]));
+    const atlases = tiled ? style?.tileAtlases : undefined;
+    const hasAtlas = atlases?.some(isSkinTexture);
+    const centerMap = tiled ? style?.centerMap : undefined;
+    if (hasAtlas || centerMap) {
+      for (const tile of hasAtlas ? [0,1,2,3,4,5,6,7,8] : [4]) this.tiles[tile] = stickers.map((_,color)=>{
+        const material = new MeshStandardMaterial();
+        configure(material,tile===4 && centerMap ? centerMap : style?.maps?.[color]);
+        if(tile===4) {
+          material.bumpScale = style?.centerBumpScale ?? 0;
+          this.attach(material,'bumpMap',style?.centerBumpMap);
+        }
+        return material;
+      });
+      atlases?.slice(0,stickers.length).forEach((path,color)=>{
+        if(isSkinTexture(path)) this.attachAtlas(path,color,style?.replaceColor === true);
+      });
     }
-    this.stickers = materials;
+    this.allStickers = [...materials,...this.tiles.flat()];
+    this.setTheme(theme);
     this.primary.setHex(surface.glow?.color ?? 0);
     this.secondary.setHex(surface.pulse?.secondary ?? 0);
   }
@@ -93,25 +124,64 @@ export class SurfaceMaterials {
     return texture ?? null;
   }
 
-  private attach(material:MeshStandardMaterial,key:'map'|'normalMap'|'emissiveMap',path:string|undefined) {
-    if (!path || !/^\/assets\/skins\/[a-z0-9_-]+\/[a-z0-9_-]+\.png$/i.test(path)) return;
+  private attach(material:MeshStandardMaterial,key:'map'|'normalMap'|'emissiveMap'|'bumpMap',path:string|undefined,replaceColor=false) {
+    if (!isSkinTexture(path)) return;
     const texture = this.loader.load(path, loaded => {
       if (this.disposed) return;
-      if (key !== 'normalMap') loaded.colorSpace = SRGBColorSpace;
+      if (key === 'map' || key === 'emissiveMap') loaded.colorSpace = SRGBColorSpace;
       material[key] = loaded;
+      if (replaceColor) {
+        this.albedoMaterials.add(material);
+        material.color.setHex(0xffffff);
+      }
       material.needsUpdate = true;
     },undefined,()=>{/* Keep the procedural surface. */});
     this.textures.push(texture);
   }
 
+  private attachAtlas(path:string,color:number,replaceColor:boolean):void {
+    const texture = this.loader.load(path,atlas=>{
+      if (this.disposed) return;
+      atlas.colorSpace = SRGBColorSpace;
+      // The gutters keep neighbouring tiles out of the mip levels at grazing angles.
+      const unit = 1/3, inset = 2/768;
+      this.tiles.forEach((group,tile)=>{
+        const crop = atlas.clone();
+        crop.repeat.setScalar(unit-2*inset);
+        crop.offset.set(tile%3*unit+inset,(2-Math.floor(tile/3))*unit+inset);
+        crop.needsUpdate = true;
+        this.retain(crop);
+        const material = group[color]!;
+        material.map = crop;
+        if(replaceColor){
+          this.albedoMaterials.add(material);
+          material.color.setHex(0xffffff);
+        }
+        material.needsUpdate = true;
+      });
+    });
+    this.textures.push(texture);
+  }
+
+  stickerFor(color:number,tile:number):MeshStandardMaterial {
+    return this.tiles[tile]?.[color] ?? this.stickers[color]!;
+  }
+
+  setTheme(theme:readonly number[]):void {
+    for (const group of [this.stickers,...this.tiles.filter(Boolean)]) {
+      group.forEach((material,index)=>material.color.setHex(this.albedoMaterials.has(material) ? 0xffffff : theme[index]!));
+    }
+  }
+
   animate(time:number):void {
     if (!this.surface.pulse) return;
     const amount = (1+Math.sin(time*this.surface.pulse.speed/400))/2;
-    for (const sticker of this.stickers) sticker.emissive.copy(this.primary).lerp(this.secondary,amount);
+    for (const sticker of this.allStickers) sticker.emissive.copy(this.primary).lerp(this.secondary,amount);
   }
 
   dispose():void {
     this.disposed = true;
     for (const texture of this.textures) texture.dispose();
+    for (const material of this.tiles.flat()) material.dispose();
   }
 }

@@ -104,7 +104,7 @@ export function fakeDatabase({raceClock=Date.now}={}){
       }
       return response([...profiles.values()].filter(p=>'eq.'+p.id===url.searchParams.get('id')));
     }
-    if(url.pathname.endsWith('/save_solve')){
+    if(url.pathname.endsWith('/save_solve')||url.pathname.endsWith('/save_solve_with_quests')){
       const previous=solves.get(body.p_solve.id);
       if(previous&&(previous.user_id!==body.p_user||JSON.stringify(previous.solve)!==JSON.stringify(body.p_solve)))return response({code:'23505'},409);
       if(previous&&(previous.penalty_override!==body.p_override||previous.deleted!==body.p_deleted)&&previous.revision!==body.p_expected)return response({code:'40001'},409);

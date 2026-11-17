@@ -12,10 +12,10 @@ export function readSkinLowFx():boolean {
 const faceOrder = ['U','R','F','D','L','B'] as const;
 type Faces = Partial<Record<typeof faceOrder[number],string>>;
 export interface Appearance {
-  body?:{color:string;roughness:number;metalness:number};
+  body?:{color:string;roughness:number;metalness:number;texture_map?:string};
   layers?:{
-    layer_1_base?:{face_colors:Faces;texture_maps?:Faces|null};
-    layer_2_surface?:{material_type:string;roughness:number;metalness:number;opacity:number;normal_map?:string|null;normal_scale:number};
+    layer_1_base?:{face_colors:Faces;texture_maps?:Faces|null;texture_replaces_color?:boolean;tile_atlases?:Faces;center_texture_map?:string};
+    layer_2_surface?:{material_type:string;roughness:number;metalness:number;opacity:number;normal_map?:string|null;normal_scale:number;center_bump_map?:string;center_bump_scale?:number};
     layer_3_glow?:{enabled:boolean;glow_color:string;emissive_intensity:number;emissive_map?:string|null};
     layer_4_animated_shader?:{enabled:boolean;speed:number;secondary_color:string};
   };
@@ -35,12 +35,17 @@ export function skinSurface(appearance?:Appearance):CubeSurface|undefined {
   const surface:CubeSurface = {};
   const body = appearance.body, layers = appearance.layers;
   const layer = layers?.layer_2_surface, glow = layers?.layer_3_glow, pulse = layers?.layer_4_animated_shader;
-  const maps = layers?.layer_1_base?.texture_maps;
-  if (body) surface.body = {color:hex(body.color) ?? 0x171b19,roughness:scalar(body.roughness,0.7),metalness:scalar(body.metalness,0)};
+  const base = layers?.layer_1_base;
+  const maps = base?.texture_maps;
+  if (body) surface.body = {color:hex(body.color) ?? 0x171b19,roughness:scalar(body.roughness,0.7),metalness:scalar(body.metalness,0),...(body.texture_map ? {map:body.texture_map} : {})};
   if (layer) surface.stickers = {
     roughness:scalar(layer.roughness,0.65),metalness:scalar(layer.metalness,0),opacity:scalar(layer.opacity,1),
     normalScale:scalar(layer.normal_scale,0), ...(layer.normal_map ? {normalMap:layer.normal_map} : {}),
-    ...(maps ? {pattern:layer.material_type,maps:faceOrder.map(face=>maps[face])} : {})
+    replaceColor:base?.texture_replaces_color === true,
+    ...(maps ? {pattern:layer.material_type,maps:faceOrder.map(face=>maps[face])} : {}),
+    ...(base?.center_texture_map ? {centerMap:base.center_texture_map} : {}),
+    ...(base?.tile_atlases ? {tileAtlases:faceOrder.map(face=>base.tile_atlases?.[face])} : {}),
+    ...(layer.center_bump_map ? {centerBumpMap:layer.center_bump_map,centerBumpScale:scalar(layer.center_bump_scale,0)} : {})
   };
   if (glow?.enabled) surface.glow = {color:hex(glow.glow_color) ?? 0,intensity:scalar(glow.emissive_intensity,1,3),
     ...(glow.emissive_map ? {map:glow.emissive_map} : {})};
