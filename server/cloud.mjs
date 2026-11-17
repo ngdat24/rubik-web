@@ -14,10 +14,16 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
       if(origin&&new URL(origin).host!==req.headers.host)throw new HttpError(403,'Sai nguồn truy cập.');
       const base=env.SUPABASE_URL,key=env.SUPABASE_ANON_KEY,secret=env.SUPABASE_SECRET_KEY??env.SUPABASE_SERVICE_ROLE_KEY;
       if(!base||!key||!secret)throw new HttpError(503,'Chưa cấu hình server Supabase.');
-      const request=async(path,{method='GET',body,auth=secret}={})=>{
+      const request=async(path,{method='GET',body,auth=secret,afterRollover=false}={})=>{
         const response=await fetcher(base+path,{method,headers:{apikey:auth===secret?secret:key,...(auth.startsWith('sb_secret_')?{}:{Authorization:'Bearer '+auth}),'Content-Type':'application/json',Prefer:path.startsWith('/rest/v1/profiles?')?'resolution=merge-duplicates,return=representation':'return=representation'},...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(10000)});
         const value=response.status===204?null:await response.json();
         if(!response.ok){
+          if(value?.code==='P0001'&&value.message==='season_reset_pending'){
+            if(afterRollover||path==='/rest/v1/rpc/economy_maintain')
+              throw new HttpError(503,'Đang chốt mùa giải. Hãy thử lại.');
+            await request('/rest/v1/rpc/economy_maintain',{method:'POST',body:{}});
+            return request(path,{method,body,auth,afterRollover:true});
+          }
           if(response.status===401||response.status===403)throw new HttpError(auth===secret?503:401,auth===secret?'Khóa server Supabase chưa được cấu hình đúng.':'Phiên hồ sơ hết hạn; hãy tải lại trang.');
           if(value?.code==='23505')throw new HttpError(409,path.startsWith('/rest/v1/profiles?')?'Tên này đã có người dùng. Hãy chọn tên khác.':'ID đã được sử dụng.');
           if(value?.code==='40001')throw new HttpError(409,'Dữ liệu đã thay đổi trên thiết bị khác. Hãy tải bản server trước khi sửa tiếp.');
