@@ -42,14 +42,14 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
       const context=await browser.newContext({viewport:{width:1280,height:900}});contexts.push(context);
       await context.addInitScript(({token,id,exp})=>localStorage.setItem('sb-cloud-test-auth-token',JSON.stringify({access_token:token,refresh_token:'test',expires_at:exp,expires_in:3600,token_type:'bearer',user:{id,aud:'authenticated',role:'authenticated',email:'test@example.invalid'}})),{token,id,exp});
       const page=await context.newPage();pages.push(page);page.on('pageerror',e=>errors.push(e.message));
-      await page.clock.install();
-      await page.addInitScript(()=>{
+      const pollHook=()=>{
         const original=window.setTimeout;
         window.setTimeout=function(callback,delay,...args){
           if(delay===1000&&typeof callback==='function')window.racePoll=callback;
           return original.call(window,callback,delay,...args);
         };
-      });
+      };
+      await page.addInitScript(pollHook);
       await page.goto(base+'/race.html');
       if(i===1){
         // Initial WebGL setup and the profile request can take longer on CI's
@@ -67,6 +67,11 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
       await expect(page.locator('#viewport canvas')).toBeVisible();await expect(page.locator('#opponent-viewport canvas')).toBeVisible();
       await expect(page.locator('#race-message')).toContainText('Tạo phòng');
       await page.locator('#race-fixed-keys').check();
+      // Let Supabase auth/profile initialization finish with native timers.
+      // The match clock is only needed after both pages have booted.
+      await page.clock.install();
+      await page.evaluate(pollHook);
+      await page.addInitScript(pollHook);
     }
     // Freeze both browser clocks and the fake server. Slow screenshots or CI
     // scheduling must never consume inspection or alter captured event times.
@@ -84,17 +89,35 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
       db.advanceRace(32);await Promise.all(pages.map(page=>page.clock.runFor(32)));
     };
     const [a,b]=pages;
-    const holdNextPoll=async page=>{
-      let release,entered;const hold=new Promise(resolve=>{release=resolve;}),started=new Promise(resolve=>{entered=resolve;});
-      await page.route(url=>url.pathname==='/api/race'&&url.searchParams.has('id'),async route=>{entered();await hold;await route.continue();},{times:1});
-      await page.evaluate(()=>window.racePoll());await started;return release;
+    const holdNextPoll=async(page,skipFirstPoll=false)=>{
+      let release,entered=false;
+      const hold=new Promise(resolve=>{release=resolve;});
+      const matcher=url=>url.pathname==='/api/race'&&url.searchParams.has('id');
+      const handler=async route=>{entered=true;await hold;await route.continue();};
+      await page.route(matcher,handler,{times:1});
+      // A busy sync can ignore a poll. With frozen browser clocks there is no
+      // automatic next tick, so retry explicitly instead of waiting forever.
+      // Exercise that no-op deterministically on the first ready test.
+      if(skipFirstPoll)await page.evaluate(()=>{
+        const original=window.racePoll;
+        window.racePoll=()=>{window.racePoll=original;};
+      });
+      try{
+        await expect.poll(async()=>{
+          if(!entered)await page.evaluate(()=>window.racePoll());
+          return entered;
+        },{timeout:10000,message:'A race GET must enter the hold before testing queued input'}).toBe(true);
+        return release;
+      }catch(error){
+        release();await page.unroute(matcher,handler);throw error;
+      }
     };
     await a.locator('#race-create').click();await expect(a.locator('#race-copy')).toBeEnabled();
     const id=await a.locator('#race-code').inputValue();await b.locator('#race-code').fill(id);await b.locator('#race-join').click();
     assert.match(id,/^[A-Z0-9]{8}$/);await expect(a.locator('#race-forfeit')).toHaveCount(0);await expect(a.locator('#race-new')).toHaveCount(0);
     assert.equal(db.lobbies.get(id).duration_ms,180000);
     await expect(b.locator('#race-players li')).toHaveCount(2);
-    const releaseReady=await holdNextPoll(a);
+    const releaseReady=await holdNextPoll(a,true);
     await a.locator('#race-ready').click();assert.equal(db.lobbies.get(id).players[0].ready,false);
     await expect(a.locator('#race-ready')).toBeDisabled();await expect(a.locator('#race-message')).toContainText('Đang gửi sẵn sàng');
     releaseReady();await expect.poll(()=>db.lobbies.get(id).players[0].ready).toBe(true);

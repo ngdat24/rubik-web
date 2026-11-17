@@ -95,3 +95,55 @@ test('name-only profile, uniqueness, persistent session, offline sync and privat
     assert.deepEqual(errors,[]);await context.close();await second.context.close();await third.context.close();
   }finally{await browser?.close();if(server)await new Promise(r=>{server.closeAllConnections();server.close(r);});rmSync(dir,{recursive:true,force:true});}
 });
+
+
+test('shop translates catalogue, preview, confirmation and season in English', {timeout:60000},async()=>{
+  const dir=mkdtempSync(join(tmpdir(),'rubik-shop-language-'));
+  let browser,server;
+  try{
+    const vite=join(dirname(require.resolve('vite/package.json')),'bin/vite.js');
+    execFileSync(process.execPath,[vite,'build','--outDir',dir,'--emptyOutDir'],{cwd:resolve('apps/web'),env:{...process.env,VITE_SUPABASE_URL:'https://shop-test.supabase.co',VITE_SUPABASE_ANON_KEY:'public-test'},stdio:'pipe'});
+    const catalogue=JSON.parse(readFileSync('supabase/migrations/20261117011000_hydrogen_skin_catalog.sql','utf8').split('$catalog$')[1]);
+    const skins=catalogue.map(s=>({id:s.skin_id,name:s.name,tier:s.tier,appearance:{body:s.body,layers:s.layers,interaction_fx:s.interaction_fx}}));
+    const state={cb:10000,zn:30,rerolls:0,catalog:{reroll:[50],crates:{},utilities:{},wheel:{single:1,batches:[1,5,10],bands:[]}},
+      offers:[{id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',tier:'white',skin:skins[0],price:300,currency:'CB',purchased:false}],
+      inventory:skins.slice(1).map(skin=>({id:skin.id,kind:'skin',equipped:false,skin})),result:[{skin:skins[0]}],crates:{},
+      season:{id:'season_01',name:'Kỷ Nguyên Từ Trường & Lượng Tử',endsAt:'2026-12-08T16:59:59Z',spins:0,milestones:[]}};
+    const db=fakeDatabase();const id='11111111-1111-4111-8111-111111111111';db.profiles.set(id,{id,name:'Fixture Player'});
+    const handler=createCloudHandler({env:{SUPABASE_URL:'https://db.test',SUPABASE_ANON_KEY:'public-test',SUPABASE_SERVICE_ROLE_KEY:'private-test'},
+      fetcher:(url,options)=>db.fetcher(url,new URL(url).pathname==='/auth/v1/user'?{...options,headers:{...options.headers,Authorization:'Bearer anonymous-a'}}:options)});
+    server=createServer((req,res)=>{
+      if(req.url.startsWith('/api/shop')){res.setHeader('Content-Type','application/json');return res.end(JSON.stringify(state));}
+      if(req.url.startsWith('/api/'))return void handler(req,res);
+      const file=resolve(dir,'.'+new URL(req.url,'http://localhost').pathname.replace(/^\/$/,'/index.html'));
+      if(!file.startsWith(dir+sep)){res.writeHead(403);return res.end();}
+      try{res.setHeader('Content-Type',({'.js':'text/javascript','.css':'text/css','.html':'text/html'})[extname(file)]??'application/octet-stream');res.end(readFileSync(file));}catch{res.writeHead(404);res.end();}
+    });
+    await new Promise(r=>server.listen(0,'127.0.0.1',r));const base='http://127.0.0.1:'+server.address().port;
+    browser=await chromium.launch({channel:'chrome',headless:true,args:['--enable-webgl','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+    const page=await browser.newPage({viewport:{width:1280,height:900}});
+    await page.route('https://shop-test.supabase.co/**',async route=>{
+      const user={id,aud:'authenticated',role:'authenticated',is_anonymous:true,app_metadata:{provider:'anonymous'},user_metadata:{},created_at:'2026-11-17T00:00:00Z'};
+      const exp=Math.floor(Date.now()/1000)+3600;
+      const access_token=[{alg:'HS256',typ:'JWT'},{sub:id,aud:'authenticated',role:'authenticated',exp,iat:exp-3600},'c2lnbmF0dXJl'].map(x=>typeof x==='string'?x:Buffer.from(JSON.stringify(x)).toString('base64url')).join('.');
+      await route.fulfill({json:{access_token,refresh_token:'fixture-refresh',expires_in:3600,expires_at:exp,token_type:'bearer',user},headers:{'access-control-allow-origin':'*'}});
+    });
+    await page.goto(base+'/?lang=en');await expect(page.locator('#player-label')).toHaveText('Fixture Player');
+    await page.locator('#shop-open').click();await expect(page.locator('.shop-card h3')).toHaveText('Standard Matte Pastel');
+    await expect(page.locator('.shop-prizes')).toContainText('Standard Matte Pastel');
+    await page.locator('.shop-card').getByRole('button',{name:'300 CB',exact:true}).click();
+    await expect(page.locator('#shop-confirmation')).toContainText('Standard Matte Pastel');
+    await page.locator('#shop-confirmation').getByRole('button',{name:'Cancel',exact:true}).click();
+    await page.getByRole('button',{name:'Try on the 3D cube',exact:true}).click();
+    await expect(page.locator('#shop-preview-title')).toHaveText('Standard Matte Pastel');
+    await expect(page.locator('#shop-preview-cube canvas')).toBeVisible();
+    await page.locator('#shop-preview-close').click();
+    await page.locator('#shop-tabs').getByRole('button',{name:'Inventory',exact:true}).click();
+    await expect(page.locator('.shop-card')).toHaveCount(29);
+    assert.doesNotMatch(await page.locator('#shop-content').innerText(),/[ăâđêôơưĂÂĐÊÔƠƯ\u1ea0-\u1ef9]/);
+    await page.locator('#shop-tabs').getByRole('button',{name:'Season Wheel',exact:true}).click();
+    await expect(page.locator('#shop-content h3').last()).toHaveText('The Magnetic & Quantum Era');
+    await page.setViewportSize({width:390,height:844});
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  }finally{await browser?.close();if(server){server.closeAllConnections();await new Promise(r=>server.close(r));}rmSync(dir,{recursive:true,force:true});}
+});

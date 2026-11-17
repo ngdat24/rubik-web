@@ -9,14 +9,23 @@
   </head>
   <body>
     <main>
-<header><a class="brand" href="/" aria-label="Rubik Lab"><span class="brand-cube" aria-hidden="true">▦</span> rubik<span class="brand-light">lab</span><span class="brand-period">.</span></a><span class="header-mode">Không gian luyện tập <span class="live-dot"></span></span><span class="stage">XOAY. TẬP TRUNG. TIẾN BỘ.</span><nav class="mode-links" aria-label="Chế độ chơi"><a href="/time-limit.html">Time Limit</a><a href="/race.html">Đấu 1v1</a></nav><button id="account-open" type="button" hidden>Hồ sơ</button></header>
+<header><a class="brand" href="/" aria-label="Rubik Lab"><span class="brand-cube" aria-hidden="true">▦</span> rubik<span class="brand-light">lab</span><span class="brand-period">.</span></a><span class="header-mode">Không gian luyện tập <span class="live-dot"></span></span><span class="stage">XOAY. TẬP TRUNG. TIẾN BỘ.</span><nav class="mode-links" aria-label="Chế độ chơi"><a href="/time-limit.html">Time Limit</a><a href="/race.html">Đấu 1v1</a></nav><button id="account-open" type="button" hidden>Hồ sơ</button><button id="shop-open" type="button"><span>Ví &amp; Cửa hàng</span><output id="economy-wallet" aria-live="polite" hidden></output></button></header>
 <section class="scramble-panel" aria-label="Chuỗi scramble"><div class="scramble-heading"><span class="eyebrow">SCRAMBLE</span></div><p id="scramble-text" aria-live="polite">Chưa có scramble.</p></section>
-<div class="workspace"><aside aria-label="Phiên giải và cài đặt"><section class="history-panel" aria-labelledby="history-title"><div class="section-heading"><span class="eyebrow">PHIÊN HIỆN TẠI</span><span class="session-dot" aria-hidden="true"></span></div><h2 id="history-title">Lịch sử giải</h2><p id="solve-stats" aria-label="Thống kê"></p><p id="history-empty"></p><ol id="solve-history" reversed></ol><p id="history-message" role="status"></p><p id="history-storage-status" role="status">Đang tải lịch sử trên thiết bị…</p><div class="history-backup-actions"><button id="history-export" type="button">Backup JSON</button><button id="history-csv" type="button">Xuất CSV</button><label>Nhập backup<input id="history-import" type="file" accept=".json,application/json" /></label></div><p class="session-note">Tự lưu trên trình duyệt. Hồ sơ được trình duyệt nhớ tự động; lượt mới tự đồng bộ lên server. Backup JSON là lựa chọn dự phòng; CSV chỉ xem thống kê.</p><p id="cloud-message" role="status"></p><div class="history-backup-actions"><button id="cloud-sync" type="button" hidden>Đồng bộ ngay</button><button id="cloud-import" type="button" hidden>Gửi lịch sử đã nhập (không xếp hạng)</button><button id="cloud-use-server" type="button" hidden>Dùng bản server, bỏ thay đổi đang xung đột</button></div></section><fieldset id="move-controls" disabled><legend>Điều khiển</legend>
+<div class="workspace"><aside aria-label="Phiên giải và cài đặt">
+<section id="quest-panel" class="history-panel" aria-labelledby="quest-title" hidden>
+  <h2 id="quest-title">Nhiệm vụ ngày</h2>
+  <p id="quest-streak"></p>
+  <ol id="quest-tasks" class="hint"></ol>
+  <details><summary>Kỷ lục cá nhân</summary><p id="quest-bests" class="hint"></p></details>
+</section><section class="history-panel" aria-labelledby="history-title"><div class="section-heading"><span class="eyebrow">PHIÊN HIỆN TẠI</span><span class="session-dot" aria-hidden="true"></span></div><h2 id="history-title">Lịch sử giải</h2><p id="solve-stats" aria-label="Thống kê"></p><p id="history-empty"></p><ol id="solve-history" reversed></ol><p id="history-message" role="status"></p><p id="history-storage-status" role="status">Đang tải lịch sử trên thiết bị…</p><div class="history-backup-actions"><button id="history-export" type="button">Backup JSON</button><button id="history-csv" type="button">Xuất CSV</button><label>Nhập backup<input id="history-import" type="file" accept=".json,application/json" /></label></div><p class="session-note">Tự lưu trên trình duyệt. Hồ sơ được trình duyệt nhớ tự động; lượt mới tự đồng bộ lên server. Backup JSON là lựa chọn dự phòng; CSV chỉ xem thống kê.</p><p id="cloud-message" role="status"></p><div class="history-backup-actions"><button id="cloud-sync" type="button" hidden>Đồng bộ ngay</button><button id="cloud-import" type="button" hidden>Gửi lịch sử đã nhập (không xếp hạng)</button><button id="cloud-use-server" type="button" hidden>Dùng bản server, bỏ thay đổi đang xung đột</button></div></section><fieldset id="move-controls" disabled><legend>Điều khiển</legend>
 <button id="key-settings-open" type="button">⌘ &nbsp; Cài đặt phím</button><p id="key-storage-status" role="status"></p>
 <label class="view-toggle"><input id="view-keys" type="checkbox" /> Khóa xoay phím</label><p id="view-key-map" role="status">Phím theo hệ trục khối</p>
 <details id="workspace-tools"><summary>Điều khiển nâng cao</summary>
+<label class="view-toggle"><input id="skin-low-fx" type="checkbox" /> Giảm hiệu ứng &amp; âm thanh</label>
 <div class="seed-toolbar"><label for="seed">Seed</label><input id="seed" type="text" maxlength="256" aria-describedby="seed-help" /></div>
 <p id="seed-help" class="hint">Cùng seed và kích thước cho cùng scramble.</p>
+<button id="practice-online" type="button" hidden>Scramble máy chủ</button>
+<p id="practice-status" class="hint" role="status"></p>
         <div class="toolbar"><label for="speed">Thời gian/nước</label><input id="speed" type="range" min="30" max="100" value="40" step="10" /><output id="speed-value" for="speed">40 ms</output>
         <label><input id="instant" type="checkbox" /> Tức thì</label></div>
 <p class="hint">U/R/F/D/L/B · Shift: nghịch · Alt: đôi · W: wide · số: lớp · X/Y/Z: quay khối.</p>        <div id="move-buttons"></div>
@@ -28,14 +37,34 @@
         <option value="2">2×2</option><option value="3" selected>3×3</option><option value="4">4×4</option>
         <option value="5">5×5</option><option value="6">6×6</option><option value="7">7×7</option>
         <option value="8">8×8</option><option value="9">9×9</option><option value="10">10×10</option>
-      </select></div><div class="camera-controls"><button id="camera-reset" type="button" title="Góc nhìn U/F/R">U/F/R</button><button id="camera-back" type="button" title="Góc nhìn D/B/L">D/B/L</button><button id="reset" type="button">Đặt lại</button></div></div>
+      </select></div><div class="camera-controls"><button id="inventory-open" type="button">Kho skin</button><button id="camera-reset" type="button" title="Góc nhìn U/F/R">U/F/R</button><button id="camera-back" type="button" title="Góc nhìn D/B/L">D/B/L</button><button id="reset" type="button">Đặt lại</button></div></div>
 <section id="viewport" aria-label="Cảnh Rubik 3D"><p id="loading" role="status">Đang khởi tạo cảnh 3D…</p></section>
 <p class="gesture-hint">Kéo lớp để xoay <span>·</span> Kéo nền để đổi góc nhìn <span>·</span> Cuộn để thu phóng</p><p id="context-message" role="status" hidden></p>
 <section class="timer-panel" aria-label="Đồng hồ giải"><div class="time-display"><span class="eyebrow">THỜI GIAN</span><output id="timer-readout" aria-label="Thời gian">0.00</output></div><div class="timer-actions"><p id="timer-phase" role="status" aria-live="polite">Chờ scramble</p><div><button id="scramble" type="button">↝ &nbsp; Xáo trộn</button><button id="timer-start" type="button">Chuẩn bị scramble</button><button id="timer-cancel" type="button" disabled>Hủy lượt</button></div><p id="timer-message" role="status"></p></div></section>
 <div class="shortcut-strip"><span><kbd>Space</kbd> chuẩn bị / bắt đầu</span><span><kbd>Shift</kbd> + <kbd>Space</kbd> đổi scramble</span><span><kbd>Esc</kbd> hủy lượt</span></div>
-</section><aside class="leaderboard-panel" aria-label="Bảng xếp hạng LAN"><span class="eyebrow">BẢNG THÀNH TÍCH</span><h2>Bảng xếp hạng</h2><div class="leaderboard-profile"><span id="player-label">Chưa đặt tên</span><button id="player-edit" type="button">Đặt / đổi tên</button></div><label for="leaderboard-size">Khối</label> <select id="leaderboard-size"><option value="2">2×2</option><option value="3" selected>3×3×3</option></select><table class="leaderboard-table"><thead><tr><th scope="col">Hạng</th><th scope="col">Tên</th><th scope="col">Thời gian</th></tr></thead><tbody id="leaderboard-rows"></tbody></table><p id="leaderboard-message" role="status">Đang kết nối phòng…</p><p class="hint">10 lượt giải nhanh nhất từ trước đến nay; một người có thể xuất hiện nhiều lần. +2 được cộng vào thời gian; DNF không xếp hạng. Chỉnh phạt local không đổi kết quả trên bảng.</p></aside></div>
+</section><aside class="leaderboard-panel" aria-label="Bảng xếp hạng LAN"><span class="eyebrow">BẢNG THÀNH TÍCH</span><h2>Bảng xếp hạng</h2><div class="leaderboard-profile"><span id="player-label">Chưa đặt tên</span><button id="player-edit" type="button">Đặt / đổi tên</button></div><label for="leaderboard-size">Khối</label> <select id="leaderboard-size"><option value="2">2×2</option><option value="3" selected>3×3×3</option></select><table class="leaderboard-table"><thead><tr><th scope="col">Hạng</th><th scope="col">Tên</th><th scope="col">Thời gian</th></tr></thead><tbody id="leaderboard-rows"></tbody></table>
+<details id="weekly-board"><summary>Bảng xếp hạng tuần</summary>
+  <div class="toolbar">
+    <label for="weekly-size">Khối</label><select id="weekly-size"></select>
+    <label for="weekly-period">Tuần</label><select id="weekly-period"><option value="current">Tuần này</option><option value="previous">Tuần trước</option></select>
+  </div>
+  <table class="leaderboard-table"><thead><tr><th scope="col">Hạng</th><th scope="col">Tên</th><th scope="col">Thời gian</th><th scope="col">Thưởng</th></tr></thead><tbody id="weekly-rows"></tbody></table>
+  <p id="weekly-status" class="hint" role="status"></p>
+</details><p id="leaderboard-message" role="status">Đang kết nối phòng…</p><p class="hint">10 lượt giải nhanh nhất từ trước đến nay; một người có thể xuất hiện nhiều lần. +2 được cộng vào thời gian; DNF không xếp hạng. Chỉnh phạt local không đổi kết quả trên bảng.</p></aside></div>
 <footer><span id="cube-description" aria-live="polite">Rubik 3×3 · Trạng thái đã giải</span><span id="engine-version"></span></footer>
     </main>
+    <dialog id="shop-dialog" aria-labelledby="shop-title">
+      <div class="shop-heading"><h2 id="shop-title">Cửa hàng</h2><button id="shop-close" type="button">Đóng</button></div>
+      <output id="shop-wallet" aria-live="polite"></output>
+      <div class="shop-tabs" id="shop-tabs"></div>
+      <div class="shop-confirmation" id="shop-confirmation" hidden></div>
+      <p class="shop-status" id="shop-status" role="status"></p>
+      <div class="shop-content" id="shop-content"></div>
+      <div id="shop-preview" hidden>
+        <div class="shop-heading"><h3 id="shop-preview-title"></h3><button id="shop-preview-close" type="button">Đóng xem thử</button></div>
+        <div id="shop-preview-cube" tabindex="0" aria-label="Khối Rubik xem thử"></div>
+      </div>
+    </dialog>
     <dialog id="key-settings" aria-labelledby="key-settings-title">
       <h2 id="key-settings-title">Cài đặt bàn phím</h2>
       <div class="toolbar key-file-actions"><button id="key-reset" type="button">Khôi phục mặc định</button><button id="key-export" type="button">Xuất JSON</button><label>Nhập JSON <input id="key-import" type="file" accept=".json,application/json" /></label><button id="key-settings-close" type="button">Đóng</button></div>

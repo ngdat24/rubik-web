@@ -8,16 +8,21 @@ import type {MoveEvent} from '@rubik/engine';
 import {attachKeyboard} from './keyboard.js';
 import {attachDrag} from './drag.js';
 import {mountTimeLimitBoard} from './time-limit-board.js';
+import {bindSkinEffects,readSkinLowFx,skinPalette,skinSurface} from './skin-effects.js';
+import type {Appearance} from './skin-effects.js';
 import './style.css';
 
 interface Run {k:number;endT:number;preEvents:MoveEvent[];events:MoveEvent[]}
 interface Snapshot {
   id:string;mode:string;durationMs:number;serverNow:number;startMs:number|null;phase:string;final:boolean;result:'A'|'B'|'draw'|null;
   ack:number;runs:Run[];scrambles:{k:number;moves:string[]}[];
-  players:{id:string;name:string;ready:boolean;present?:boolean;rematch?:boolean;score:{score:number;lastEndT:number;totalMoves:number}}[];
+  players:{id:string;name:string;ready:boolean;present?:boolean;rematch?:boolean;nameplate?:'neon'|'gold';skinId?:string;score:{score:number;lastEndT:number;totalMoves:number}}[];
   opponent?:{id:string;name:string;k:number;state:number[];moveCount:number;updatedAt:number|null}|null;
   abandoned?:boolean;
+  economy?:{ticket:'free_ticket'|'paid_ticket'|'practice'|'insufficient'|null;fee:number|null;reward:{cb:number;zn:number}|null};
   round?:string;nextMode?:string;gone?:boolean;left?:boolean;
+  stake?:number;owner?:string;
+  escrow?:{state:'locked'|'settled'|'refunded';winner:string|null;burnedCb:number;stake:number}|null;
 }
 interface Draft {k:number;preEvents:MoveEvent[];events:MoveEvent[];pending:Run[]}
 class RoomApiError extends Error {constructor(message:string,readonly status:number){super(message);}}
@@ -36,6 +41,8 @@ const create=el<HTMLButtonElement>('race-create'),join=document.querySelector<HT
 const copy=document.querySelector<HTMLButtonElement>('#race-copy'),forfeit=document.querySelector<HTMLButtonElement>('#race-forfeit');
 const leave=document.querySelector<HTMLButtonElement>('#race-leave'),rematch=document.querySelector<HTMLButtonElement>('#race-rematch');
 const dialog=el<HTMLDialogElement>('race-forfeit-dialog');
+const stakeSelect=document.querySelector<HTMLSelectElement>('#race-stake');
+const stakeControls=document.querySelector<HTMLElement>('#race-wager-controls');
 let disposed=false,frame=0,poll=0;
 const cleanup:(()=>void)[]=[];
 
@@ -69,6 +76,40 @@ async function boot():Promise<void>{
   const opponentRenderer=solo?undefined:new CubeRenderer(el('opponent-viewport'));
   if(opponentRenderer){opponentRenderer.setSize(3);opponentRenderer.setState(solvedState(3));cleanup.push(()=>opponentRenderer.dispose());}
   let opponentState='',sentProgress='';
+  const skinAbort=new AbortController();
+  const requestedSkins=new Map<CubeRenderer,string>();
+  const catalog=new Map<string,Promise<Appearance>>();
+  let effects:ReturnType<typeof bindSkinEffects>|undefined;
+  cleanup.push(()=>{skinAbort.abort();effects?.dispose();});
+  const applySkin=(viewer:CubeRenderer,id?:string)=>{
+    const key=id??'';
+    if ((requestedSkins.get(viewer)??'')===key) return;
+    requestedSkins.set(viewer,key);
+    let loadingAppearance=id ? catalog.get(id) : undefined;
+    if (id&&!loadingAppearance) {
+      loadingAppearance=fetch('/api/skin-appearance?id='+encodeURIComponent(id),{signal:skinAbort.signal})
+        .then(async response=>{
+          if (!response.ok) throw new Error();
+          return (await response.json()).appearance as Appearance;
+        });
+      catalog.set(id,loadingAppearance);
+    }
+    void Promise.resolve(loadingAppearance).then(appearance=>{
+      if (skinAbort.signal.aborted||requestedSkins.get(viewer)!==key) return;
+      viewer.setTheme(skinPalette(appearance));
+      const surface=skinSurface(appearance);
+      if (surface&&readSkinLowFx()) delete surface.pulse;
+      viewer.setSurface(surface);
+      if (viewer===renderer) {
+        effects?.dispose();
+        effects=appearance&&!readSkinLowFx()?bindSkinEffects(renderer,appearance):undefined;
+      }
+    }).catch(()=>{
+      if (id) catalog.delete(id);
+      if (requestedSkins.get(viewer)===key) requestedSkins.delete(viewer);
+    });
+  };
+  renderer.onMoveAnimated=()=>effects?.play();
   renderer.onContextChange=available=>available?controller.unlockInput('context'):controller.lockInput('context');
   const settings=loadSettings(()=>localStorage).settings;
   cleanup.push(attachKeyboard(controller,()=>{},()=>settings.profiles[settings.activeProfile]!.bindings,
@@ -86,12 +127,16 @@ async function boot():Promise<void>{
     if(action==='leave'&&leave)leave.disabled=true;
     if(action==='rematch'&&rematch)rematch.disabled=true;
     if(action==='mode')mode.disabled=true;
+    if(action==='stake'&&stakeSelect)stakeSelect.disabled=true;
   };
   let draft:Draft={k:0,preEvents:[],events:[],pending:[]};
   const scrambles=new Map<number,string[]>();
   const storageKey=()=>`rubik.${solo?'time-limit':'race'}.v1:${user}:${roomId}${room?.round?':'+room.round:''}`;
   const resetRoom=()=>{
     room=undefined;roomId='';origin=undefined;loaded=-1;nextScrambleCheck=0;sentProgress='';queuedAction=undefined;scrambles.clear();
+    if(stakeControls)stakeControls.hidden=true;
+    applySkin(renderer);
+    if(opponentRenderer)applySkin(opponentRenderer);
     draft={k:0,preEvents:[],events:[],pending:[]};controller.setMoveGate(undefined);controller.reset();controller.lockInput('race');
     opponentRenderer?.setState(solvedState(3));opponentState='';
     el('race-players').replaceChildren();el('race-result').textContent='';el('scramble-text').textContent=translate("Tạo phòng hoặc nhập mã 8 ký tự để vào phòng.");
@@ -138,7 +183,7 @@ async function boot():Promise<void>{
     const endpoint=solo?'/api/time-limit':'/api/race';
     const response=await fetch(action==='get'?`${endpoint}?id=${roomId}${!solo?'&client='+connection:''}`:endpoint,{
       method:action==='get'?'GET':'POST',headers:{Authorization:`Bearer ${current.access_token}`,'Content-Type':'application/json'},
-      ...(action==='get'?{}:{body:JSON.stringify({id:roomId,action:!solo&&roomId.length===32&&action==='leave'?'forfeit':action,...(!solo?{client:connection,round:room?.round,mode:room?.nextMode??mode.value}:{}),...extra})}),signal:AbortSignal.timeout(8000)});
+      ...(action==='get'?{}:{body:JSON.stringify({id:roomId,action:!solo&&roomId.length===32&&action==='leave'?'forfeit':action,...(!solo?{client:connection,round:room?.round,mode:room?.nextMode??mode.value,...(['ready','rematch'].includes(action)?{stake:room?.stake??0}:{})}:{}),...extra})}),signal:AbortSignal.timeout(8000)});
     const value=await response.json();if(!response.ok)throw new RoomApiError(value.error??translate("Không kết nối được phòng."),response.status);
     const next=value as Snapshot;
     if(!solo&&action==='leave'&&roomId.length===32)next.left=true;
@@ -166,6 +211,12 @@ async function boot():Promise<void>{
     load();save();
     const me=next.players.find(player=>player.id===user),other=next.players.find(player=>player.id!==user);
     const target=solo?({oneFace:translate("1 mặt"),f2lRush:'F2L',fullSolve:'full'} as Record<string,string>)[next.mode]:translate("Bạn");
+    if (!solo) {
+      applySkin(renderer,me?.skinId);
+      if(opponentRenderer)applySkin(opponentRenderer,other?.skinId);
+    }
+    el('race-own-name').dataset.nameplate=me?.nameplate??'';
+    if(!solo)el('race-opponent-name').dataset.nameplate=other?.nameplate??'';
     el('race-own-name').textContent=me?`${me.name} · ${target}`:translate("Bạn");
     if(!solo)el('race-opponent-name').textContent=other?`${other.name}${translate(" · Đối thủ")}`:translate("Đối thủ");
     const view=next.opponent;
@@ -176,6 +227,7 @@ async function boot():Promise<void>{
     }else if(!solo)el('race-opponent-status').textContent=other?translate("Chờ inspection để xem Rubik"):translate("Đang chờ đối thủ");
     el('race-players').replaceChildren(...next.players.map(player=>{
       const li=document.createElement('li');
+      if(player.nameplate)li.dataset.nameplate=player.nameplate;
       li.textContent=solo?`${player.score.score}${translate(" khối hoàn thành\nMốc cuối: ")}${formatTime(player.score.lastEndT)}${translate("\nNước đã tính: ")}${player.score.totalMoves}`:
         `${player.name}${player.id===user?translate(" (bạn)"):''} · ${player.present===false?translate("Đã rời phòng"):player.rematch?translate("Muốn đấu lại"):player.ready?translate("Sẵn sàng"):translate("Đang chờ")} · ${player.score.score}${translate(" khối · ")}${formatTime(player.score.lastEndT)} · ${player.score.totalMoves}${translate(" nước")}`;
       return li;
@@ -187,6 +239,25 @@ async function boot():Promise<void>{
     if(rematch){rematch.hidden=!next.final;rematch.disabled=!next.round||!next.final||!!me?.rematch||next.players.filter(p=>p.present!==false).length!==2;}
     create.disabled=!solo||!next.final;mode.value=next.nextMode??next.mode;mode.disabled=solo?!next.final:!next.round||!(next.final||next.startMs===null);
     if(solo){create.textContent=next.final?translate("Chơi lượt mới"):translate("Đang chơi");showTarget(next.mode,!next.final);if(starting)board?.select(next.mode);if(ending)board?.refresh();}
+    if(stakeSelect&&stakeControls) {
+      stakeControls.hidden=next.stake===undefined;
+      stakeSelect.value=String(next.stake??0);
+      stakeSelect.disabled=next.owner!==user||(!next.final&&next.startMs!==null);
+      const escrow=next.escrow;
+      el('race-stake-status').textContent=escrow?.state==='locked' ? translate('Đã giữ tiền cược')
+        : escrow?.state==='refunded' ? translate('Đã hoàn cược')
+        : escrow?.state==='settled' ? translate('Đã chốt tiền cược') : '';
+    }
+    if(solo) {
+      const reward=next.economy?.reward;
+      const ticket=next.economy?.ticket;
+      el('time-limit-reward').textContent=reward
+        ? translate('Thưởng Time Limit')+` · ${reward.cb} CB · ${reward.zn} ZN`
+        : ticket==='free_ticket' ? translate('Đã dùng vé miễn phí')
+          : ticket==='paid_ticket' ? translate('Đã dùng vé 100 CB')
+          : ticket==='practice' ? translate('Lượt luyện tập miễn phí')
+          : ticket==='insufficient' ? translate('Thiếu 100 CB. Lượt này chuyển sang luyện tập miễn phí.') : '';
+    }
     if(next.final)el('race-result').textContent=solo?(next.abandoned?translate("Đã hủy lượt · không xếp hạng"):`${translate("Đã chốt: ")}${me!.score.score}${translate(" khối · mốc cuối ")}${formatTime(me!.score.lastEndT)}`):next.result==='draw'?translate("Hòa"):next.result?`${translate("Người thắng: ")}${next.players[next.result==='A'?0:1]!.name}`:translate("Phòng đã đóng");
     else el('race-result').textContent=draft.pending.length?`${draft.pending.length}${translate(" khối đang chờ xác nhận")}`:translate("Các khối đã gửi được server xác nhận.");
   };
@@ -195,7 +266,7 @@ async function boot():Promise<void>{
     if(busy){
       // Background polling must not consume a ready/forfeit click. Forfeit
       // takes priority if both actions arrive while a request is in flight.
-      if(['ready','forfeit','rematch','mode','leave'].includes(action)&&!['forfeit','leave'].includes(queuedAction?.action??''))queuedAction={action,extra};
+      if(['ready','forfeit','rematch','mode','stake','leave'].includes(action)&&!['forfeit','leave'].includes(queuedAction?.action??''))queuedAction={action,extra};
       if(action!=='get')pendingAction(action);
       return;
     }
@@ -219,6 +290,7 @@ async function boot():Promise<void>{
       if(!room){create.disabled=false;mode.disabled=!solo;if(join)join.disabled=false;}
       if(ready&&room)ready.disabled=room.startMs!==null||room.final||!!room.players.find(p=>p.id===user)?.ready;
       if(room&&forfeit)forfeit.disabled=room.final;
+      if(room&&stakeSelect){stakeSelect.value=String(room.stake??0);stakeSelect.disabled=room.owner!==user||(!room.final&&room.startMs!==null);}
       if(room&&!solo){mode.disabled=!(room.final||room.startMs===null);if(leave)leave.disabled=false;if(rematch)rematch.disabled=!room.final||!!room.players.find(p=>p.id===user)?.rematch;}
     }
     finally{
@@ -263,6 +335,7 @@ async function boot():Promise<void>{
   el('race-confirm-forfeit').onclick=()=>{dialog.close();void sync(solo?'forfeit':'leave');};
   if(rematch)rematch.onclick=()=>{rematch.blur();void sync('rematch');};
   if(!solo)mode.onchange=()=>{if(room)void sync('mode',{mode:mode.value});};
+  if(stakeSelect)stakeSelect.onchange=()=>{if(room)void sync('stake',{stake:Number(stakeSelect.value)});};
   el('race-camera').onclick=()=>renderer.resetCamera();
   if(opponentRenderer)el('race-opponent-camera').onclick=()=>opponentRenderer.resetCamera();
   const speed=document.querySelector<HTMLInputElement>('#race-speed');if(speed)speed.oninput=()=>{renderer.setSpeed(Number(speed.value));el('race-speed-value').textContent=speed.value+' ms';};

@@ -5,6 +5,7 @@
   "buildCommand": "npm run build",
   "installCommand": "npm ci",
   "outputDirectory": "apps/web/dist",
+  "crons": [{"path":"/api/economy-maintenance","schedule":"0 17 * * *"}],
   "functions": {"api/*.mjs": {"maxDuration": 30, "includeFiles": "packages/{engine,timer}/dist/**"}},
   "headers": [
     {"source": "/(.*)", "headers": [

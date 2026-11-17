@@ -42,7 +42,14 @@ export function attachCloudHistory(account:CloudAccount|undefined,history:SolveH
   };
   const board=async()=>{
     const requested=size.value,{rows}=await api('leaderboard?size='+requested);if(disposed||requested!==size.value)return;
-    tbody.replaceChildren();for(const [i,row] of rows.entries()){const tr=document.createElement('tr');for(const text of [String(i+1),row.name,formatTime(row.timeMs)]){const td=document.createElement('td');td.textContent=text;tr.append(td);}tbody.append(tr);}
+    tbody.replaceChildren();for(const [i,row] of rows.entries()){
+      const tr=document.createElement('tr');
+      tr.insertCell().textContent=String(i+1);
+      const cell=tr.insertCell();cell.textContent=row.name;
+      if(row.nameplate==='neon'||row.nameplate==='gold')cell.dataset.nameplate=row.nameplate;
+      tr.insertCell().textContent=formatTime(row.timeMs);
+      tbody.append(tr);
+    }
     if(!rows.length){const td=tbody.insertRow().insertCell();td.colSpan=3;td.textContent=t("Chưa có kết quả.");}
     message.textContent=t("Top 10 lượt giải · 2×2 / 3×3.");
   };
@@ -105,7 +112,7 @@ export function attachCloudHistory(account:CloudAccount|undefined,history:SolveH
     store(entry.solve.id,{entry,deleted,ranked:old?.ranked??ranked,revision:old?old.revision:revision(entry.solve.id),nonce:newId()});void sync();
   };
   const showName=()=>{if(!account){status.textContent=t("Chưa tạo được hồ sơ tự động. Kiểm tra mạng rồi tải lại trang.");return;}name.value=profileName;nameError.textContent='';if(!document.querySelector('dialog[open]'))dialog.showModal();};
-  const submitName=async(event:SubmitEvent)=>{event.preventDefault();const button=form.querySelector<HTMLButtonElement>('button[type=submit]')!;button.disabled=true;try{const profile=await api('player',{name:name.value});profileName=profile.name;label.textContent=profile.name;dialog.close();void sync();}catch(error){nameError.textContent=error instanceof Error?t(error.message):t("Không lưu được tên.");}finally{button.disabled=false;}};
+  const submitName=async(event:SubmitEvent)=>{event.preventDefault();const button=form.querySelector<HTMLButtonElement>('button[type=submit]')!;button.disabled=true;try{const profile=await api('player',{name:name.value});profileName=profile.name;label.textContent=profile.name;dialog.close();window.dispatchEvent(new Event('rubik-profile-updated'));void sync();}catch(error){nameError.textContent=error instanceof Error?t(error.message):t("Không lưu được tên.");}finally{button.disabled=false;}};
   const change=()=>{void sync();};
   const importHistory=()=>{if(!account)return;for(const entry of history.entries())if(revision(entry.solve.id)===null)queue(entry,false,false);void sync();};
   const useServer=()=>{for(const [id,item] of pending)if(item.conflict){pending.delete(id);try{localStorage.removeItem(prefix+id);}catch{storageError=true;}}cursor=0;resolveButton.hidden=true;void sync();};
