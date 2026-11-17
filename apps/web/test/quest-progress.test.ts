@@ -18,6 +18,8 @@ it('defers hidden quest requests and refreshes on return, then detaches',async()
   await vi.waitFor(()=>expect(panel.hidden).toBe(false));
   expect(tasks.replaceChildren).toHaveBeenCalledTimes(1);
   expect(tasks.replaceChildren.mock.lastCall?.[0].textContent).toContain('2×2 5/5');
+  expect(tasks.replaceChildren.mock.lastCall?.[0].textContent).toContain('3×3 1/3');
+  expect(tasks.replaceChildren.mock.lastCall?.[0].textContent).toContain('4×4–10×10 0/1');
   expect(streak.textContent).toContain('3/7');
   quests.dispose();doc.dispatchEvent(new Event('visibilitychange'));win.dispatchEvent(new Event('online'));
   await quests.refresh();expect(fetcher).toHaveBeenCalledTimes(1);
