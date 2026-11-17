@@ -7,6 +7,11 @@ insert into public.profiles(id,name) values
  ('f1777777-7777-4777-8777-777777777777','Weekly A'),
  ('f1888888-8888-4888-8888-888888888888','Weekly B'),
  ('f1999999-9999-4999-8999-999999999999','Weekly C');
+-- Isolate these reward/spending fixtures from the separately tested signup gift.
+select public.economy_change_balance('f1777777-7777-4777-8777-777777777777','CB',-200,'fixture_signup_offset',null);
+select public.economy_change_balance('f1888888-8888-4888-8888-888888888888','CB',-200,'fixture_signup_offset',null);
+select public.economy_change_balance('f1999999-9999-4999-8999-999999999999','CB',-200,'fixture_signup_offset',null);
+
 set local role service_role;
 do $$
 declare

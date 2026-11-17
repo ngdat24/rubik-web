@@ -11,8 +11,8 @@ declare
   challenge uuid; payload jsonb; receipt jsonb; wallet jsonb; seed text;
 begin
   wallet := public.economy_wallet_snapshot(player);
-  if wallet <> '{"cb":0,"zn":0}' then raise exception 'Wallet should start at zero'; end if;
-  -- Old #44 eligibility flags must not qualify for v2 money or starter progress.
+  if wallet <> '{"cb":200,"zn":0}' then raise exception 'Wallet should receive the signup gift immediately'; end if;
+  -- Old #44 eligibility flags must not grant additional v2 rewards.
   for i in 101..104 loop
     challenge:=gen_random_uuid(); seed:=lpad(to_hex(i),64,'0');
     perform public.practice_issue(player,challenge,seed,3::smallint);
@@ -20,7 +20,7 @@ begin
       'scrambleSource','generated','penalty','+2');
     perform public.practice_finish(player,challenge,payload,12,3500,true);
   end loop;
-  if public.economy_wallet_snapshot(player) <> '{"cb":0,"zn":0}' then
+  if public.economy_wallet_snapshot(player) <> '{"cb":200,"zn":0}' then
     raise exception 'Legacy eligibility incorrectly paid v2 rewards';
   end if;
   for i in 1..35 loop
@@ -32,8 +32,8 @@ begin
     receipt:=public.practice_finish(player,challenge,payload,20,15000,true);
     if receipt is distinct from public.practice_finish(player,challenge,payload,20,15000,true)
       then raise exception 'Retry changed receipt'; end if;
-    if i=4 and exists(select 1 from public.currency_ledger where reason='starter_reward' and user_id=player)
-      then raise exception 'Starter reward paid early'; end if;
+    if i=4 and (select count(*) from public.currency_ledger where reason='starter_reward' and user_id=player)<>1
+      then raise exception 'Signup gift missing or repeated'; end if;
     if i=5 and not exists(select 1 from public.currency_ledger where reason='starter_reward' and amount=200 and user_id=player)
       then raise exception 'Starter reward missing'; end if;
   end loop;

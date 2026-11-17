@@ -4,6 +4,9 @@ insert into auth.users(id,email) values
   ('f1111111-1111-4111-8111-111111111111','rubik-shop-a@example.invalid'),
   ('f2222222-2222-4222-8222-222222222222','rubik-shop-b@example.invalid');
 insert into public.profiles(id,name) values ('f1111111-1111-4111-8111-111111111111','Shop Test A');
+-- Isolate these reward/spending fixtures from the separately tested signup gift.
+select public.economy_change_balance('f1111111-1111-4111-8111-111111111111','CB',-200,'fixture_signup_offset',null);
+
 update public.shop_seasons set starts_at=now()-interval '1 day',ends_at=now()+interval '10 days',
   legacy_shop_unlock_at=now()+interval '40 days' where id='season_01';
 create or replace function public.shop_roll() returns integer language sql as $$ select 0 $$;
@@ -131,6 +134,9 @@ end $$;
 reset role;
 create or replace function public.shop_roll() returns integer language sql as $$ select 999 $$;
 insert into public.profiles(id,name) values ('f2222222-2222-4222-8222-222222222222','Season Pity Test');
+-- Isolate these reward/spending fixtures from the separately tested signup gift.
+select public.economy_change_balance('f2222222-2222-4222-8222-222222222222','CB',-200,'fixture_signup_offset',null);
+
 set local role service_role;
 do $$
 declare

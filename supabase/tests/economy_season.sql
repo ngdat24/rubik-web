@@ -5,6 +5,10 @@ insert into auth.users(id,email) values
 insert into public.profiles(id,name) values
   ('f2111111-1111-4111-8111-111111111111','Season A'),
   ('f2222222-2222-4222-8222-222222222222','Season B');
+-- Isolate these reward/spending fixtures from the separately tested signup gift.
+select public.economy_change_balance('f2111111-1111-4111-8111-111111111111','CB',-200,'fixture_signup_offset',null);
+select public.economy_change_balance('f2222222-2222-4222-8222-222222222222','CB',-200,'fixture_signup_offset',null);
+
 set local role service_role;
 do $$
 declare
