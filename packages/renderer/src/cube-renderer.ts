@@ -16,6 +16,7 @@ import { InstancedCube } from './instanced-cube.js';
 import { SurfaceMaterials } from './surface.js';
 import type { CubeSurface } from './surface.js';
 import { StickerArtwork } from './sticker-artwork.js';
+import {mouseOrbit} from './mouse-orbit.js';
 
 export interface RendererOptions extends LayoutOptions { size?: number; theme?: ColorTheme; surface?: CubeSurface; measurePerformance?: boolean; instancing?: boolean }
 export interface MoveSnapshot { move: Move; stateAfter: Uint8Array }
@@ -48,7 +49,8 @@ export class CubeRenderer {
   private readonly scene = new Scene();
   private readonly camera = new PerspectiveCamera(40, 1, 0.1, 100);
   private readonly webgl: WebGLRenderer;
-  private readonly controls: OrbitControls;
+  private controls: OrbitControls;
+  private readonly mouseCamera:ReturnType<typeof mouseOrbit>;
   private geometry: BoxGeometry | undefined;
   private stickerGeometry: ShapeGeometry | undefined;
   private readonly cubeGroup = new Group();
@@ -97,7 +99,11 @@ export class CubeRenderer {
     this.webgl.outputColorSpace = SRGBColorSpace;
     this.webgl.domElement.setAttribute('role', 'img');
     this.camera.position.set(6, 5, 7);
-    this.controls = new OrbitControls(this.camera, this.webgl.domElement);
+    this.mouseCamera=mouseOrbit(this.webgl.domElement,this.camera,()=>this.controls.enabled&&!this.contextLost,()=>{
+      const enabled=this.controls.enabled;
+      this.controls.dispose();this.controls=this.createControls();this.controls.enabled=enabled;
+    });
+    this.controls = this.createControls();
     this.controls.enablePan = false;
     this.controls.enableDamping = true;
     this.controls.minDistance = 5;
@@ -121,6 +127,12 @@ export class CubeRenderer {
 
   enableOrbit(enabled: boolean): void {
     if (!this.disposed) this.controls.enabled = enabled;
+  }
+
+  private createControls():OrbitControls {
+    const controls=new OrbitControls(this.camera,this.webgl.domElement);
+    controls.enablePan=false;controls.enableDamping=true;controls.minDistance=5;controls.maxDistance=18;
+    return controls;
   }
 
   get canvas(): HTMLCanvasElement { return this.webgl.domElement; }
@@ -216,13 +228,12 @@ export class CubeRenderer {
   setCameraView(view: 'ufr' | 'dbl'): void {
     this.assertActive();
     if (view !== 'ufr' && view !== 'dbl') throw new RangeError('Unknown camera view');
-    const damping = this.controls.enableDamping;
-    this.controls.enableDamping = false;
-    this.controls.reset(); // consume any residual orbit delta before applying a preset
+    this.mouseCamera.cancel();
+    const enabled=this.controls.enabled;
+    this.controls.dispose();
+    this.camera.up.set(0,1,0);
     this.camera.position.set(view === 'ufr' ? 6 : -6, view === 'ufr' ? 5 : -5, view === 'ufr' ? 7 : -7);
-    this.controls.target.set(0, 0, 0);
-    this.controls.update();
-    this.controls.enableDamping = damping;
+    this.controls=this.createControls();this.controls.enabled=enabled;
   }
 
   /** Rebuild only the cube; preserve the camera, canvas, controls and render loop. */
@@ -465,7 +476,7 @@ export class CubeRenderer {
     }
     this.notifyIdle();
     if (this.disposed) return;
-    this.controls.update();
+    if(!this.mouseCamera.active())this.controls.update();
     this.surfaceMaterials?.animate(time);
     const renderStart = this.measurePerformance ? performance.now() : 0;
     this.webgl.render(this.scene, this.camera);
@@ -481,6 +492,7 @@ export class CubeRenderer {
     this.observer.disconnect();
     this.webgl.domElement.removeEventListener('webglcontextlost', this.onContextLost);
     this.webgl.domElement.removeEventListener('webglcontextrestored', this.onContextRestored);
+    this.mouseCamera.dispose();
     this.controls.dispose();
     this.releaseCube();
     this.scene.clear();
