@@ -23,12 +23,9 @@ begin
   perform public.save_solve_with_quests(q,'{"id":"two-10","size":2,"timeMs":3500,"penalty":"none"}',null,false,true,null);
   if public.economy_progress_snapshot(q)->>'completed'<>'1' then raise exception '2x2 threshold missing'; end if;
   perform public.save_solve_with_quests(q,'{"id":"plus-two","size":3,"timeMs":68000,"penalty":"+2"}',null,false,true,null);
-  if public.economy_progress_snapshot(q)->>'completed'<>'1' then raise exception '70s inclusive or +2 ignored'; end if;
+  if public.economy_progress_snapshot(q)->>'completed'<>'1' then raise exception 'Solve must not complete online quest'; end if;
   perform public.save_solve_with_quests(q,'{"id":"under-seventy","size":3,"timeMs":67999,"penalty":"+2"}',null,false,true,null);
-  if public.economy_progress_snapshot(q)->>'completed'<>'5' then raise exception '69.999 not counted'; end if;
-  perform public.save_solve_with_quests(q,'{"id":"under-seventy","size":3,"timeMs":67999,"penalty":"+2"}',null,false,true,null);
-  if (select count(*) from public.currency_ledger where user_id=q and reason='quest_speed')<>1
-    then raise exception 'Speed reward duplicated'; end if;
+  if public.economy_progress_snapshot(q)->>'completed'<>'1' then raise exception 'Fast solve must not complete online quest'; end if;
   if public.economy_quest_counts(q,today)<>array[10,2,0,0] or public.economy_quest_counts(q,today+1)<>array[0,0,0,0]
     then raise exception 'Quest count leaked'; end if;
 
@@ -62,6 +59,7 @@ begin
         insert into public.economy_time_limit_finished values(session,p,day);
       end if;
     end loop;
+    insert into public.economy_quest_presence(user_id,quest_day,last_seen,active_ms) values(p,day,clock_timestamp(),600000) on conflict do nothing;
     perform public.economy_refresh_quests(p,day);
     perform public.economy_refresh_quests(p,day);
     if (select completed_mask from public.economy_daily_quests where user_id=p and quest_day=day)<>7

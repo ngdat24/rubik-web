@@ -7,7 +7,7 @@ interface Progress {
   completed:number;
   streak:number;
   counts:[number,number,number,number];
-  best3x3Ms:number|null;
+  onlineSeconds:number;
   pbs:{size:number;kind:'single'|'mo3'|'ao5'|'ao12';timeMs:number}[];
 }
 
@@ -33,7 +33,7 @@ export function mountQuestProgress(account:CloudAccount|undefined) {
         t('Giải 10 lượt 2×2, 5 lượt 3×3, 3 lượt 4×4 hoặc 1 lượt khối 5×5–10×10')+
           ' · 2×2 '+Math.min(two,10)+'/10 · 3×3 '+Math.min(three,5)+'/5 · 4×4 '+Math.min(four,3)+'/3 · 5×5–10×10 '+Math.min(large,1)+'/1',
         t('Hoàn thành một phiên Time Limit ở chế độ bất kỳ'),
-        t('Giải 3×3 dưới 1 phút 10 giây')+' · '+(state.best3x3Ms==null?'—':formatTime(state.best3x3Ms))+' / < 1:10'
+        t('Online 10 phút')+' · '+formatTime((state.onlineSeconds ?? 0)*1000)+' / 10:00'
       ];
       tasks.replaceChildren(...list.map((label,index)=>{
         const item=document.createElement('li');

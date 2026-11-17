@@ -42,8 +42,7 @@ begin
         and start_ms+201000<=floor(extract(epoch from clock_timestamp())*1000)::bigint
         and public.economy_day(to_timestamp((start_ms+198000)/1000.0))=p_day)
     then achieved:=achieved|2; end if;
-  if exists(select 1 from public.economy_quest_solves q join public.solves s on s.id=q.solve_id
-    where q.user_id=p_user and q.quest_day=p_day and q.size=3 and s.time_ms<70000)
+  if exists(select 1 from public.economy_quest_presence where user_id=p_user and quest_day=p_day and active_ms=600000)
     then achieved:=achieved|4; end if;
   if achieved=0 then return; end if;
   insert into public.economy_daily_quests(user_id,quest_day) values(p_user,p_day) on conflict do nothing;
@@ -54,7 +53,7 @@ begin
 
   if (new_tasks&1)=1 then perform public.economy_change_balance(p_user,'CB',50,'quest_practice',p_reference); end if;
   if (new_tasks&2)=2 then perform public.economy_change_balance(p_user,'CB',50,'quest_time_limit',p_reference); end if;
-  if (new_tasks&4)=4 then perform public.economy_change_balance(p_user,'CB',100,'quest_speed',p_reference); end if;
+  if (new_tasks&4)=4 then perform public.economy_change_balance(p_user,'CB',100,'quest_online',p_reference); end if;
   update public.economy_daily_quests set completed_mask=achieved where user_id=p_user and quest_day=p_day;
 
   if achieved=7 then
@@ -78,16 +77,25 @@ begin
   select coalesce(jsonb_agg(jsonb_build_object('size',size,'kind',stat,'timeMs',time_ms) order by size,stat),'[]')
     into pbs from public.economy_personal_bests where user_id=p_user;
   return jsonb_build_object('day',today,'completed',coalesce(completed,0),'streak',streak,
-    'best3x3Ms',(select min(s.time_ms) from public.economy_quest_solves q join public.solves s on s.id=q.solve_id
-      where q.user_id=p_user and q.quest_day=today and q.size=3),
+    'onlineSeconds',coalesce((select active_ms/1000 from public.economy_quest_presence where user_id=p_user and quest_day=today),0),
     'counts',public.economy_quest_counts(p_user,today),'pbs',pbs);
 end;
 $$;
 
 create or replace function public.economy_quest_heartbeat(p_user uuid)
 returns jsonb language plpgsql security invoker set search_path = '' as $$
+declare stamp timestamptz; day date;
 begin
-  perform public.economy_refresh_quests(p_user,public.economy_day(clock_timestamp()));
+  perform public.economy_lock_wallet(p_user);
+  stamp:=clock_timestamp();
+  day:=public.economy_day(stamp);
+  insert into public.economy_quest_presence as presence(user_id,quest_day,last_seen)
+    values(p_user,day,stamp)
+    on conflict(user_id,quest_day) do update set last_seen=excluded.last_seen,
+      active_ms=least(600000,presence.active_ms+case
+        when excluded.last_seen-presence.last_seen between interval '0 seconds' and interval '25 seconds'
+        then floor(extract(epoch from excluded.last_seen-presence.last_seen)*1000)::integer else 0 end);
+  perform public.economy_refresh_quests(p_user,day);
   return public.economy_progress_snapshot(p_user);
 end;
 $$;
@@ -217,7 +225,7 @@ $$;
 
 create or replace function public.economy_race_bonus(p_match public.economy_race_escrow,p_winner uuid,p_day date)
 returns void language plpgsql security invoker set search_path = '' as $$
-declare pair_count integer; wins_now integer; bonus integer:=0; paid bigint; reward_key text;
+declare pair_count integer; wins_now integer; bonus integer:=0; paid bigint; ledger_paid bigint; reward_key text;
 begin
   if p_winner is null then
     delete from public.economy_race_streaks where user_id in (p_match.player_a,p_match.player_b);
@@ -242,6 +250,12 @@ begin
     if exists(select 1 from public.economy_receipts where user_id=p_winner and kind='race_streak_milestone' and request_id=reward_key) then return; end if;
     select coalesce(sum((result->>'nominal')::integer),0) into paid from public.economy_receipts
       where user_id=p_winner and kind='race_streak_milestone' and request_id like p_day::text||'/%';
+    -- Legacy ledgers can contain repeated 50 CB awards collapsed by the backfill.
+    select coalesce(sum(amount),0) into ledger_paid from public.currency_ledger
+      where user_id=p_winner and reason='race_streak'
+        and created_at>=p_day::timestamp at time zone 'Asia/Ho_Chi_Minh'
+        and created_at<(p_day+1)::timestamp at time zone 'Asia/Ho_Chi_Minh';
+    paid:=greatest(paid,ledger_paid);
     perform public.economy_change_balance(p_winner,'CB',least(bonus,greatest(200-paid,0)),'race_streak',p_match.round_id::uuid);
     insert into public.economy_receipts(user_id,kind,request_id,payload,result)
       values(p_winner,'race_streak_milestone',reward_key,jsonb_build_object('round',p_match.round_id),jsonb_build_object('nominal',bonus));

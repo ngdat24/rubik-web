@@ -52,19 +52,19 @@ begin
   if (public.economy_progress_snapshot(p)->>'completed')::int<>3 then raise exception 'Non-full Time Limit did not count'; end if;
 
   result:=public.economy_quest_heartbeat(p);
-  if result->>'completed'<>'3' then raise exception 'Heartbeat changed quest bits'; end if;
+  if result->>'onlineSeconds'<>'0' then raise exception 'First heartbeat credited time'; end if;
   update public.economy_quest_presence set last_seen=clock_timestamp()-interval '50 sec',active_ms=590000
     where user_id=p and quest_day=day;
-  if public.economy_quest_heartbeat(p)->>'completed'<>'3' then raise exception 'Online time must not complete the speed quest'; end if;
+  if public.economy_quest_heartbeat(p)->>'onlineSeconds'<>'590' then raise exception 'Offline gap counted'; end if;
   update public.economy_quest_presence set last_seen=clock_timestamp()-interval '15 sec'
     where user_id=p and quest_day=day;
-  perform public.save_solve_with_quests(p,'{"id":"speed-quest","size":3,"timeMs":65000,"penalty":"none"}',null,false,true,null);
   result:=public.economy_quest_heartbeat(p);
-  if (result->>'completed')::int<>7 then raise exception 'Speed quest failed: %',result; end if;
+  if result->>'onlineSeconds'<>'600' or (result->>'completed')::int<>7 then raise exception 'Online quest failed'; end if;
   perform public.economy_quest_heartbeat(p);
-  if (select count(*) from public.currency_ledger where user_id=p and reason in ('quest_practice','quest_time_limit','quest_speed','quest_daily_complete'))<>4
+  if (select count(*) from public.currency_ledger where user_id=p and reason in ('quest_practice','quest_time_limit','quest_online','quest_daily_complete'))<>4
     then raise exception 'Quest reward duplicated or missing'; end if;
   if public.economy_quest_counts(p,day+1)<>array[0,0,0,0] then raise exception 'Progress leaked to another account or day'; end if;
+  if public.economy_progress_snapshot(q)->>'onlineSeconds'<>'0' then raise exception 'Online time leaked to another account'; end if;
 end;
 $$;
 rollback;

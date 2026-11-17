@@ -144,7 +144,6 @@ export const english: Record<string, string> = {
   "Giải 5 lượt 2×2, 3 lượt 3×3 hoặc 1 lượt khối 4×4–10×10": "Solve 5 2×2 cubes, 3 3×3 cubes or 1 cube sized 4×4–10×10",
   "Hoàn thành một phiên Time Limit ở chế độ bất kỳ": "Complete a Time Limit session in any mode",
   "Giải 10 lượt 2×2, 5 lượt 3×3, 3 lượt 4×4 hoặc 1 lượt khối 5×5–10×10": "Complete 10 2×2 solves, 5 3×3 solves, 3 4×4 solves or 1 5×5–10×10 solve",
-  "Giải 3×3 dưới 1 phút 10 giây": "Solve 3×3 in under 1 minute 10 seconds",
   "Online 10 phút": "Spend 10 minutes online",
   "Giải 10 lượt 3×3 hợp lệ": "Complete 10 eligible 3×3 solves",
   "Đã xong": "Completed",

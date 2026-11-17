@@ -9,7 +9,7 @@ it('defers hidden quest requests and refreshes on return, then detaches',async()
   const elements:Record<string,unknown>={'#quest-panel':panel,'#quest-tasks':tasks,'#quest-streak':streak,'#quest-bests':bests};
   const doc=Object.assign(new EventTarget(),{hidden:true,querySelector:(selector:string)=>elements[selector],createElement:()=>({textContent:''})});
   const win=new EventTarget();
-  const fetcher=vi.fn(async()=>({ok:true,json:async()=>({completed:1,streak:3,counts:[5,1,0,0],best3x3Ms:68000,pbs:[]})}));
+  const fetcher=vi.fn(async()=>({ok:true,json:async()=>({completed:1,streak:3,counts:[5,1,0,0],onlineSeconds:300,pbs:[]})}));
   vi.stubGlobal('document',doc);vi.stubGlobal('window',win);vi.stubGlobal('fetch',fetcher);
   const quests=mountQuestProgress({token:async()=> 'fixture'} as CloudAccount);
   await quests.refresh();win.dispatchEvent(new Event('online'));win.dispatchEvent(new Event('focus'));
@@ -20,6 +20,8 @@ it('defers hidden quest requests and refreshes on return, then detaches',async()
   expect(tasks.replaceChildren.mock.lastCall?.[0].textContent).toContain('2×2 5/10');
   expect(tasks.replaceChildren.mock.lastCall?.[0].textContent).toContain('3×3 1/5');
   expect(tasks.replaceChildren.mock.lastCall?.[0].textContent).toContain('4×4 0/3');
+  expect(tasks.replaceChildren.mock.lastCall?.[2].textContent).toContain('Online 10 phút');
+  expect(tasks.replaceChildren.mock.lastCall?.[2].textContent).toContain('5:00');
   expect(streak.textContent).toContain('3/7');
   quests.dispose();doc.dispatchEvent(new Event('visibilitychange'));win.dispatchEvent(new Event('online'));
   await quests.refresh();expect(fetcher).toHaveBeenCalledTimes(1);
