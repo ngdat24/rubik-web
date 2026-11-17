@@ -1,26 +1,19 @@
 import {expect,test} from '@playwright/test';
 
-test('Champion translates dynamic preview and keeps language across sizes and Practice',async({page})=>{
+test('old Champion bookmarks open the matching inventory and preserve language',async({page})=>{
   // No test traffic is allowed to reach a real Auth/database endpoint.
   await page.route(/^https:\/\//,route=>route.abort());
   await page.route('**/api/**',route=>route.fulfill({json:{awards:[]}}));
-  await page.goto('/champion.html?lang=en&size=3');
-  await expect(page.locator('#stage canvas')).toBeVisible();
-  await expect(page.locator('html')).toHaveAttribute('lang','en');
-  await expect(page.locator('#variant-name')).toHaveText('Borderless');
-  await page.getByRole('button',{name:'View the magnets',exact:true}).click();
-  await expect(page.locator('#core')).toHaveText('Close the top layer');
-  await page.locator('#core').click();
-  await page.getByRole('button',{name:'Black border',exact:true}).click();
-  await expect(page.locator('#variant-name')).toHaveText('Black border');
-  await expect(page.locator('#practice-link')).toHaveAttribute('href',/lang=en/);
-  await page.selectOption('#preview-size','2');
-  await expect(page).toHaveURL(/lang=en/);
-  await expect(page.locator('#stage canvas')).toBeVisible();
-  await expect(page.locator('#variant-copy')).toContainText('white corner tile');
-  await expect(page.locator('#title')).toHaveAttribute('placeholder','Apex Speed 2×2');
-  const text=(await page.locator('body').innerText()).replaceAll('ĐS','');
-  expect(text).not.toMatch(/[ăâđêôơưĂÂĐÊÔƠƯ\u1ea0-\u1ef9]/);
+  for(const size of [3,2]){
+    await page.goto(`/champion.html?lang=en&size=${size}`);
+    await expect(page).toHaveURL(new RegExp(`\\?inventory=${size}&lang=en$`));
+    await expect(page.locator('html')).toHaveAttribute('lang','en');
+    await expect(page.locator('#viewport canvas')).toBeVisible();
+    await expect(page.locator('#shop-dialog')).toBeVisible();
+    await expect(page.locator('#shop-tabs').getByRole('button',{name:'Inventory',exact:true})).toHaveAttribute('aria-pressed','true');
+    await expect(page.locator('#stage,#preview-size,#variant-name,#claim')).toHaveCount(0);
+    await expect(page.locator('#shop-content a[href*="champion.html"]')).toHaveCount(0);
+  }
   await page.setViewportSize({width:390,height:844});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
