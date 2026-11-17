@@ -95,7 +95,7 @@ export class CubeRenderer {
   private theme: ColorTheme;
   private surface: CubeSurface | undefined;
   private surfaceMaterials: SurfaceMaterials | undefined;
-  private readonly layoutOptions: RendererOptions;
+  private layoutOptions: RendererOptions;
   private fillLight:DirectionalLight|undefined;
   private readonly observer: ResizeObserver;
   private frame = 0;
@@ -316,6 +316,27 @@ export class CubeRenderer {
     this.cancelPending();
     if (size !== this.size) this.rebuild(layout);
     this.notifyIdle();
+  }
+
+  /** Change cosmetics on the existing canvas; the controller supplies logical state. */
+  setAppearance(options:RendererOptions,state:Uint8Array):void {
+    this.assertActive();
+    validateDisplayState(state,this.size);
+    validateTheme(options.theme??WESTERN_COLORS);
+    const layout=buildLayout(this.size,options);
+    this.cancelPending();
+    this.layoutOptions={...options};
+    const orbitEnabled=this.controls.enabled;
+    this.controls.dispose();this.controls=this.createControls();this.controls.enabled=orbitEnabled;
+    this.theme=[...(options.theme??WESTERN_COLORS)];
+    this.surface=options.surface;
+    if(!this.fillLight && options.fillLightIntensity){
+      this.fillLight=new DirectionalLight();this.fillLight.position.set(-4,-5,-6);this.scene.add(this.fillLight);
+    }
+    if(this.fillLight)this.fillLight.intensity=options.fillLightIntensity??0;
+    this.rebuild(layout);
+    this.paint(state);
+    this.requestDraw();
   }
 
   /** Paint immediately without retaining the caller's mutable state buffer. */

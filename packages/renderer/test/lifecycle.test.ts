@@ -21,7 +21,7 @@ vi.mock('three', async importOriginal => {
 });
 vi.mock('three/addons/controls/OrbitControls.js', () => ({ OrbitControls: class {
   enabled = true; enablePan = true; enableDamping = false; minDistance = 0; maxDistance = 0;
-  target = { set: vi.fn() }; dispose = mocks.controlsDispose; update = mocks.update; reset = vi.fn();
+  target = { set: vi.fn() }; dispose = mocks.controlsDispose; update = mocks.update; reset = vi.fn(); addEventListener=vi.fn();
   constructor() { mocks.controls = this; }
 } }));
 import { BoxGeometry, Color, InstancedMesh, MeshStandardMaterial, ShapeGeometry, Group, Mesh, Vector3 } from 'three';
@@ -32,6 +32,22 @@ import { WESTERN_COLORS } from '../src/colors.js';
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.clearAllMocks(); });
 
 describe('R0 renderer lifetime without a GPU', () => {
+  it('changes decoration on the same canvas and keeps the supplied controller snapshot',()=>{
+    vi.stubGlobal('window',{devicePixelRatio:1,addEventListener:mocks.add,removeEventListener:mocks.removeListener});
+    vi.stubGlobal('requestAnimationFrame',mocks.request);vi.stubGlobal('cancelAnimationFrame',mocks.cancel);
+    vi.stubGlobal('ResizeObserver',class {observe=mocks.observe;disconnect=mocks.disconnect;});
+    const renderer=new CubeRenderer({clientWidth:800,clientHeight:500,append:mocks.append} as unknown as HTMLElement);
+    const canvas=renderer.canvas,state=new Cube(3).applyMoves('R U F').state;
+    renderer.setAppearance({optimize:true,resinCoreColor:0xffcc00,coreMagnetColor:0xaaaaaa},state);
+    const draw=mocks.request.mock.calls[0]![0] as unknown as (time:number)=>void;
+    draw(0);
+    const group=mocks.render.mock.calls.at(-1)![0].children.find((child:unknown)=>child instanceof Group) as Group;
+    const colors=()=>group.children.filter((mesh):mesh is Mesh<ShapeGeometry,MeshStandardMaterial>=>mesh instanceof Mesh&&mesh.geometry instanceof ShapeGeometry).map(mesh=>mesh.material.color.getHex());
+    expect(colors()).toEqual([...state].map(c=>WESTERN_COLORS[c]));
+    renderer.setAppearance({},state);draw(1);
+    expect(renderer.canvas).toBe(canvas);expect(mocks.append).toHaveBeenCalledTimes(1);
+    expect(colors()).toEqual([...state].map(c=>WESTERN_COLORS[c]));renderer.dispose();
+  });
   it('animates one layer, paints the copied snapshot and cancels safely', () => {
     vi.stubGlobal('window', { devicePixelRatio: 1, addEventListener: mocks.add, removeEventListener: mocks.removeListener });
     vi.stubGlobal('requestAnimationFrame', mocks.request);

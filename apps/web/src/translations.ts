@@ -650,4 +650,12 @@ export const english: Record<string, string> = {
   "Mã giao dịch đã được dùng cho một lựa chọn khác.": "This transaction ID was used for a different choice.",
   "Hãy đặt tên hồ sơ trước khi dùng Champion.": "Set a profile name before using Champion.",
   "Chữ ký Champion": "Champion signature",
+  "Kích thước skin": "Skin size",
+  "Tên skin": "Skin name",
+  "Chờ lượt giải kết thúc để đổi skin.": "Wait until the solve ends to change skins.",
+  "Đặt tên & nhận": "Name & claim",
+  "Đổi tên tốn 500 CB/lần.": "Renaming costs 500 CB each time.",
+  "Tên trống dùng tên mặc định. Sau khi nhận, đổi tên tốn 500 CB.": "Leave blank to use the default name. Renaming after claiming costs 500 CB.",
+  "Xác nhận đổi tên Champion với giá 500 CB?": "Rename Champion for 500 CB?",
+  "Xác nhận tên Champion này?": "Confirm this Champion name?",
 };
