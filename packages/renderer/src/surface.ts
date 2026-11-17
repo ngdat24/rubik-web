@@ -59,6 +59,8 @@ export class SurfaceMaterials {
   private readonly secondary = new Color();
   private readonly primary = new Color();
   private disposed = false;
+  private readonly cache=new Map<string,{texture:Texture;loaded:Texture|undefined;listeners:((texture:Texture)=>void)[]}>();
+  get isAnimated():boolean {return Boolean(this.surface.pulse);}
 
   constructor(
     private readonly surface:CubeSurface,
@@ -66,7 +68,9 @@ export class SurfaceMaterials {
     private readonly stickers:readonly MeshStandardMaterial[],
     shared:MeshStandardMaterial|undefined,
     theme:readonly number[],
-    tileSize:number
+    tileSize:number,
+    private readonly reuseTextures=false,
+    private readonly changed:()=>void=()=>{}
   ) {
     body.color.setHex(surface.body?.color ?? 0x171b19);
     body.roughness = surface.body?.roughness ?? 0.7;
@@ -126,7 +130,7 @@ export class SurfaceMaterials {
 
   private attach(material:MeshStandardMaterial,key:'map'|'normalMap'|'emissiveMap'|'bumpMap',path:string|undefined,replaceColor=false) {
     if (!isSkinTexture(path)) return;
-    const texture = this.loader.load(path, loaded => {
+    this.loadTexture(path,key==='map'||key==='emissiveMap',loaded => {
       if (this.disposed) return;
       if (key === 'map' || key === 'emissiveMap') loaded.colorSpace = SRGBColorSpace;
       material[key] = loaded;
@@ -135,12 +139,26 @@ export class SurfaceMaterials {
         material.color.setHex(0xffffff);
       }
       material.needsUpdate = true;
+    });
+  }
+
+  private loadTexture(path:string,srgb:boolean,ready:(texture:Texture)=>void):void {
+    const key=path+'/'+srgb,existing=this.reuseTextures?this.cache.get(key):undefined;
+    if(existing){if(existing.loaded)ready(existing.loaded);else existing.listeners.push(ready);return;}
+    const listeners=[ready];let loadedTexture:Texture|undefined;
+    const texture=this.loader.load(path,loaded=>{
+      if(this.disposed)return;
+      if(srgb)loaded.colorSpace=SRGBColorSpace;
+      loadedTexture=loaded;
+      const entry=this.cache.get(key);if(entry)entry.loaded=loaded;
+      listeners.forEach(listener=>listener(loaded));listeners.length=0;this.changed();
     },undefined,()=>{/* Keep the procedural surface. */});
     this.textures.push(texture);
+    if(this.reuseTextures)this.cache.set(key,{texture,loaded:loadedTexture,listeners});
   }
 
   private attachAtlas(path:string,color:number,replaceColor:boolean,tileSize:number):void {
-    const texture = this.loader.load(path,atlas=>{
+    this.loadTexture(path,true,atlas=>{
       if (this.disposed) return;
       atlas.colorSpace = SRGBColorSpace;
       // The gutters keep neighbouring tiles out of the mip levels at grazing angles.
@@ -160,7 +178,6 @@ export class SurfaceMaterials {
         material.needsUpdate = true;
       });
     });
-    this.textures.push(texture);
   }
 
   stickerFor(color:number,tile:number):MeshStandardMaterial {
@@ -181,6 +198,7 @@ export class SurfaceMaterials {
 
   dispose():void {
     this.disposed = true;
+    this.cache.clear();
     for (const texture of this.textures) texture.dispose();
     for (const material of this.tiles.flat()) material.dispose();
   }
