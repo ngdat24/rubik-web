@@ -8,6 +8,7 @@ export function attachDrag(renderer: CubeRenderer, controller: CubeController, c
   const points=new Map<number,{x:number;y:number}>();
   let gesture: {id:number;x:number;y:number;hit:NonNullable<ReturnType<CubeRenderer['pick']>>;axis?:number;layer?:number;angle:number} | undefined;
   let pinching=false, distance=0;
+  const inside=(e:PointerEvent)=>{const r=canvas.getBoundingClientRect();return e.clientX>=r.left&&e.clientX<r.right&&e.clientY>=r.top&&e.clientY<r.bottom;};
   const pinchDistance=()=>{const p=[...points.values()];return p.length>=2?Math.hypot(p[0]!.x-p[1]!.x,p[0]!.y-p[1]!.y):0;};
   const cancel=():void=>{
     if(gesture || pinching) {renderer.endDrag();renderer.enableOrbit(true);controller.unlockInput('drag');}
@@ -15,7 +16,7 @@ export function attachDrag(renderer: CubeRenderer, controller: CubeController, c
     points.clear();gesture=undefined;pinching=false;
   };
   const down=(e:PointerEvent):void=>{
-    if(e.button!==0 || [...controller.lockedBy].some(reason=>reason!=='drag'))return;
+    if(e.button!==(e.pointerType==='mouse'?2:0) || !inside(e) || [...controller.lockedBy].some(reason=>reason!=='drag'))return;
     if(gesture || pinching){
       e.stopImmediatePropagation();e.preventDefault();points.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.setPointerCapture(e.pointerId);
       renderer.endDrag();gesture=undefined;pinching=true;distance=pinchDistance();return;
@@ -28,6 +29,7 @@ export function attachDrag(renderer: CubeRenderer, controller: CubeController, c
   };
   const move=(e:PointerEvent):void=>{
     if(!points.has(e.pointerId))return;
+    if(!inside(e)){e.stopImmediatePropagation();e.preventDefault();cancel();return;}
     e.stopImmediatePropagation();e.preventDefault();points.set(e.pointerId,{x:e.clientX,y:e.clientY});
     if(pinching){const next=pinchDistance();if(distance>0 && next>0)renderer.zoomBy(distance/next);distance=next;return;}
     const g=gesture;if(!g || e.pointerId!==g.id)return;
@@ -38,11 +40,12 @@ export function attachDrag(renderer: CubeRenderer, controller: CubeController, c
     if(g.axis===undefined){g.axis=turn.axis;g.layer=turn.layer;renderer.beginDrag(turn.move);}
     const n=g.hit.slot.normal,d=delta;
     const cross=[n[1]*d[2]!-n[2]*d[1]!,n[2]*d[0]!-n[0]*d[2]!,n[0]*d[1]!-n[1]*d[0]!];
-    const sensitivity=e.pointerType==='mouse'?0.675:1;
+    const sensitivity=e.pointerType==='mouse'?0.675*0.8:0.7;
     g.angle=Math.max(-Math.PI,Math.min(Math.PI,cross[g.axis]!*Math.PI/1.5*sensitivity));renderer.updateDrag(g.angle);
   };
   const up=(e:PointerEvent):void=>{
     if(!points.has(e.pointerId))return;
+    if(!inside(e)){e.stopImmediatePropagation();e.preventDefault();cancel();return;}
     const timestamp=e.timeStamp;e.stopImmediatePropagation();e.preventDefault();
     const g=gesture;
     if(pinching){points.delete(e.pointerId);if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId);if(!points.size)cancel();return;}
@@ -58,8 +61,10 @@ export function attachDrag(renderer: CubeRenderer, controller: CubeController, c
     if(controller.applyMove(token,timestamp)){renderer.resumeDrag(angle);changed();}
   };
   const interrupted=():void=>cancel();
+  const menu=(e:Event):void=>{e.preventDefault();};
+  canvas.addEventListener('contextmenu',menu);
   canvas.addEventListener('pointerdown',down,true);canvas.addEventListener('pointermove',move,true);canvas.addEventListener('pointerup',up,true);
   canvas.addEventListener('pointercancel',interrupted);canvas.addEventListener('lostpointercapture',interrupted);
   canvas.addEventListener('webglcontextlost',interrupted,true);window.addEventListener('blur',interrupted);document.addEventListener('visibilitychange',interrupted);
-  return ()=>{cancel();canvas.removeEventListener('pointerdown',down,true);canvas.removeEventListener('pointermove',move,true);canvas.removeEventListener('pointerup',up,true);canvas.removeEventListener('pointercancel',interrupted);canvas.removeEventListener('lostpointercapture',interrupted);canvas.removeEventListener('webglcontextlost',interrupted,true);window.removeEventListener('blur',interrupted);document.removeEventListener('visibilitychange',interrupted);};
+  return ()=>{cancel();canvas.removeEventListener('contextmenu',menu);canvas.removeEventListener('pointerdown',down,true);canvas.removeEventListener('pointermove',move,true);canvas.removeEventListener('pointerup',up,true);canvas.removeEventListener('pointercancel',interrupted);canvas.removeEventListener('lostpointercapture',interrupted);canvas.removeEventListener('webglcontextlost',interrupted,true);window.removeEventListener('blur',interrupted);document.removeEventListener('visibilitychange',interrupted);};
 }

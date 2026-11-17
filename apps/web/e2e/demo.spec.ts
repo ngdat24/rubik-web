@@ -95,7 +95,7 @@ test('drag cannot start while idle; during inspection it starts the solve, conte
  await page.goto('/?diagnostics=1');await expect(page.locator('canvas')).toBeVisible();await page.selectOption('#cube-size','7');
  await page.locator('#scramble').click();await page.locator('canvas').scrollIntoViewIfNeeded();
  const target=await page.evaluate(()=>(window as any).rubikDiagnostics(true).pickTargets.find((p:any)=>Math.floor(p.index/49)===2));
- const drag=async()=>{await page.locator('canvas').scrollIntoViewIfNeeded();const target=await page.evaluate(()=>(window as any).rubikDiagnostics(true).pickTargets.find((p:any)=>Math.floor(p.index/49)===2));await page.mouse.move(target.x,target.y);await page.mouse.down();await page.mouse.move(target.x+120,target.y,{steps:10});await page.mouse.up();};
+ const drag=async()=>{await page.locator('canvas').scrollIntoViewIfNeeded();const target=await page.evaluate(()=>(window as any).rubikDiagnostics(true).pickTargets.find((p:any)=>Math.floor(p.index/49)===2));await page.mouse.move(target.x,target.y);await page.mouse.down({button:'right'});await page.mouse.move(target.x+120,target.y,{steps:10});await page.mouse.up({button:'right'});};
  await drag();await expect(page.locator('#timer-phase')).toContainText('Sẵn sàng');
  await page.locator('#camera-reset').click();await page.locator('#timer-start').click();await drag();await expect(page.locator('#timer-phase')).toContainText('Đang giải');
  await page.evaluate(()=>{const ext=document.querySelector('canvas')!.getContext('webgl2')!.getExtension('WEBGL_lose_context')!;(window as any).loss=ext;ext.loseContext();});

@@ -139,7 +139,7 @@ describe('R0 renderer lifetime without a GPU', () => {
     expect(geometryDispose).toHaveBeenCalledTimes(9);
     expect(materialDispose).toHaveBeenCalledTimes(9 * 7 + 4); // four disposed large-cube instance palettes
     expect(mocks.append).toHaveBeenCalledOnce();
-    expect(mocks.controlsDispose).not.toHaveBeenCalled();
+    expect(mocks.controlsDispose).toHaveBeenCalledTimes(2); // camera presets rebase the orbit frame
     expect(mocks.contextLoss).not.toHaveBeenCalled();
     draw();
     expect(mocks.render.mock.calls.at(-1)![1]).toBe(camera);
@@ -192,7 +192,7 @@ describe('R0 renderer lifetime without a GPU', () => {
     expect(geometryDispose).toHaveBeenCalledOnce();
     expect(stickerDispose).toHaveBeenCalledOnce();
     expect(materialDispose).toHaveBeenCalledTimes(7);
-    expect(mocks.removeListener).toHaveBeenCalledWith('resize', mocks.add.mock.calls[0]![1]);
+    expect(mocks.removeListener).toHaveBeenCalledWith('resize', mocks.add.mock.calls.find(call=>call[0]==='resize')![1]);
     draw(); resize!();
     expect(mocks.render).toHaveBeenCalledOnce();
   });
