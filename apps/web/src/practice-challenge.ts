@@ -23,6 +23,12 @@ export function mountPracticeChallenge(
     revision++;
     challenge=undefined;
   });
+  const offline=()=>{
+    revision++;
+    if(challenge) status.textContent=t('Mất mạng. Lượt này vẫn lưu vào lịch sử luyện tập.');
+    challenge=undefined;
+  };
+  window.addEventListener('offline',offline);
   async function request<T>(body:unknown):Promise<T> {
     if (!account) throw new Error('Đặt tên hồ sơ trước khi lấy scramble máy chủ.');
     const response=await fetch('/api/practice',{
@@ -68,6 +74,7 @@ export function mountPracticeChallenge(
     dispose() {
       abort.abort();
       reset();
+      window.removeEventListener('offline',offline);
       button.onclick=null;
     }
   };

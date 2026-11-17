@@ -18,7 +18,7 @@ export function fakeDatabase({raceClock=Date.now}={}){
       return response({ok:true});
     }
     if(url.pathname.endsWith('/consume_quota'))return response(!denyQuota);
-    if(url.pathname.endsWith('/lobby_action_with_escrow')||url.pathname.endsWith('/lobby_action')){
+    if(url.pathname.endsWith('/lobby_action_with_nameplates')||url.pathname.endsWith('/lobby_action_with_escrow')||url.pathname.endsWith('/lobby_action')){
       try{return response(lobbyAction(lobbies,profiles,body,raceClock()+raceOffset));}
       catch(error){return response({code:'P0001',message:error.message},400);}
     }
@@ -117,7 +117,7 @@ export function fakeDatabase({raceClock=Date.now}={}){
       if(url.searchParams.has('sync_version'))return response(rows.filter(s=>s.sync_version>Number(url.searchParams.get('sync_version').slice(3))).sort((a,b)=>a.sync_version-b.sync_version).slice(0,500));
       return response(rows.sort((a,b)=>a.id.localeCompare(b.id)).slice(Number(url.searchParams.get('offset')),Number(url.searchParams.get('offset'))+500));
     }
-    if(url.pathname.endsWith('/leaderboard')){
+    if(url.pathname.endsWith('/leaderboard')||url.pathname.endsWith('/leaderboard_with_nameplates')){
       const rows=[...solves.values()].filter(row=>row.ranked&&!row.deleted&&row.solve.size===body.p_size&&row.solve.penalty!=='DNF'&&profiles.has(row.user_id)).map(row=>({id:row.user_id,name:profiles.get(row.user_id).name,timeMs:row.solve.timeMs+(row.solve.penalty==='+2'?2000:0),solveId:row.id})).sort((a,b)=>a.timeMs-b.timeMs||a.name.localeCompare(b.name)||a.id.localeCompare(b.id)).slice(0,10);
       return response(rows);
 

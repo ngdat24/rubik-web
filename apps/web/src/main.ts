@@ -14,7 +14,9 @@ import {mountPracticeChallenge} from './practice-challenge.js';
 import {mountWallet} from './wallet.js';
 import {mountQuestProgress} from './quest-progress.js';
 import {mountWeeklyBoard} from './weekly-board.js';
-import {mountWardrobe} from './wardrobe.js';
+import {mountShop} from './shop.js';
+import {bindSkinEffects,readSkinLowFx,skinFxKey,skinPalette,skinSurface} from './skin-effects.js';
+import type {Appearance} from './skin-effects.js';
 
 let detachDrag: (()=>void) | undefined;
 let timerUI: ReturnType<typeof attachTimer> | undefined;
@@ -32,6 +34,10 @@ const loading = document.querySelector<HTMLElement>('#loading')!;
 document.querySelector('#engine-version')!.textContent = `Engine ${ENGINE_VERSION}`;
 let controller: CubeController | undefined;
 let renderer: CubeRenderer | undefined;
+let equippedAppearance:Appearance|undefined;
+let equippedEffects:ReturnType<typeof bindSkinEffects>|undefined;
+const lowFx=document.querySelector<HTMLInputElement>('#skin-low-fx')!;
+lowFx.checked=readSkinLowFx();
 const sizeSelect = document.querySelector<HTMLSelectElement>('#cube-size')!;
 const description = document.querySelector<HTMLElement>('#cube-description')!;
 const seed = document.querySelector<HTMLInputElement>('#seed')!;
@@ -91,6 +97,7 @@ try {
     moveControls.disabled = !available;
   };
   renderer.onMoveAnimated = move => {
+    equippedEffects?.play();
     updateMoveControls();
     moveStatus.textContent = `${t("Đã xoay ")}${move}.`;
   };
@@ -105,10 +112,27 @@ try {
   disableControls();
   console.error(error);
 }
+const updateAppearance=()=>{
+  if (!renderer) return;
+  equippedEffects?.dispose();
+  equippedEffects=undefined;
+  renderer.setTheme(skinPalette(equippedAppearance));
+  const detailed=controller?.size===3;
+  const surface=detailed?skinSurface(equippedAppearance):undefined;
+  if (surface && lowFx.checked) delete surface.pulse;
+  renderer.setSurface(surface);
+  if (detailed&&equippedAppearance&&!lowFx.checked) equippedEffects=bindSkinEffects(renderer,equippedAppearance);
+};
+const onLowFx=()=>{
+  try {localStorage.setItem(skinFxKey,lowFx.checked?'1':'0');} catch {/* Preference remains applied for this page. */}
+  updateAppearance();
+};
+lowFx.addEventListener('change',onLowFx);
 const onSizeChange = (): void => {
   try {
     const size = Number(sizeSelect.value);
     controller?.setSize(size);
+    updateAppearance();
     description.textContent = `Rubik ${size}×${size}${t(" · Trạng thái đã giải")}`;
     scrambleText.textContent = t("Chưa có scramble.");
     buildMoveButtons(); updateMoveControls(); moveStatus.textContent = '';
@@ -175,20 +199,27 @@ const account=await mountAccount().catch(()=>{document.querySelector('#cloud-mes
 const wallet=mountWallet(account);
 const quests=mountQuestProgress(account);
 const weekly=mountWeeklyBoard();
-const wardrobe=mountWardrobe(account,colors=>renderer?.setTheme(colors));
+const shop=mountShop(account,appearance=>{equippedAppearance=appearance;updateAppearance();},
+  ()=>!timerUI?.isRunning(),()=>lowFx.checked);
 const practice = controller && mountPracticeChallenge(account,controller,value=>{seed.value=value;return onScramble();},
   ()=>timerUI?.isRunning() ?? false);
 if(controller) timerUI=attachTimer(controller,()=>{seed.value=newId();onScramble();},account,
-  solve=>{if(practice)void practice.completed(solve).then(()=>Promise.all([wallet.refresh(),quests.refresh()]));});
+  solve=>{
+    if(solve.penalty!=='DNF')equippedEffects?.play(true);
+    if(practice)void practice.completed(solve).then(()=>Promise.all([wallet.refresh(),quests.refresh()]));
+  });
 const onPageHide = (event: PageTransitionEvent): void => {
-  if (!event.persisted) { practice?.dispose(); wardrobe.dispose(); wallet.dispose(); quests.dispose(); weekly.dispose(); account?.dispose();clearInterval(viewLabelTimer); timerUI?.dispose(); detachDrag?.(); detachKeyboard?.(); keySettings.dispose(); controller?.dispose(); }
+  if (!event.persisted) { practice?.dispose(); wallet.dispose(); quests.dispose(); weekly.dispose(); shop.dispose(); equippedEffects?.dispose(); lowFx.removeEventListener('change',onLowFx); account?.dispose();clearInterval(viewLabelTimer); timerUI?.dispose(); detachDrag?.(); detachKeyboard?.(); keySettings.dispose(); controller?.dispose(); }
 };
 window.addEventListener('pagehide', onPageHide);
 if (import.meta.hot) import.meta.hot.dispose(() => {
-  practice?.dispose(); wardrobe.dispose();
+  practice?.dispose();
   wallet.dispose();
   quests.dispose();
   weekly.dispose();
+  shop.dispose();
+  equippedEffects?.dispose();
+  lowFx.removeEventListener('change',onLowFx);
   account?.dispose();
   clearInterval(viewLabelTimer);
   timerUI?.dispose();
