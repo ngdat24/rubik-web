@@ -1,0 +1,14 @@
+<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rubik Lab · Thử tối ưu Champion</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#111913;color:#eee9d8;font:15px system-ui}main{max-width:1000px;margin:auto;padding:24px}h1{font-size:28px;margin:8px 0}p{color:#bbbfaf;line-height:1.5}nav,.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0}button,select{font:inherit;padding:10px 14px;border:1px solid #6d6348;border-radius:8px;background:#27352b;color:inherit;cursor:pointer}button[aria-pressed=true]{background:#dfc985;color:#211d14}#viewport{position:relative;height:min(58vh,520px);min-height:320px;border:1px solid #655b3e;border-radius:16px;background:radial-gradient(ellipse,#312d1d,#13130f);overflow:hidden;touch-action:none}canvas{display:block}#stats{display:flex;gap:20px;flex-wrap:wrap;background:#1e2b22;padding:14px;border-radius:10px;font-variant-numeric:tabular-nums}small{color:#bfc5b5}input{accent-color:#dac379}#mode-status{color:#ead28d}.note{font-size:13px}label{display:flex;align-items:center;gap:7px}.keys button{min-width:46px}
+</style>
+<main><small>RUBIK LAB · DEMO LOCAL</small><h1>Champion: so sánh hiệu năng</h1>
+<p>Cùng skin, cùng trạng thái, cùng góc nhìn. Đổi qua lại hai bản rồi xoay thử hoặc mở lớp để xem phần lõi.</p>
+<nav><button id="original" aria-pressed="false">Bản hiện tại</button><button id="optimized" aria-pressed="true">Bản tối ưu</button><label>Khối <select id="size"><option value="3">3×3</option><option value="2">2×2</option></select></label><label>Kiểu <select id="variant"><option value="classic">Viền đen</option><option value="borderless">Không viền</option></select></label></nav>
+<div id="viewport" tabindex="0"></div>
+<nav class="keys" id="moves"></nav>
+<nav><button id="peek">Mở lớp 45°</button><button id="reset">Đặt lại</button><button id="camera">Góc mặc định</button><label><input id="auto" type="checkbox">Xoay liên tục</label><label><input id="effects" type="checkbox" checked>Âm thanh & hiệu ứng</label></nav>
+<p id="mode-status" role="status"></p><div id="stats"></div>
+<p class="note">Chuột trái kéo lớp · Chuột phải đổi góc nhìn · Cuộn thu phóng · Phím R U F L D B, Shift để xoay ngược.<br>Số lần vẽ/s về 0 khi bản tối ưu đứng yên là chủ ý tiết kiệm; đây không phải FPS khi chơi. Không kết nối tài khoản hoặc database.</p></main>
+<script type="module" src="/tools/champion-performance-demo.js"></script></html>

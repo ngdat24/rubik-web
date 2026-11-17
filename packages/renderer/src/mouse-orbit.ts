@@ -1,7 +1,7 @@
 import {PerspectiveCamera, Spherical} from 'three';
 
 /** Mouse orbit with unlimited yaw and a fixed world-up direction. */
-export function mouseOrbit(canvas:HTMLCanvasElement,camera:PerspectiveCamera,enabled:()=>boolean,finish:()=>void) {
+export function mouseOrbit(canvas:HTMLCanvasElement,camera:PerspectiveCamera,enabled:()=>boolean,finish:()=>void,changed:()=>void=()=>{}) {
   let pointer:{id:number;x:number;y:number}|undefined;
   const stop=()=>{const p=pointer;pointer=undefined;if(!p)return;finish();if(canvas.hasPointerCapture(p.id))canvas.releasePointerCapture(p.id);};
   const down=(e:PointerEvent)=>{
@@ -21,6 +21,7 @@ export function mouseOrbit(canvas:HTMLCanvasElement,camera:PerspectiveCamera,ena
     orbit.theta-=dx*scale;
     orbit.phi=Math.max(0.01,Math.min(Math.PI-0.01,orbit.phi-dy*scale));
     camera.position.setFromSpherical(orbit);camera.up.set(0,1,0);camera.lookAt(0,0,0);
+    changed();
   };
   const up=(e:PointerEvent)=>{if(pointer?.id!==e.pointerId)return;e.stopImmediatePropagation();stop();};
   canvas.addEventListener('pointerdown',down,true);canvas.addEventListener('pointermove',move,true);canvas.addEventListener('pointerup',up,true);

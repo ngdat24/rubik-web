@@ -16,9 +16,10 @@ import { InstancedCube } from './instanced-cube.js';
 import { SurfaceMaterials } from './surface.js';
 import type { CubeSurface } from './surface.js';
 import { StickerArtwork } from './sticker-artwork.js';
+import {DecorationBatches,groupBodyFaces} from './decoration-batches.js';
 import {mouseOrbit} from './mouse-orbit.js';
 
-export interface RendererOptions extends LayoutOptions { size?: number; theme?: ColorTheme; surface?: CubeSurface; measurePerformance?: boolean; instancing?: boolean; centerCornerRatio?: number; coreMagnetColor?: number; fillLightIntensity?: number; resinCoreColor?: number; coreGemColor?: number; detailSize?: 2|3 }
+export interface RendererOptions extends LayoutOptions { size?: number; theme?: ColorTheme; surface?: CubeSurface; measurePerformance?: boolean; instancing?: boolean; centerCornerRatio?: number; coreMagnetColor?: number; fillLightIntensity?: number; resinCoreColor?: number; coreGemColor?: number; detailSize?: 2|3; optimize?: boolean }
 export interface MoveSnapshot { move: Move; stateAfter: Uint8Array }
 interface PreparedMove extends MoveSnapshot {
   rotation: ReturnType<typeof rotationFor>;
@@ -98,6 +99,10 @@ export class CubeRenderer {
   private fillLight:DirectionalLight|undefined;
   private readonly observer: ResizeObserver;
   private frame = 0;
+  private dirty=true;
+  private renderedFrames=0;
+  private decorations:DecorationBatches|undefined;
+  private readonly bodyGeometries:BoxGeometry[]=[];
   private disposed = false;
 
   constructor(private readonly container: HTMLElement, options: RendererOptions = {}) {
@@ -114,8 +119,8 @@ export class CubeRenderer {
     this.camera.position.set(6, 5, 7);
     this.mouseCamera=mouseOrbit(this.webgl.domElement,this.camera,()=>this.controls.enabled&&!this.contextLost,()=>{
       const enabled=this.controls.enabled;
-      this.controls.dispose();this.controls=this.createControls();this.controls.enabled=enabled;
-    });
+      this.controls.dispose();this.controls=this.createControls();this.controls.enabled=enabled;this.requestDraw();
+    },this.requestDraw);
     this.controls = this.createControls();
     this.controls.enablePan = false;
     this.controls.enableDamping = true;
@@ -141,8 +146,13 @@ export class CubeRenderer {
     this.webgl.domElement.addEventListener('webglcontextlost', this.onContextLost);
     this.webgl.domElement.addEventListener('webglcontextrestored', this.onContextRestored);
     this.resize();
-    this.frame = requestAnimationFrame(this.draw);
+    if(!this.frame)this.frame = requestAnimationFrame(this.draw);
   }
+
+  private readonly requestDraw=():void=>{
+    this.dirty=true;
+    if(this.layoutOptions.optimize&&!this.disposed&&!this.contextLost&&!this.frame)this.frame=requestAnimationFrame(this.draw);
+  };
 
   enableOrbit(enabled: boolean): void {
     if (!this.disposed) this.controls.enabled = enabled;
@@ -152,6 +162,7 @@ export class CubeRenderer {
     const controls=new OrbitControls(this.camera,this.webgl.domElement);
     controls.mouseButtons={...controls.mouseButtons,LEFT:null,RIGHT:null};
     controls.enablePan=false;controls.enableDamping=true;controls.minDistance=5;controls.maxDistance=18;
+    if(this.layoutOptions.optimize)controls.addEventListener('change',this.requestDraw);
     return controls;
   }
 
@@ -195,11 +206,12 @@ export class CubeRenderer {
     this.rotationAxis.set(...rotationFor(parsed).axis);
     if (this.instances) this.instances.begin(selection);
     else {this.cubeGroup.add(this.pivot); for(const i of selection.cubieIndices)this.pivot.add(this.bodies[i]!);for(const i of selection.stickerIndices)this.pivot.add(this.stickers[i]!);}
+    this.decorations?.begin(selection.cubieIndices);
     this.dragAngle=0;
   }
   updateDrag(angle: number): void {
     if (this.dragAngle===undefined || !Number.isFinite(angle)) return;
-    this.dragAngle=angle;this.pivot.quaternion.setFromAxisAngle(this.rotationAxis,angle);this.instances?.rotate(this.pivot.quaternion);
+    this.dragAngle=angle;this.pivot.quaternion.setFromAxisAngle(this.rotationAxis,angle);this.instances?.rotate(this.pivot.quaternion);this.decorations?.rotate(this.pivot.quaternion);this.requestDraw();
   }
   endDrag(): number { const angle=this.dragAngle??0;this.dragAngle=undefined;this.cancelAnimation();return angle; }
   resumeDrag(angle: number): void {if(this.active){this.active.startAngle=angle;if(this.active.item.doubleTurn && angle<0)this.active.item.rotation.angle=-Math.PI;}}
@@ -207,6 +219,7 @@ export class CubeRenderer {
     const distance=this.camera.position.distanceTo(this.controls.target);
     const next=Math.min(18,Math.max(5,distance*factor));
     this.camera.position.sub(this.controls.target).multiplyScalar(next/distance).add(this.controls.target);
+    this.requestDraw();
   }
 
   resetCamera(): void { this.setCameraView('ufr'); }
@@ -266,14 +279,14 @@ export class CubeRenderer {
   getDiagnostics() {
     return { size: this.size, backend: this.instances ? 'instanced' : 'mesh', pending: this.pendingMoveCount, drawCalls: this.webgl.info?.render.calls ?? 0,
       geometries: this.webgl.info?.memory.geometries ?? 0, triangles: this.webgl.info?.render.triangles ?? 0,
-      renderMs: this.lastRenderMs, contextLost: this.contextLost, camera: this.camera.position.toArray() };
+      renderMs: this.lastRenderMs, renderedFrames:this.renderedFrames, contextLost: this.contextLost, camera: this.camera.position.toArray() };
   }
 
   private readonly onContextLost = (event: Event): void => {
     event.preventDefault();
     if (this.disposed) return;
     this.contextLost = true;
-    cancelAnimationFrame(this.frame);
+    cancelAnimationFrame(this.frame);this.frame=0;
     this.clearQueue();
     this.onContextChange(false);
   };
@@ -293,7 +306,7 @@ export class CubeRenderer {
     this.controls.dispose();
     this.camera.up.set(0,1,0);
     this.camera.position.set(view === 'ufr' ? 6 : -6, view === 'ufr' ? 5 : -5, view === 'ufr' ? 7 : -7);
-    this.controls=this.createControls();this.controls.enabled=enabled;
+    this.controls=this.createControls();this.controls.enabled=enabled;this.requestDraw();
   }
 
   /** Rebuild only the cube; preserve the camera, canvas, controls and render loop. */
@@ -316,6 +329,7 @@ export class CubeRenderer {
   }
 
   private paint(state: Uint8Array): void {
+    this.requestDraw();
     if (this.instances) { this.instances.paint(state, this.theme); return; }
     this.stickerColors.set(state);
     for (let index = 0; index < this.stickers.length; index++) {
@@ -389,7 +403,9 @@ export class CubeRenderer {
       for (const index of item.selection.cubieIndices) this.pivot.add(this.bodies[index]!);
       for (const index of item.selection.stickerIndices) this.pivot.add(this.stickers[index]!);
     }
+    this.decorations?.begin(item.selection.cubieIndices);
     this.active = { item, progress: 0, lastFrameTime: undefined };
+    this.requestDraw();
   }
 
   private cancelPending(): void {
@@ -408,7 +424,7 @@ export class CubeRenderer {
     this.dragAngle = undefined;
     this.active = undefined;
     this.pivot.quaternion.identity();
-    this.instances?.end();
+    this.instances?.end();this.decorations?.end();this.requestDraw();
     // add() preserves local slot transforms; do not attach() or accumulate rotations.
     while (this.pivot.children.length) this.cubeGroup.add(this.pivot.children[0]!);
     this.pivot.removeFromParent();
@@ -420,7 +436,7 @@ export class CubeRenderer {
     this.theme = [...theme];
     if (this.surfaceMaterials) this.surfaceMaterials.setTheme(this.theme);
     else for (let color = 0; color < 6; color++) this.materials[color]!.color.setHex(theme[color]!);
-    this.instances?.setTheme(this.theme);
+    this.instances?.setTheme(this.theme);this.requestDraw();
   }
 
   setSurface(surface?: CubeSurface): void {
@@ -433,7 +449,7 @@ export class CubeRenderer {
   private applySurface(): void {
     this.surfaceMaterials?.dispose();
     this.surfaceMaterials = new SurfaceMaterials(this.surface ?? {},this.plasticMaterial!,
-      this.materials,this.instances?.stickers.material,this.theme,this.size<=3?this.size:0);
+      this.materials,this.instances?.stickers.material,this.theme,this.size<=3?this.size:0,this.layoutOptions.optimize??false,this.requestDraw);
     const textured=this.size<=3 && Boolean((this.size===3 && this.surface?.stickers?.centerMap) || this.surface?.stickers?.tileAtlases?.some(Boolean));
     if(textured && !this.artworkGeometries.length){
       this.artworkGeometries=this.stickers.map((sticker,index)=>{
@@ -456,6 +472,8 @@ export class CubeRenderer {
   }
 
   private releaseCube(): void {
+    this.decorations?.dispose();this.decorations=undefined;
+    this.bodyGeometries.forEach(geometry=>geometry.dispose());this.bodyGeometries.length=0;
     this.cancelPending();
     this.surfaceMaterials?.dispose();
     this.surfaceMaterials = undefined;
@@ -533,7 +551,9 @@ export class CubeRenderer {
         const axis=Math.floor(side/2), sign=side%2===0?1:-1;
         return cubie.coordinates[axis]===sign*(layout.size-1)?this.plasticMaterial!:this.resinMaterial!;
       }) : this.plasticMaterial;
-      const body = new Mesh(this.geometry, finish);
+      const grouped=this.layoutOptions.optimize&&Array.isArray(finish)?groupBodyFaces(this.geometry,finish):undefined;
+      if(grouped)this.bodyGeometries.push(grouped.geometry);
+      const body = new Mesh(grouped?.geometry??this.geometry, grouped?.materials??finish);
       body.position.set(...cubie.position);
       if (this.resinInsert && this.resinInsertGeometry && this.resinEdges && this.resinEdgeMaterial) {
         body.add(new Mesh(this.resinInsertGeometry,this.resinInsert));
@@ -574,6 +594,8 @@ export class CubeRenderer {
       this.cubeGroup.add(sticker);
     }
     }
+    if(this.layoutOptions.optimize&&!this.instances)this.decorations=new DecorationBatches(this.cubeGroup,this.bodies);
+    this.requestDraw();
     this.webgl.domElement.setAttribute('aria-label', `Rubik ${layout.size}×${layout.size}; kéo để xoay camera, cuộn để thu phóng`);
     if (this.surface) this.applySurface();
   }
@@ -586,10 +608,12 @@ export class CubeRenderer {
     this.camera.updateProjectionMatrix();
     this.webgl.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.webgl.setSize(width, height, false);
+    this.requestDraw();
   };
 
   private readonly draw = (time = performance.now()): void => {
     if (this.disposed || this.contextLost) return;
+    this.frame=0;this.dirty=false;
     // Bound instant work to the batch present at frame start; callbacks may enqueue more.
     const budget = this.instant ? this.pendingMoveCount : 1;
     for (let index = 0; index < budget; index++) {
@@ -601,7 +625,7 @@ export class CubeRenderer {
         this.msPerQuarterTurn, active.item.doubleTurn, this.queue.length);
       this.pivot.quaternion.setFromAxisAngle(this.rotationAxis,
         (active.startAngle ?? 0) + (active.item.rotation.angle - (active.startAngle ?? 0)) * animationProgress(active.progress, 1));
-      this.instances?.rotate(this.pivot.quaternion);
+      this.instances?.rotate(this.pivot.quaternion);this.decorations?.rotate(this.pivot.quaternion);
       if (active.progress < 1) break;
       this.artwork?.advance(active.item.move,active.item.selection.stickerIndices);
       this.cancelAnimation();
@@ -617,9 +641,11 @@ export class CubeRenderer {
     if(!this.mouseCamera.active())this.controls.update();
     this.surfaceMaterials?.animate(time);
     const renderStart = this.measurePerformance ? performance.now() : 0;
-    this.webgl.render(this.scene, this.camera);
+    this.webgl.render(this.scene, this.camera);this.renderedFrames++;
     if (this.measurePerformance) this.lastRenderMs = performance.now() - renderStart;
-    this.frame = requestAnimationFrame(this.draw);
+    if(!this.layoutOptions.optimize||this.pendingMoveCount||this.surfaceMaterials?.isAnimated||this.dirty){
+      if(!this.frame)this.frame = requestAnimationFrame(this.draw);
+    }
   };
 
   dispose(): void {
