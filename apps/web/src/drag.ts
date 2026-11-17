@@ -16,7 +16,7 @@ export function attachDrag(renderer: CubeRenderer, controller: CubeController, c
     points.clear();gesture=undefined;pinching=false;
   };
   const down=(e:PointerEvent):void=>{
-    if(e.button!==(e.pointerType==='mouse'?2:0) || !inside(e) || [...controller.lockedBy].some(reason=>reason!=='drag'))return;
+    if(e.button!==0 || !inside(e) || [...controller.lockedBy].some(reason=>reason!=='drag'))return;
     if(gesture || pinching){
       e.stopImmediatePropagation();e.preventDefault();points.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.setPointerCapture(e.pointerId);
       renderer.endDrag();gesture=undefined;pinching=true;distance=pinchDistance();return;
