@@ -51,5 +51,29 @@ test('upright mouse orbit and left drag cancellation',{timeout:60000},async()=>{
     await page.mouse.move(pick.x+110,pick.y,{steps:12});await page.mouse.up({button:'left'});
     await page.waitForFunction(()=>window.review.moves.length===1);
     assert.ok(await page.evaluate(()=>!window.review.moves[0].endsWith('2')));
+    // Pick actual plastic borders and the gap between adjacent cells, for both render paths.
+    for(const size of [2,3,7]){
+      const points=await page.evaluate(async size=>{
+        const {buildLayout}=await import('/packages/renderer/src/layout.ts');
+        const {renderer:r,controller:c}=window.review;c.setSize(size);r.resetCamera();
+        const layout=buildLayout(size),a=layout.slots[2*size*size+Math.floor(size/2)*size],b=layout.slots[a.index+1];
+        const project=position=>{
+          const p=r.camera.position.clone().set(...position).project(r.camera),rect=r.canvas.getBoundingClientRect();
+          return {x:rect.left+(p.x+1)*rect.width/2,y:rect.top+(1-p.y)*rect.height/2};
+        };
+        const gap=a.position.map((v,i)=>(v+b.position[i])/2);
+        const border=a.position.map((v,i)=>v+(b.position[i]-v)*(layout.stickerSize/2+layout.cellSize*0.02)/layout.cellSize);
+        return [border,gap].map(position=>{
+          const p=project(position),hit=r.pick(p.x,p.y);
+          return {...p,face:hit?.slot.face,index:hit?.slot.index,valid:[a.index,b.index].includes(hit?.slot.index)};
+        });
+      },size);
+      for(const p of points){assert.equal(p.face,2);assert.equal(p.valid,true);}
+      const gap=points[1],before=await page.evaluate(()=>window.review.moves.length);
+      await page.mouse.move(gap.x,gap.y);await page.mouse.down({button:'left'});
+      await page.mouse.move(gap.x+110,gap.y,{steps:12});await page.mouse.up({button:'left'});
+      await page.waitForFunction(before=>window.review.moves.length===before+1,before);
+    }
+    assert.equal(await page.evaluate(()=>window.review.renderer.pick(0,0)),null);
   }finally{await browser?.close();await vite?.close();}
 });

@@ -1,7 +1,7 @@
 import { FACE_NORMALS, viewFaces } from './view.js';
 import type { FaceName, FaceView } from './view.js';
 import {
-  AmbientLight, BoxGeometry, DirectionalLight, Group, Mesh, MeshStandardMaterial,
+  AmbientLight, Box3, BoxGeometry, DirectionalLight, Group, Mesh, MeshStandardMaterial,
   Raycaster, Vector2, Plane, PerspectiveCamera, Scene, Shape, ShapeGeometry, SRGBColorSpace, Vector3, WebGLRenderer,
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -142,10 +142,23 @@ export class CubeRenderer {
     const ray = this.pointerRay(clientX,clientY);
     this.scene.updateMatrixWorld(true);
     const hit=ray.intersectObjects(this.cubeGroup.children,true)[0];
-    if (!hit) return null;
-    const index=this.instances ? (hit.object===this.instances.stickers ? hit.instanceId : undefined) : this.stickers.indexOf(hit.object as typeof this.stickers[number]);
-    if (index===undefined || index<0) return null;
-    return {slot:buildLayout(this.size,this.layoutOptions).slots[index]!, point:hit.point.clone()};
+    const layout=buildLayout(this.size,this.layoutOptions);
+    const index=hit ? (this.instances ? (hit.object===this.instances.stickers ? hit.instanceId : undefined) : this.stickers.indexOf(hit.object as typeof this.stickers[number])) : undefined;
+    if(index!==undefined&&index>=0)return {slot:layout.slots[index]!,point:hit!.point.clone()};
+    // Plastic borders and gaps belong to the nearest cell on the frontmost face.
+    const half=layout.edgeLength/2;
+    const point=ray.ray.intersectBox(new Box3(new Vector3(-half,-half,-half),new Vector3(half,half,half)),new Vector3());
+    if(!point)return null;
+    const coordinates=point.toArray();
+    const axis=coordinates.reduce((best,value,i)=>Math.abs(value)>Math.abs(coordinates[best]!)?i:best,0);
+    const sign=Math.sign(coordinates[axis]!);
+    let closest:typeof layout.slots[number]|undefined, distance=Infinity;
+    for(const slot of layout.slots){
+      if(slot.normal[axis]!==sign)continue;
+      const next=point.distanceToSquared(new Vector3(...slot.position));
+      if(next<distance){closest=slot;distance=next;}
+    }
+    return closest ? {slot:closest,point} : null;
   }
   private pointerRay(x: number,y: number): Raycaster {
     const rect=this.canvas.getBoundingClientRect();
