@@ -88,6 +88,7 @@ export function attachCloudHistory(account:CloudAccount|undefined,history:SolveH
         if(item.error)continue;
         try{
           const {row}:{row:Row}=await api('solves',{solve:item.entry.solve,penaltyOverride:item.entry.penaltyOverride,deleted:item.deleted,ranked:item.ranked,revision:item.revision});remember(row);
+          if(item.ranked)window.dispatchEvent(new Event('rubik-quest-solve-synced'));
           // A second edit may arrive while a request is in flight.
           let latest=pending.get(id);
           try{

@@ -15,6 +15,7 @@ import type { ColorTheme } from './colors.js';
 import { InstancedCube } from './instanced-cube.js';
 import { SurfaceMaterials } from './surface.js';
 import type { CubeSurface } from './surface.js';
+import { StickerArtwork } from './sticker-artwork.js';
 
 export interface RendererOptions extends LayoutOptions { size?: number; theme?: ColorTheme; surface?: CubeSurface; measurePerformance?: boolean; instancing?: boolean }
 export interface MoveSnapshot { move: Move; stateAfter: Uint8Array }
@@ -72,6 +73,10 @@ export class CubeRenderer {
   private instances: InstancedCube | undefined;
   private readonly instancing: boolean;
   private size = 0;
+  private stickerColors = new Uint8Array(0);
+  private artwork: StickerArtwork | undefined;
+  private artworkGeometries: ShapeGeometry[] = [];
+  private artworkRotations = new Uint8Array(0);
   private theme: ColorTheme;
   private surface: CubeSurface | undefined;
   private surfaceMaterials: SurfaceMaterials | undefined;
@@ -234,14 +239,28 @@ export class CubeRenderer {
     this.assertActive();
     validateDisplayState(state, this.size);
     this.cancelPending();
+    this.artwork?.reset();
     this.paint(state);
     this.notifyIdle();
   }
 
   private paint(state: Uint8Array): void {
     if (this.instances) { this.instances.paint(state, this.theme); return; }
+    this.stickerColors.set(state);
     for (let index = 0; index < this.stickers.length; index++) {
-      this.stickers[index]!.material = this.materials[state[index]!]!;
+      const color = state[index]!;
+      this.stickers[index]!.material = this.surfaceMaterials?.stickerFor(color,this.artwork?.tile(index) ?? index%9) ?? this.materials[color]!;
+      const geometry=this.artworkGeometries[index],turn=this.artwork?.rotation(index) ?? 0;
+      if(geometry && this.artworkRotations[index]!==turn){
+        const base=this.stickerGeometry!.getAttribute('uv'),uv=geometry.getAttribute('uv');
+        for(let point=0;point<uv.count;point++){
+          const u=base.getX(point),v=base.getY(point);
+          uv.setXY(point,turn===0 ? u : turn===1 ? v : turn===2 ? 1-u : 1-v,
+            turn===0 ? v : turn===1 ? 1-u : turn===2 ? 1-v : u);
+        }
+        uv.needsUpdate=true;
+        this.artworkRotations[index]=turn;
+      }
     }
   }
 
@@ -280,6 +299,8 @@ export class CubeRenderer {
   clearQueue(): void {
     this.assertActive();
     const finalState = this.queue.at(-1)?.stateAfter ?? this.active?.item.stateAfter;
+    const skipped=[...(this.active ? [this.active.item] : []),...this.queue];
+    for(const item of skipped)this.artwork?.advance(item.move,item.selection.stickerIndices);
     this.cancelPending();
     if (finalState) this.paint(finalState);
     this.notifyIdle();
@@ -326,7 +347,8 @@ export class CubeRenderer {
     this.assertActive();
     validateTheme(theme);
     this.theme = [...theme];
-    for (let color = 0; color < 6; color++) this.materials[color]!.color.setHex(theme[color]!);
+    if (this.surfaceMaterials) this.surfaceMaterials.setTheme(this.theme);
+    else for (let color = 0; color < 6; color++) this.materials[color]!.color.setHex(theme[color]!);
     this.instances?.setTheme(this.theme);
   }
 
@@ -340,7 +362,18 @@ export class CubeRenderer {
   private applySurface(): void {
     this.surfaceMaterials?.dispose();
     this.surfaceMaterials = new SurfaceMaterials(this.surface ?? {},this.plasticMaterial!,
-      this.materials,this.instances?.stickers.material);
+      this.materials,this.instances?.stickers.material,this.theme,this.size===3);
+    const textured=this.size===3 && Boolean(this.surface?.stickers?.centerMap || this.surface?.stickers?.tileAtlases?.some(Boolean));
+    if(textured && !this.artworkGeometries.length){
+      this.artworkGeometries=this.stickers.map(sticker=>{
+        const geometry=this.stickerGeometry!.clone();sticker.geometry=geometry;return geometry;
+      });
+      this.artworkRotations=new Uint8Array(this.stickers.length).fill(255);
+    }else if(!textured && this.artworkGeometries.length){
+      this.stickers.forEach(sticker=>{sticker.geometry=this.stickerGeometry!;});
+      this.artworkGeometries.forEach(geometry=>geometry.dispose());this.artworkGeometries=[];
+    }
+    if (!this.instances) this.paint(this.stickerColors);
   }
 
   private assertActive(): void {
@@ -356,6 +389,8 @@ export class CubeRenderer {
     this.cubeGroup.clear();
     this.stickers = [];
     this.bodies = [];
+    this.artworkGeometries.forEach(geometry=>geometry.dispose());
+    this.artworkGeometries=[];
     this.geometry?.dispose();
     this.stickerGeometry?.dispose();
     this.plasticMaterial?.dispose();
@@ -365,6 +400,8 @@ export class CubeRenderer {
   private rebuild(layout: CubeLayout): void {
     this.releaseCube();
     this.size = layout.size;
+    this.stickerColors = Uint8Array.from(layout.slots,slot=>slot.face);
+    this.artwork = layout.size===3 ? new StickerArtwork(3) : undefined;
     this.geometry = new BoxGeometry(layout.cubieSize, layout.cubieSize, layout.cubieSize);
     this.stickerGeometry = roundedSticker(layout.stickerSize);
     this.plasticMaterial = new MeshStandardMaterial({ color: 0x171b19, roughness: 0.7 });
@@ -417,6 +454,7 @@ export class CubeRenderer {
         (active.startAngle ?? 0) + (active.item.rotation.angle - (active.startAngle ?? 0)) * animationProgress(active.progress, 1));
       this.instances?.rotate(this.pivot.quaternion);
       if (active.progress < 1) break;
+      this.artwork?.advance(active.item.move,active.item.selection.stickerIndices);
       this.cancelAnimation();
       this.paint(active.item.stateAfter);
       this.startNext();

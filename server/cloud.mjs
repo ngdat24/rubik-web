@@ -35,10 +35,12 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
             throw new HttpError(409,'Cần 500 CB để đổi tên.');
           if(value?.code==='PGRST202'&&path==='/rest/v1/rpc/leaderboard_with_nameplates')
             return request('/rest/v1/rpc/leaderboard',{method,body,auth});
+          if(value?.code==='PGRST202'&&path==='/rest/v1/rpc/save_solve_with_quests')
+            return request('/rest/v1/rpc/save_solve',{method,body,auth});
           if(value?.code==='PGRST202'&&path==='/rest/v1/rpc/time_limit_with_quests')
             return request('/rest/v1/rpc/time_limit_action',{method,body,auth});
           if(value?.code==='P0001'&&value.message==='profile_required'&&
-            ['/rest/v1/rpc/economy_wallet_snapshot','/rest/v1/rpc/economy_progress_snapshot'].includes(path))
+            ['/rest/v1/rpc/economy_wallet_snapshot','/rest/v1/rpc/economy_progress_snapshot','/rest/v1/rpc/economy_quest_heartbeat'].includes(path))
             throw new HttpError(403,'Đặt tên hồ sơ để mở ví.');
           if(value?.code==='P0001'&&path.startsWith('/rest/v1/rpc/practice_')&&Object.hasOwn(practiceErrorMessages,value.message))
             throw new HttpError(value.message==='profile_required'?403:409,practiceErrorMessages[value.message]);
@@ -131,8 +133,9 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
         }}));
       }
       if(route==='quests'){
-        if(req.method!=='GET')throw new HttpError(405,'Phương thức không hợp lệ.');
-        return send(200,await request('/rest/v1/rpc/economy_progress_snapshot',{method:'POST',body:{p_user:user.id}}));
+        if(req.method!=='GET'&&req.method!=='POST')throw new HttpError(405,'Phương thức không hợp lệ.');
+        const operation=req.method==='POST'?'economy_quest_heartbeat':'economy_progress_snapshot';
+        return send(200,await request('/rest/v1/rpc/'+operation,{method:'POST',body:{p_user:user.id}}));
       }
       if(route==='wallet'){
         if(req.method!=='GET')throw new HttpError(405,'Phương thức không hợp lệ.');
@@ -194,7 +197,8 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
         let solve;try{solve=verifySolve(body.solve);}catch(error){throw new HttpError(400,error.message);}
         if(body.penaltyOverride!==null&&!['none','+2','DNF'].includes(body.penaltyOverride))throw new HttpError(400,'Phạt chỉnh không hợp lệ.');
         if(typeof body.deleted!=='boolean'||typeof body.ranked!=='boolean'||(body.revision!==null&&(!Number.isSafeInteger(body.revision)||body.revision<1)))throw new HttpError(400,'Metadata không hợp lệ.');
-        const rows=await request('/rest/v1/rpc/save_solve',{method:'POST',body:{p_user:user.id,p_solve:solve,p_override:body.penaltyOverride,p_deleted:body.deleted,p_ranked:body.ranked&&[2,3].includes(solve.size),p_expected:body.revision}});
+        const operation=body.ranked?'save_solve_with_quests':'save_solve';
+        const rows=await request('/rest/v1/rpc/'+operation,{method:'POST',body:{p_user:user.id,p_solve:solve,p_override:body.penaltyOverride,p_deleted:body.deleted,p_ranked:body.ranked&&[2,3].includes(solve.size),p_expected:body.revision}});
         return send(200,{row:rows[0]});
       }
       throw new HttpError(405,'Phương thức không hợp lệ.');

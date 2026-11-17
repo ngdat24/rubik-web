@@ -1,4 +1,5 @@
 import {t as translate} from './i18n.js';
+import {startQuestHeartbeat} from './quest-heartbeat.js';
 import {browserAccount} from './account.js';
 import {CubeController,loadSettings} from '@rubik/controller';
 import {CubeRenderer,viewMove} from '@rubik/renderer';
@@ -49,7 +50,7 @@ const cleanup:(()=>void)[]=[];
 async function boot():Promise<void>{
   const account=await browserAccount();
   if(!account)throw new Error(translate("Phòng online cần cấu hình Supabase/Vercel. Chế độ LAN chưa phục vụ phòng này."));
-  cleanup.push(account.dispose);
+  cleanup.push(account.dispose,startQuestHeartbeat(account));
   const board=solo?mountTimeLimitBoard():undefined;if(board)cleanup.push(board.dispose);
   const targetLabel=document.querySelector<HTMLElement>('#time-limit-target');
   const showTarget=(value:string,playing=false)=>{if(targetLabel)targetLabel.textContent=(playing?translate("Đang chơi: "):translate("Sẽ chơi: "))+({oneFace:translate("1 mặt"),f2lRush:'F2L',fullSolve:'full'} as Record<string,string>)[value];};

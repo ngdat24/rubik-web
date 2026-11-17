@@ -147,3 +147,65 @@ test('shop translates catalogue, preview, confirmation and season in English', {
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   }finally{await browser?.close();if(server){server.closeAllConnections();await new Promise(r=>server.close(r));}rmSync(dir,{recursive:true,force:true});}
 });
+
+
+test('PCB artwork follows physical stickers through turns, queue clearing and snapshot reset',{timeout:60000},async()=>{
+  const {createServer:createViteServer}=await import('vite');
+  let vite,browser;
+  try{
+    vite=await createViteServer({configFile:false,root:resolve('.'),publicDir:resolve('apps/web/public'),
+      server:{host:'127.0.0.1',port:0},plugins:[{name:'artwork-regression-page',configureServer(server){
+        server.middlewares.use((req,res,next)=>{
+          if(req.url!=='/')return next();
+          res.setHeader('Content-Type','text/html');
+          res.end('<!doctype html><div id="cube" style="width:600px;height:500px"></div>');
+        });
+      }}]});
+    await vite.listen();const base='http://127.0.0.1:'+vite.httpServer.address().port;
+    browser=await chromium.launch({channel:'chrome',headless:true,args:['--enable-webgl','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+    const page=await browser.newPage();await page.goto(base);
+    await page.evaluate(async()=>{
+      const {CubeRenderer}=await import('/packages/renderer/src/cube-renderer.ts');
+      const engine=await import('/packages/engine/src/index.ts');
+      const surface={stickers:{roughness:0.5,metalness:0,opacity:1,normalScale:0,replaceColor:true,
+        tileAtlases:Array(6).fill('/assets/skins/epic_pcb_circuit_01/board_r.png')}};
+      const renderer=new CubeRenderer(document.querySelector('#cube'),{surface});renderer.setInstant(true);
+      window.artworkReview={renderer,engine,surface};
+    });
+    await page.waitForFunction(()=>window.artworkReview.renderer.stickers[9].material.map?.image?.width===768);
+    const result=await page.evaluate(async()=>{
+      const {renderer:r,engine,surface}=window.artworkReview;
+      const from=9,to=engine.compileMove('R',3)[from],cube=new engine.Cube(3);
+      const beforeCrop=r.stickers[from].material.map.offset.toArray();
+      const originalUv=Array.from(r.stickers[from].geometry.getAttribute('uv').array);
+      const turn=async move=>{cube.applyMove(move);r.enqueueMove(move,cube.state);await new Promise(resolve=>{r.onIdle=resolve;});};
+      await turn('R');
+      const afterCrop=r.stickers[to].material.map.offset.toArray();
+      const uv=r.stickers[to].geometry.getAttribute('uv');
+      const rotatedUv=[uv.getX(0),uv.getY(0)];
+      await turn('R');await turn('R');await turn('R');
+      const restoredUv=Array.from(r.stickers[from].geometry.getAttribute('uv').array);
+      r.setState(engine.solvedState(3));
+      cube.state=engine.solvedState(3);
+      for(const move of ['R','U']){cube.applyMove(move);r.enqueueMove(move,cube.state);}
+      r.clearQueue();
+      const destination=engine.compileMove('U',3)[to];
+      const clearedCrop=r.stickers[destination].material.map.offset.toArray();
+      r.setSurface({...surface});
+      const reappliedTile=r.artwork.tile(destination);
+      r.setState(engine.solvedState(3));
+      const resetUv=Array.from(r.stickers[from].geometry.getAttribute('uv').array);
+      const pending=r.pendingMoveCount;
+      r.setSurface();const released=r.artworkGeometries.length;
+      for(const size of [2,4,6]){r.setSize(size);r.setState(engine.solvedState(size));}
+      r.dispose();
+      return {beforeCrop,afterCrop,originalUv,rotatedUv,restoredUv,clearedCrop,reappliedTile,resetUv,pending,released};
+    });
+    assert.deepEqual(result.afterCrop,result.beforeCrop);
+    assert.ok(Math.abs(result.rotatedUv[0]-(1-result.originalUv[1]))<1e-6);
+    assert.ok(Math.abs(result.rotatedUv[1]-result.originalUv[0])<1e-6);
+    for(const uv of [result.restoredUv,result.resetUv])uv.forEach((value,i)=>assert.ok(Math.abs(value-result.originalUv[i])<1e-6));
+    assert.deepEqual(result.clearedCrop,result.beforeCrop);
+    assert.equal(result.reappliedTile,0);assert.equal(result.pending,0);assert.equal(result.released,0);
+  }finally{await browser?.close();await vite?.close();}
+});

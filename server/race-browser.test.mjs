@@ -56,12 +56,17 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
         // software GPU; keep a bounded startup wait without relaxing match tests.
         try{await expect(page.locator('#race-name-dialog')).toBeVisible({timeout:15000});}
         catch(error){throw new Error(`${error.message}\nApp status: ${await page.locator('#race-message').textContent()}\nBrowser errors: ${JSON.stringify(errors)}`,{cause:error});}
-        await page.locator('#race-name').fill('An');await page.locator('#race-name-form button').click();
+        const submitName=async expectedStatus=>{
+          // This form saves through fetch; wait for its ACK, not a navigation barrier.
+          const [response]=await Promise.all([
+            page.waitForResponse(r=>r.url().endsWith('/api/player')&&r.request().method()==='POST',{timeout:10000}),
+            page.locator('#race-name-form button').click({noWaitAfter:true})
+          ]);
+          assert.equal(response.status(),expectedStatus,JSON.stringify(await response.json()));
+        };
+        await page.locator('#race-name').fill('An');await submitName(409);
         await expect(page.locator('#race-name-error')).toContainText('chọn tên khác');
-        await page.locator('#race-name').fill('Bình');
-        const saved=page.waitForResponse(r=>r.url().endsWith('/api/player')&&r.request().method()==='POST');
-        await page.locator('#race-name-form button').click();
-        const response=await saved;assert.equal(response.status(),200,JSON.stringify(await response.json()));
+        await page.locator('#race-name').fill('Bình');await submitName(200);
         await expect(page.locator('#race-name-dialog')).not.toBeVisible();
       }
       await expect(page.locator('#viewport canvas')).toBeVisible();await expect(page.locator('#opponent-viewport canvas')).toBeVisible();

@@ -28,6 +28,8 @@ export function mountWallet(account:CloudAccount|undefined) {
   const changed=()=>void refresh();
   window.addEventListener('rubik-profile-updated',changed);
   window.addEventListener('online',changed);
+  window.addEventListener('rubik-quest-solve-synced',changed);
+  window.addEventListener('rubik-quest-reward-changed',changed);
   document.addEventListener('visibilitychange',changed);
   window.addEventListener('rubik-shop-updated',changed);
   void refresh();
@@ -35,6 +37,8 @@ export function mountWallet(account:CloudAccount|undefined) {
     abort.abort();
     window.removeEventListener('rubik-profile-updated',changed);
     window.removeEventListener('online',changed);
+    window.removeEventListener('rubik-quest-solve-synced',changed);
+    window.removeEventListener('rubik-quest-reward-changed',changed);
     document.removeEventListener('visibilitychange',changed);
     window.removeEventListener('rubik-shop-updated',changed);
   }};

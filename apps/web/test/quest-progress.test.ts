@@ -2,13 +2,14 @@ import {afterEach,expect,it,vi} from 'vitest';
 import {mountQuestProgress} from '../src/quest-progress.js';
 import type {CloudAccount} from '../src/account.js';
 vi.mock('../src/i18n.js',()=>({t:(text:string)=>text}));
+vi.mock('../src/quest-heartbeat.js',()=>({startQuestHeartbeat:()=>()=>{}}));
 afterEach(()=>vi.unstubAllGlobals());
 it('defers hidden quest requests and refreshes on return, then detaches',async()=>{
-  const panel={hidden:true},tasks={replaceChildren:vi.fn()},streak={textContent:''},bests={textContent:''};
+  const panel={hidden:true},tasks={replaceChildren:vi.fn((..._items:{textContent:string}[])=>{})},streak={textContent:''},bests={textContent:''};
   const elements:Record<string,unknown>={'#quest-panel':panel,'#quest-tasks':tasks,'#quest-streak':streak,'#quest-bests':bests};
   const doc=Object.assign(new EventTarget(),{hidden:true,querySelector:(selector:string)=>elements[selector],createElement:()=>({textContent:''})});
   const win=new EventTarget();
-  const fetcher=vi.fn(async()=>({ok:true,json:async()=>({completed:5,streak:3,counts:[0,10,0,0],pbs:[]})}));
+  const fetcher=vi.fn(async()=>({ok:true,json:async()=>({completed:1,streak:3,counts:[5,1,0],onlineSeconds:300,pbs:[]})}));
   vi.stubGlobal('document',doc);vi.stubGlobal('window',win);vi.stubGlobal('fetch',fetcher);
   const quests=mountQuestProgress({token:async()=> 'fixture'} as CloudAccount);
   await quests.refresh();win.dispatchEvent(new Event('online'));win.dispatchEvent(new Event('focus'));
@@ -16,6 +17,7 @@ it('defers hidden quest requests and refreshes on return, then detaches',async()
   doc.hidden=false;doc.dispatchEvent(new Event('visibilitychange'));
   await vi.waitFor(()=>expect(panel.hidden).toBe(false));
   expect(tasks.replaceChildren).toHaveBeenCalledTimes(1);
+  expect(tasks.replaceChildren.mock.lastCall?.[0].textContent).toContain('2×2 5/5');
   expect(streak.textContent).toContain('3/7');
   quests.dispose();doc.dispatchEvent(new Event('visibilitychange'));win.dispatchEvent(new Event('online'));
   await quests.refresh();expect(fetcher).toHaveBeenCalledTimes(1);

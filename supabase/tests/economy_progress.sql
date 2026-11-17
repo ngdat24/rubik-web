@@ -24,7 +24,7 @@ begin
       'scrambleSource','generated','penalty','+2');
     perform public.practice_finish(player,challenge,payload,12,3500,true);
   end loop;
-  if public.economy_quest_counts(player,global_test_day) <> array[0,0,0,0]
+  if public.economy_quest_counts(player,global_test_day) <> array[0,0,0]
     or exists(select 1 from public.economy_personal_bests where user_id=player) then
     raise exception 'Old eligibility leaked into quests or PB';
   end if;
@@ -41,7 +41,7 @@ begin
     or (select sum(zn) from public.economy_pb_rewards where user_id=player)<>1
     then raise exception 'Incorrect single or mo3 payout'; end if;
   best:=public.economy_progress_snapshot(player);
-  if (best->>'completed')::integer<>5 then raise exception 'Solo quests 1 and 3 should be finished: %',best; end if;
+  if (best->>'completed')::integer<>0 then raise exception 'Practice challenges alone should not count toward the new quests: %',best; end if;
 
   -- Daily CB cap does not consume the remaining weekly ZN entitlement.
   insert into public.economy_pb_rewards(user_id,challenge_id,stat,reward_day,cb,zn) values
@@ -76,13 +76,9 @@ begin
     insert into public.time_limit_sessions(id,user_id,mode,seed,start_ms)
       values(session,capped,'fullSolve','test',0);
     insert into public.economy_time_limit_finished(session_id,user_id,quest_day) values(session,capped,quest_date);
-    for idx in 1..10 loop
-      seed:=lpad(to_hex(1000+offset_days*10+idx),64,'0');
-      insert into public.practice_challenges(id,user_id,seed,size,issued_at,completed_at,solve,solve_id,move_count,effective_ms,eligible)
-        values(gen_random_uuid(),capped,seed,3,quest_date::timestamp at time zone 'Asia/Ho_Chi_Minh',
-          (quest_date::timestamp+interval '1 minute') at time zone 'Asia/Ho_Chi_Minh',
-          '{}',seed,20,30000,true);
-    end loop;
+    insert into public.solves(id,user_id,solve,size,time_ms,ranked) values(session,capped,'{}',4,30000,false);
+    insert into public.economy_quest_solves values(session,capped,quest_date,4);
+    insert into public.economy_quest_presence values(capped,quest_date,clock_timestamp(),600000);
     perform public.economy_refresh_quests(capped,quest_date);
   end loop;
   if not exists(select 1 from public.economy_daily_quests where user_id=capped and quest_day=global_test_day-1
