@@ -1,7 +1,22 @@
 import {expect,it} from 'vitest';
-import {compileMove,invert,parseMove} from '@rubik/engine';
+import {Cube,compileMove,invert,parseMove,scrambleAt} from '@rubik/engine';
 import {layerSlots} from '../src/layout.js';
 import {StickerArtwork} from '../src/sticker-artwork.js';
+
+it('restores the exact unique 2×2 artwork and orientation from scrambled color snapshots',()=>{
+  for(let seed=0;seed<100;seed++){
+    const moves=[...scrambleAt('champion-artwork-'+seed,2,0), 'x','y',"z'"];
+    const cube=new Cube(2),animated=new StickerArtwork(2),restored=new StickerArtwork(2);
+    for(const move of moves){cube.applyMove(move);animated.advance(move,layerSlots(parseMove(move,2),2).stickerIndices);}
+    restored.reset(cube.state);
+    for(let i=0;i<24;i++){expect(restored.tile(i)).toBe(animated.tile(i));expect(restored.rotation(i)).toBe(animated.rotation(i));}
+    for(const color of [0,3])expect([...cube.state].filter((c,i)=>c===color&&restored.tile(i)===0)).toHaveLength(1);
+    for(const move of invert(moves,2)){cube.applyMove(move);restored.advance(move,layerSlots(parseMove(move,2),2).stickerIndices);}
+    for(let i=0;i<24;i++){expect(restored.tile(i)).toBe(i%4);expect(restored.rotation(i)).toBe(0);}
+    restored.reset(new Cube(2).state);
+    for(let i=0;i<24;i++)expect(restored.tile(i)).toBe(i%4);
+  }
+});
 
 it('keeps the original atlas tile and rotates its UV basis through R',()=>{
   const art=new StickerArtwork(3);
