@@ -6,8 +6,8 @@ import {t} from './i18n.js';
 interface Progress {
   completed:number;
   streak:number;
-  counts:[number,number,number];
-  onlineSeconds:number;
+  counts:[number,number,number,number];
+  best3x3Ms:number|null;
   pbs:{size:number;kind:'single'|'mo3'|'ao5'|'ao12';timeMs:number}[];
 }
 
@@ -28,12 +28,12 @@ export function mountQuestProgress(account:CloudAccount|undefined) {
       }).then(response=>response.ok ? response.json() as Promise<Progress> : undefined);
       if (!state) return;
       if (id!==latest || abort.signal.aborted) return;
-      const [two,three,large]=state.counts;
+      const [two,three,four,large]=state.counts;
       const list=[
-        t('Giải 5 lượt 2×2, 3 lượt 3×3 hoặc 1 lượt khối 4×4–10×10')+
-          ' · 2×2 '+Math.min(two,5)+'/5 · 3×3 '+Math.min(three,3)+'/3 · 4×4–10×10 '+Math.min(large,1)+'/1',
+        t('Giải 10 lượt 2×2, 5 lượt 3×3, 3 lượt 4×4 hoặc 1 lượt khối 5×5–10×10')+
+          ' · 2×2 '+Math.min(two,10)+'/10 · 3×3 '+Math.min(three,5)+'/5 · 4×4 '+Math.min(four,3)+'/3 · 5×5–10×10 '+Math.min(large,1)+'/1',
         t('Hoàn thành một phiên Time Limit ở chế độ bất kỳ'),
-        t('Online 10 phút')+' · '+formatTime((state.onlineSeconds ?? 0)*1000)+' / 10:00'
+        t('Giải 3×3 dưới 1 phút 10 giây')+' · '+(state.best3x3Ms==null?'—':formatTime(state.best3x3Ms))+' / < 1:10'
       ];
       tasks.replaceChildren(...list.map((label,index)=>{
         const item=document.createElement('li');
@@ -41,7 +41,7 @@ export function mountQuestProgress(account:CloudAccount|undefined) {
         return item;
       }));
       streak.textContent=t('Chuỗi chuyên cần')+` · ${state.streak}/7`;
-      bests.textContent=state.pbs.map(({size,kind,timeMs})=>`${size}×${size} ${kind} ${formatTime(timeMs)}`).join(' · ');
+      bests.textContent=state.pbs.map(({size,kind,timeMs})=>`${size}×${size} ${kind==='mo3'?'ao3':kind} ${formatTime(timeMs)}`).join(' · ');
       panel.hidden=false;
     } catch {/* Keep the latest result visible when a refresh fails. */}
   }
