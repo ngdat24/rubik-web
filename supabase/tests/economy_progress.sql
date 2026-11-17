@@ -5,6 +5,10 @@ insert into auth.users(id,email) values
 insert into public.profiles(id,name) values
   ('f1444444-4444-4444-8444-444444444444','Progress Test'),
   ('f1555555-5555-4555-8555-555555555555','Progress Cap Test');
+-- Isolate these reward/spending fixtures from the separately tested signup gift.
+select public.economy_change_balance('f1444444-4444-4444-8444-444444444444','CB',-200,'fixture_signup_offset',null);
+select public.economy_change_balance('f1555555-5555-4555-8555-555555555555','CB',-200,'fixture_signup_offset',null);
+
 set local role service_role;
 do $$
 declare

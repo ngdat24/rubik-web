@@ -3,6 +3,9 @@ insert into auth.users(id,email)
   values ('f1666666-6666-4666-8666-666666666666','time-eco@example.invalid');
 insert into public.profiles(id,name)
   values ('f1666666-6666-4666-8666-666666666666','Time Economy Test');
+-- Isolate these reward/spending fixtures from the separately tested signup gift.
+select public.economy_change_balance('f1666666-6666-4666-8666-666666666666','CB',-200,'fixture_signup_offset',null);
+
 set local role service_role;
 do $$
 declare
