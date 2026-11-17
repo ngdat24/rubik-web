@@ -29,14 +29,17 @@ begin
   end loop;
 
   for i in 1..3 loop
-    solve:=jsonb_build_object('id','verified-five-'||i,'size',5,'timeMs',2500,'penalty','none');
+    solve:=jsonb_build_object('id','verified-three-'||i,'size',3,'timeMs',2500,'penalty','none');
     perform public.save_solve_with_quests(q,solve,null,false,false,null);
     result:=public.economy_progress_snapshot(q);
     if result->'counts'->>1<>i::text or (result->>'completed')::int<>(case when i=3 then 1 else 0 end)
-      then raise exception '5x5 needs exactly three solves: %',result; end if;
+      then raise exception '3x3 needs exactly three solves: %',result; end if;
   end loop;
   perform public.save_solve_with_quests(p,'{"id":"verified-six","size":6,"timeMs":3500,"penalty":"+2"}',null,false,false,null);
   if public.economy_quest_counts(p,day)<>array[5,0,1] then raise exception 'Large range not credited'; end if;
+
+  perform public.save_solve_with_quests(p,'{"id":"verified-five","size":5,"timeMs":3500,"penalty":"none"}',null,false,false,null);
+  if public.economy_quest_counts(p,day)<>array[5,0,2] then raise exception '5x5 must count in large range'; end if;
 
   insert into public.time_limit_sessions(id,user_id,mode,seed,start_ms,abandoned)
     values(repeat('d',32),p,'f2lRush','demo',stamp-202000,true);

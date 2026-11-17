@@ -28,10 +28,10 @@ export function mountQuestProgress(account:CloudAccount|undefined) {
       }).then(response=>response.ok ? response.json() as Promise<Progress> : undefined);
       if (!state) return;
       if (id!==latest || abort.signal.aborted) return;
-      const [two,five,large]=state.counts;
+      const [two,three,large]=state.counts;
       const list=[
-        t('Giải 5 lượt 2×2, 3 lượt 5×5 hoặc 1 lượt khối từ 4×4 (riêng 5×5 cần 3 lượt)')+
-          ' · 2×2 '+Math.min(two,5)+'/5 · 5×5 '+Math.min(five,3)+'/3 · 4×4, 6×6–10×10 '+Math.min(large,1)+'/1',
+        t('Giải 5 lượt 2×2, 3 lượt 3×3 hoặc 1 lượt khối 4×4–10×10')+
+          ' · 2×2 '+Math.min(two,5)+'/5 · 3×3 '+Math.min(three,3)+'/3 · 4×4–10×10 '+Math.min(large,1)+'/1',
         t('Hoàn thành một phiên Time Limit ở chế độ bất kỳ'),
         t('Online 10 phút')+' · '+formatTime((state.onlineSeconds ?? 0)*1000)+' / 10:00'
       ];
