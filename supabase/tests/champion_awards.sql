@@ -34,6 +34,14 @@ begin
   perform public.champion_claim(a,3,'borderless','Other Size');
   if jsonb_array_length(public.champion_snapshot(a)->'awards')<>2 then raise exception 'Size isolation'; end if;
   if public.champion_snapshot(b)->'awards'<>'[]'::jsonb then raise exception 'Other user inherited award'; end if;
+  perform public.champion_grant(b,3);
+  begin
+    perform public.champion_claim(b,2,'classic','Wrong Size');
+    raise exception '3x3 permission also granted 2x2';
+  exception when raise_exception then
+    if sqlerrm<>'champion_not_granted' then raise; end if;
+  end;
+  if jsonb_array_length(public.champion_snapshot(b)->'awards')<>1 then raise exception 'Size permission leaked'; end if;
   perform public.economy_lock_wallet(a);
   update public.user_wallets set cubit_balance=1000 where user_id=a;
   perform public.champion_rename(a,2,'Renamed','c3333333-3333-4333-8333-333333333333');

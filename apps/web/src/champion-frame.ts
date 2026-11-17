@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {championAssets,championSizeAssets} from './champion-design.js';
 import type {ChampionSize} from './champion-design.js';
 import './champion-frame.css';
@@ -10,7 +11,7 @@ export function mountChampionFrame(viewport:HTMLElement,name:string,size:Champio
   logo.alt='Rubik Lab';
   logo.className='champion-frame__logo';
   signature.src=championSizeAssets(size)+'frame_signature.png';
-  signature.alt='Chữ ký Champion';
+  signature.alt=t('Chữ ký Champion');
   signature.className='champion-frame__signature';
   const title=document.createElement('p');
   title.className='champion-frame__title';

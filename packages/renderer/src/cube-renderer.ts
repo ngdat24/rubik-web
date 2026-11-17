@@ -18,7 +18,7 @@ import type { CubeSurface } from './surface.js';
 import { StickerArtwork } from './sticker-artwork.js';
 import {mouseOrbit} from './mouse-orbit.js';
 
-export interface RendererOptions extends LayoutOptions { size?: number; theme?: ColorTheme; surface?: CubeSurface; measurePerformance?: boolean; instancing?: boolean; centerCornerRatio?: number; coreMagnetColor?: number; fillLightIntensity?: number; resinCoreColor?: number; coreGemColor?: number }
+export interface RendererOptions extends LayoutOptions { size?: number; theme?: ColorTheme; surface?: CubeSurface; measurePerformance?: boolean; instancing?: boolean; centerCornerRatio?: number; coreMagnetColor?: number; fillLightIntensity?: number; resinCoreColor?: number; coreGemColor?: number; detailSize?: 2|3 }
 export interface MoveSnapshot { move: Move; stateAfter: Uint8Array }
 interface PreparedMove extends MoveSnapshot {
   rotation: ReturnType<typeof rotationFor>;
@@ -95,6 +95,7 @@ export class CubeRenderer {
   private surface: CubeSurface | undefined;
   private surfaceMaterials: SurfaceMaterials | undefined;
   private readonly layoutOptions: RendererOptions;
+  private fillLight:DirectionalLight|undefined;
   private readonly observer: ResizeObserver;
   private frame = 0;
   private disposed = false;
@@ -129,6 +130,7 @@ export class CubeRenderer {
     this.scene.add(light);
     if (options.fillLightIntensity) {
       const fill = new DirectionalLight(0xffffff,options.fillLightIntensity);
+      this.fillLight=fill;
       fill.position.set(-4,-5,-6);
       this.scene.add(fill);
     }
@@ -159,7 +161,7 @@ export class CubeRenderer {
     const ray = this.pointerRay(clientX,clientY);
     this.scene.updateMatrixWorld(true);
     const hit=ray.intersectObjects(this.cubeGroup.children,true)[0];
-    const layout=buildLayout(this.size,this.layoutOptions);
+    const layout=buildLayout(this.size,this.optionsForSize(this.size));
     const index=hit ? (this.instances ? (hit.object===this.instances.stickers ? hit.instanceId : undefined) : this.stickers.indexOf(hit.object as typeof this.stickers[number])) : undefined;
     if(index!==undefined&&index>=0)return {slot:layout.slots[index]!,point:hit!.point.clone()};
     // Plastic borders and gaps belong to the nearest cell on the frontmost face.
@@ -214,7 +216,7 @@ export class CubeRenderer {
     const parsed=parseMove(move,this.size);
     const {axis,angle}=rotationFor(parsed);
     const {stickerIndices}=layerSlots(parsed,this.size);
-    const layout=buildLayout(this.size,this.layoutOptions);
+    const layout=buildLayout(this.size,this.optionsForSize(this.size));
     const rect=this.canvas.getBoundingClientRect();
     this.camera.updateMatrixWorld();
     const spin=new Vector3(...axis);
@@ -238,7 +240,7 @@ export class CubeRenderer {
 
   getViewFaces() {
     this.camera.updateMatrixWorld();
-    const half=buildLayout(this.size,this.layoutOptions).edgeLength/2;
+    const half=buildLayout(this.size,this.optionsForSize(this.size)).edgeLength/2;
     const views:FaceView[]=[];
     for(const face of Object.keys(FACE_NORMALS) as FaceName[]){
       const n=new Vector3(...FACE_NORMALS[face]),centre=n.clone().multiplyScalar(half),p=centre.clone().project(this.camera);
@@ -255,7 +257,7 @@ export class CubeRenderer {
 
   getPickTargets() {
     const rect=this.canvas.getBoundingClientRect();this.camera.updateMatrixWorld();
-    return buildLayout(this.size,this.layoutOptions).slots.flatMap(slot=>{
+    return buildLayout(this.size,this.optionsForSize(this.size)).slots.flatMap(slot=>{
       const p=new Vector3(...slot.position).project(this.camera);
       const x=rect.left+(p.x+1)*rect.width/2,y=rect.top+(1-p.y)*rect.height/2;
       return this.pick(x,y)?.slot.index===slot.index ? [{x,y,index:slot.index}] : [];
@@ -297,7 +299,7 @@ export class CubeRenderer {
   /** Rebuild only the cube; preserve the camera, canvas, controls and render loop. */
   setSize(size: number): void {
     this.assertActive();
-    const layout = buildLayout(size, this.layoutOptions);
+    const layout = buildLayout(size, this.optionsForSize(size));
     this.cancelPending();
     if (size !== this.size) this.rebuild(layout);
     this.notifyIdle();
@@ -482,32 +484,39 @@ export class CubeRenderer {
     for (const material of this.materials) material.dispose();
   }
 
+  private optionsForSize(size:number):RendererOptions {
+    if(this.layoutOptions.detailSize===undefined||this.layoutOptions.detailSize===size)return this.layoutOptions;
+    return this.layoutOptions.edgeLength===undefined ? {} : {edgeLength:this.layoutOptions.edgeLength};
+  }
+
   private rebuild(layout: CubeLayout): void {
+    const details=this.optionsForSize(layout.size);
+    if(this.fillLight)this.fillLight.visible=this.layoutOptions.detailSize===undefined||this.layoutOptions.detailSize===layout.size;
     this.releaseCube();
     this.size = layout.size;
     this.stickerColors = Uint8Array.from(layout.slots,slot=>slot.face);
     this.artwork = layout.size<=3 ? new StickerArtwork(layout.size) : undefined;
     this.geometry = new BoxGeometry(layout.cubieSize, layout.cubieSize, layout.cubieSize);
     this.stickerGeometry = roundedSticker(layout.stickerSize);
-    if (layout.size===3 && this.layoutOptions.centerCornerRatio !== undefined) {
-      this.centerGeometry=roundedSticker(layout.stickerSize,Math.max(0.09,Math.min(0.45,this.layoutOptions.centerCornerRatio)));
+    if (layout.size===3 && details.centerCornerRatio !== undefined) {
+      this.centerGeometry=roundedSticker(layout.stickerSize,Math.max(0.09,Math.min(0.45,details.centerCornerRatio)));
     }
-    if (layout.size<=3 && this.layoutOptions.coreMagnetColor !== undefined) {
+    if (layout.size<=3 && details.coreMagnetColor !== undefined) {
       const unit=layout.cellSize;
       this.magnetGeometry=new CylinderGeometry(unit*0.112,unit*0.13,unit*0.038,32);
       this.magnetRimGeometry=new TorusGeometry(unit*0.106,unit*0.013,10,32);
       this.magnetMaterial=new MeshStandardMaterial({color:0xab6b16,roughness:0.35,metalness:0.39});
-      this.magnetRimMaterial=new MeshStandardMaterial({color:this.layoutOptions.coreMagnetColor,roughness:0.23,metalness:0.35,emissive:0x9c6506,emissiveIntensity:0.20});
-      if(this.layoutOptions.coreGemColor!==undefined){
+      this.magnetRimMaterial=new MeshStandardMaterial({color:details.coreMagnetColor,roughness:0.23,metalness:0.35,emissive:0x9c6506,emissiveIntensity:0.20});
+      if(details.coreGemColor!==undefined){
         this.coreGemGeometry=new OctahedronGeometry(unit*0.076);
         this.coreGemGeometry.scale(1,.30,1);
-        this.coreGemMaterial=new MeshPhysicalMaterial({color:this.layoutOptions.coreGemColor,roughness:0.13,
+        this.coreGemMaterial=new MeshPhysicalMaterial({color:details.coreGemColor,roughness:0.13,
           metalness:0.12,clearcoat:0.96,clearcoatRoughness:0.08,flatShading:true,emissive:0x639cbd,emissiveIntensity:0.26});
       }
     }
     this.plasticMaterial = new MeshStandardMaterial({ color: 0x171b19, roughness: 0.7 });
-    if (layout.size <= 3 && this.layoutOptions.resinCoreColor !== undefined) {
-      this.resinMaterial=new MeshPhysicalMaterial({color:this.layoutOptions.resinCoreColor,transparent:true,opacity:0.38,
+    if (layout.size <= 3 && details.resinCoreColor !== undefined) {
+      this.resinMaterial=new MeshPhysicalMaterial({color:details.resinCoreColor,transparent:true,opacity:0.38,
         depthWrite:false,roughness:0.23,metalness:0,clearcoat:0.83,clearcoatRoughness:0.16,emissive:0x886324,emissiveIntensity:0.16});
       this.resinInsert=new MeshStandardMaterial({color:0xc6aa6f,roughness:0.33,metalness:0.08,emissive:0x735a29,emissiveIntensity:0.24});
       const insertSize=layout.cubieSize*0.63;

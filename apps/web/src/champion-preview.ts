@@ -1,3 +1,4 @@
+import {language,t} from './i18n.js';
 import {CubeController} from '@rubik/controller';
 import {CubeRenderer} from '@rubik/renderer';
 import {attachDrag} from './drag.js';
@@ -13,8 +14,8 @@ import {newId} from './id.js';
 import './champion-preview.css';
 
 const modes:Record<Variant,{title:string; description:string}> = {
-  borderless:{title:'Không viền',description:'Màu phủ sát mép, chỉ vàng mảnh ôm khe và lõi nhựa vàng trong. Tâm trắng có chữ ký, tâm vàng có logo ĐS lửa.'},
-  classic:{title:'Viền đen',description:'Viền carbon đen, chỉ vàng sát mép và lõi nhựa vàng trong. Tâm vàng có logo ĐS lửa dập nổi.'}
+  borderless:{title:t('Không viền'),description:t('Màu phủ sát mép, chỉ vàng mảnh ôm khe và lõi nhựa vàng trong. Tâm trắng có chữ ký, tâm vàng có logo ĐS lửa.')},
+  classic:{title:t('Viền đen'),description:t('Viền carbon đen, chỉ vàng sát mép và lõi nhựa vàng trong. Tâm vàng có logo ĐS lửa dập nổi.')}
 };
 const el=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
 const params=new URLSearchParams(location.search);
@@ -42,7 +43,7 @@ if(!localDemo){
     const award=account?(await championAwards(account)).find(row=>row.size===size):undefined;
     canClaim=Boolean(award);
     if(award?.variant)claim={variant:award.variant,name:award.name};
-  } catch(error){accountError=error instanceof Error?error.message:'Không tải được quyền nhận Champion.';}
+  } catch(error){accountError=error instanceof Error?t(error.message):t('Không tải được quyền nhận Champion.');}
 }
 let selected:Variant=claim?.variant ?? 'borderless';
 let pending:Claim|undefined;
@@ -54,7 +55,7 @@ let reversed=false;
 let motion:ReturnType<typeof mountChampionMotion>|undefined;
 
 const design=await loadChampionDesign(size);
-title.placeholder=design.name;
+title.placeholder=t(design.name);
 const palette=skinPalette(design);
 for(const [index,face] of faces.entries()){
   const li=document.createElement('li'),swatch=document.createElement('i');
@@ -68,7 +69,7 @@ function unlockCore() {
   coreOpen=false;
   controller?.unlockInput('champion-core');
   core.setAttribute('aria-pressed','false');
-  core.textContent='Hé xem nam châm';
+  core.textContent=t('Hé xem nam châm');
 }
 function mount() {
   stage.classList.remove('turn');
@@ -86,15 +87,15 @@ function mount() {
   coreOpen=false;
   unlockCore();
   reversed=false;
-  camera.textContent='Góc D/B/L';
+  camera.textContent=t('Góc D/B/L');
   el('variant-name').textContent=modes[selected].title;
-  el('variant-copy').textContent=size===2?'Chữ ký trên một ô góc trắng. Logo ĐS lửa ở một ô góc vàng.':modes[selected].description;
+  el('variant-copy').textContent=size===2?t('Chữ ký trên một ô góc trắng. Logo ĐS lửa ở một ô góc vàng.'):modes[selected].description;
   for(const mode of ['classic','borderless'] as const)el(mode).setAttribute('aria-pressed',String(mode===selected));
   scan.src=scanLink.href=assetRoot+'scan_'+selected+'.png';
   const practiceLink=el<HTMLAnchorElement>('practice-link');
-  practiceLink.href='/?lang=vi&champion='+(claim?.variant??selected)+'&championSize='+size;
+  practiceLink.href='/?lang='+language+'&champion='+(claim?.variant??selected)+'&championSize='+size;
   practiceLink.hidden=!localDemo&&!claim;
-  scan.alt='Scan sáu mặt của Apex Chrono phiên bản '+modes[selected].title.toLowerCase();
+  scan.alt=t('Scan sáu mặt của Apex Chrono phiên bản ')+modes[selected].title.toLowerCase();
 }
 for(const mode of ['classic','borderless'] as const)el(mode).addEventListener('click',()=>{
   if(selected===mode)return;
@@ -115,14 +116,14 @@ core.onclick=()=>{
   controller.lockInput('champion-core');
   coreOpen=true;
   core.setAttribute('aria-pressed','true');
-  core.textContent='Đóng lớp trên';
+  core.textContent=t('Đóng lớp trên');
 };
 camera.onclick=()=>{
   unlockCore();
   reversed=!reversed;
   renderer?.setCameraView(reversed?'dbl':'ufr');
   renderer?.zoomBy(.92);
-  camera.textContent=reversed?'Góc U/F/R':'Góc D/B/L';
+  camera.textContent=reversed?t('Góc U/F/R'):t('Góc D/B/L');
 };
 el('audio').addEventListener('click',()=>motion?.play());
 
@@ -130,22 +131,22 @@ function updateClaim() {
   if(!claim){
     title.disabled=!canClaim;
     form.querySelector('button')!.disabled=!canClaim;
-    el('claim-note').textContent=accountError||(localDemo?'Demo local: lựa chọn chỉ lưu trên trình duyệt này.':canClaim
-      ?'Bạn được cấp quyền nhận. Kiểu viền cố định; đổi tên sau khi nhận tốn 500 CB/lần.'
-      :'Bạn có thể xem thử; hồ sơ này chưa được chủ web cấp quyền nhận skin.');
+    el('claim-note').textContent=accountError||(localDemo?t('Demo local: lựa chọn chỉ lưu trên trình duyệt này.'):canClaim
+      ?t('Bạn được cấp quyền nhận. Kiểu viền cố định; đổi tên sau khi nhận tốn 500 CB/lần.')
+      :t('Bạn có thể xem thử; hồ sơ này chưa được chủ web cấp quyền nhận skin.'));
     return;
   }
   title.value=claim.name;
   title.disabled=true;
   form.querySelector('button')!.disabled=true;
-  el('claim-note').textContent='Đã chốt '+claim.name+' · '+modes[claim.variant].title+'.';
+  el('claim-note').textContent=t('Đã chốt ')+claim.name+t(' · ')+modes[claim.variant].title+'.';
   el<HTMLFormElement>('rename').hidden=localDemo;
 }
 form.addEventListener('submit',event=>{
   event.preventDefault();
   if(claim||!canClaim)return;
   pending={variant:selected,name:title.value.trim() || design.name};
-  el('confirm-copy').textContent='Bạn sẽ lưu '+pending.name+' với kiểu '+modes[pending.variant].title.toLowerCase()+'. Kiểu viền không thể đổi. Đổi tên sau khi nhận tốn 500 CB/lần.';
+  el('confirm-copy').textContent=t('Bạn sẽ lưu ')+pending.name+t(' với kiểu ')+modes[pending.variant].title.toLowerCase()+t('. Kiểu viền không thể đổi. Đổi tên sau khi nhận tốn 500 CB/lần.');
   confirm.returnValue='';
   confirm.showModal();
 });
@@ -158,15 +159,15 @@ confirm.addEventListener('close',async()=>{
       if(!existing)localStorage.setItem(storageKey,JSON.stringify(pending));
       claim=existing??pending;
     }else{
-      if(!account)throw new Error('Chưa có phiên hồ sơ.');
+      if(!account)throw new Error(t('Chưa có phiên hồ sơ.'));
       const award=(await championAwards(account,{...pending,size})).find(row=>row.size===size);
-      if(!award?.variant)throw new Error('Chưa xác nhận được lựa chọn trên server.');
+      if(!award?.variant)throw new Error(t('Chưa xác nhận được lựa chọn trên server.'));
       claim={variant:award.variant,name:award.name};
     }
     selected=claim.variant;
     mount();
     updateClaim();
-  } catch(error){canClaim=true;updateClaim();el('claim-note').textContent=error instanceof Error?error.message:'Không lưu được lựa chọn. Hãy thử lại.';}
+  } catch(error){canClaim=true;updateClaim();el('claim-note').textContent=error instanceof Error?t(error.message):t('Không lưu được lựa chọn. Hãy thử lại.');}
 });
 mount();
 updateClaim();
@@ -179,14 +180,14 @@ el<HTMLFormElement>('rename').addEventListener('submit',async event=>{
   input.disabled=true;button.disabled=true;
   try{
     const award=(await championAwards(account,pendingRename)).find(row=>row.size===size);
-    if(!award?.variant)throw new Error('Không xác nhận được tên mới.');
+    if(!award?.variant)throw new Error(t('Không xác nhận được tên mới.'));
     claim={name:award.name,variant:award.variant};pendingRename=undefined;
     updateClaim();mount();input.value='';
-    el('rename-note').textContent='Đã đổi tên và trừ 500 CB.';
+    el('rename-note').textContent=t('Đã đổi tên và trừ 500 CB.');
   }catch(error){
-    el('rename-note').textContent=(error instanceof Error?error.message:'Không đổi được tên.')+' Có thể thử lại cùng yêu cầu.';
+    el('rename-note').textContent=(error instanceof Error?t(error.message):t('Không đổi được tên.'))+t(' Có thể thử lại cùng yêu cầu.');
     // Keep the same request ID across ambiguous network failures.
-    if(error instanceof Error&&/500 CB|phải khác|không hợp lệ/.test(error.message))pendingRename=undefined;
+    if(error instanceof Error&&/500 CB|phải khác|không hợp lệ|different|Invalid/.test(error.message))pendingRename=undefined;
   }finally{input.disabled=Boolean(pendingRename);button.disabled=false;}
 });
 window.addEventListener('pagehide',event=>{

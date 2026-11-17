@@ -53,7 +53,7 @@ export function championRendererOptions(design:ChampionConfig,variant:ChampionVa
   }};
   const color=(hex:string)=>Number.parseInt(hex.slice(1),16);
   return {
-    size,
+    size,detailSize:size,
     theme:skinPalette(design),
     surface:skinSurface(appearance)!,
     gapRatio:classic?.04:design.geometry.gap_ratio,
