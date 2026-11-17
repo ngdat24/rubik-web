@@ -42,7 +42,7 @@ begin
   if not exists(select 1 from public.economy_race_escrow where round_id=round_code and state='refunded')
     then raise exception 'Escrow not released'; end if;
   if (public.economy_maintain()->>'seasons')::integer<>0 or
-    (public.economy_close_season('season_01')).wallets<>2 then raise exception 'Season reset was not idempotent'; end if;
+    (public.economy_close_season('season_01')).wallets<>(select count(*) from public.user_wallets) then raise exception 'Season reset was not idempotent'; end if;
   if (select sum(amount) from public.currency_ledger where user_id=a and currency_type='CB')<>250
     then raise exception 'Ledger does not reconcile after reset'; end if;
   perform public.economy_change_balance(a,'ZN',1,'next_season_test',null);
