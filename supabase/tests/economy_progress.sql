@@ -24,7 +24,7 @@ begin
       'scrambleSource','generated','penalty','+2');
     perform public.practice_finish(player,challenge,payload,12,3500,true);
   end loop;
-  if public.economy_quest_counts(player,global_test_day) <> array[0,0,0]
+  if public.economy_quest_counts(player,global_test_day) <> array[0,0,0,0]
     or exists(select 1 from public.economy_personal_bests where user_id=player) then
     raise exception 'Old eligibility leaked into quests or PB';
   end if;
@@ -52,7 +52,7 @@ begin
     'scrambleSource','generated','penalty','none');
   perform public.practice_finish(player,challenge,payload,20,15000,true);
   if (select sum(cb) from public.economy_pb_rewards where user_id=player)<>200
-    or (select sum(zn) from public.economy_pb_rewards where user_id=player)<>2 then
+    or (select sum(zn) from public.economy_pb_rewards where user_id=player)<>3 then
     raise exception 'CB daily cap incorrectly blocked PB ZN';
   end if;
 
@@ -76,8 +76,10 @@ begin
     insert into public.time_limit_sessions(id,user_id,mode,seed,start_ms)
       values(session,capped,'fullSolve','test',0);
     insert into public.economy_time_limit_finished(session_id,user_id,quest_day) values(session,capped,quest_date);
-    insert into public.solves(id,user_id,solve,size,time_ms,ranked) values(session,capped,'{}',4,30000,false);
-    insert into public.economy_quest_solves values(session,capped,quest_date,4);
+    for i in 1..5 loop
+      insert into public.solves(id,user_id,solve,size,time_ms,ranked) values(session||'-'||i,capped,'{}',3,65000,false);
+      insert into public.economy_quest_solves values(session||'-'||i,capped,quest_date,3);
+    end loop;
     insert into public.economy_quest_presence values(capped,quest_date,clock_timestamp(),600000);
     perform public.economy_refresh_quests(capped,quest_date);
   end loop;
