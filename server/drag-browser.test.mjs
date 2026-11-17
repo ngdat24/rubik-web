@@ -75,5 +75,24 @@ test('upright mouse orbit and left drag cancellation',{timeout:60000},async()=>{
       await page.waitForFunction(before=>window.review.moves.length===before+1,before);
     }
     assert.equal(await page.evaluate(()=>window.review.renderer.pick(0,0)),null);
+    const scoped=await page.evaluate(async()=>{
+      const {CubeRenderer}=await import('/packages/renderer/src/index.ts');
+      const {championRendererOptions,loadChampionDesign}=await import('/apps/web/src/champion-design.ts');
+      const results=[];
+      window.review.renderer.dispose();
+      for(const size of [2,3]){
+        const design=await loadChampionDesign(size),options=championRendererOptions(design,'borderless',size);
+        const r=new CubeRenderer(document.querySelector('#cube'),options);
+        const original=Boolean(r.resinMaterial&&r.magnetGeometry);
+        r.setSize(size===2?3:2);r.setSurface();
+        const cleared=!r.resinMaterial&&!r.magnetGeometry&&r.bodies.every(body=>body.children.length===0)&&!r.fillLight.visible;
+        const normalGaps=Math.abs(r.geometry.parameters.width-3/r.size*0.96)<1e-6;
+        r.setSize(size);r.setSurface(options.surface);
+        const restored=Boolean(r.resinMaterial&&r.magnetGeometry&&r.fillLight.visible);
+        results.push({original,cleared,normalGaps,restored});r.dispose();
+      }
+      return results;
+    });
+    for(const result of scoped)assert.deepEqual(result,{original:true,cleared:true,normalGaps:true,restored:true});
   }finally{await browser?.close();await vite?.close();}
 });

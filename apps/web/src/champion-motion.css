@@ -1,0 +1,4 @@
+.champion-motion::after{content:"";position:absolute;z-index:2;inset:2% 10% 0;pointer-events:none;opacity:0;background:center/contain no-repeat var(--champion-effect,url("/assets/skins/rank_gold_apex_chrono_01/champion_gold_cut.png"));mix-blend-mode:screen;transform-origin:50% 65%}
+.champion-motion.turn::after{animation:champion-cut 295ms cubic-bezier(.18,.7,.32,1) both}
+@keyframes champion-cut{0%{opacity:0;transform:rotate(var(--cut-rotation,0deg)) translate(-4%,2%) scale(.93)}30%{opacity:.95}64%{opacity:.76}100%{opacity:0;transform:rotate(var(--cut-rotation,0deg)) translate(4%,-2%) scale(1.03)}}
+@media(prefers-reduced-motion:reduce){.champion-motion.turn::after{animation:none}}

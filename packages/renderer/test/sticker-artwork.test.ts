@@ -32,3 +32,20 @@ it('composes mixed turns and resets independently from cube color snapshots',()=
   art.advance('R',layerSlots(parseMove('R',3),3).stickerIndices);art.reset();
   for(let i=0;i<54;i++){expect(art.tile(i)).toBe(i%9);expect(art.rotation(i)).toBe(0);}
 });
+
+it('keeps 2×2 corner signatures attached to the same pieces through mixed turns',()=>{
+  const art=new StickerArtwork(2),moves=['R','U','F2','x',"B'",'D'];
+  const signatureStart=0,logoStart=12;
+  let signature=signatureStart,logo=logoStart;
+  for(const move of moves){
+    const permutation=compileMove(move,2);
+    signature=permutation[signature]!;logo=permutation[logo]!;
+    art.advance(move,layerSlots(parseMove(move,2),2).stickerIndices);
+    expect(art.tile(signature)).toBe(0);
+    expect(art.tile(logo)).toBe(0);
+  }
+  for(const move of invert(moves,2))art.advance(move,layerSlots(parseMove(move,2),2).stickerIndices);
+  for(let i=0;i<24;i++){
+    expect(art.tile(i)).toBe(i%4);expect(art.rotation(i)).toBe(0);
+  }
+});

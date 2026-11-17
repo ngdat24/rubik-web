@@ -1,0 +1,75 @@
+{
+  "skin_id": "rank_gold_apex_chrono_01",
+  "name": "Vận Tốc Đỉnh Cao",
+  "tier": "gold",
+  "season_id": "competitive_rank",
+  "sources": [
+    "owner_manual_award"
+  ],
+  "shop_price": null,
+  "geometry": {
+    "stickerless": true,
+    "center_cap_shape": "squircle",
+    "center_corner_ratio": 0.33,
+    "gap_ratio": 0.014,
+    "sticker_inset_ratio": 0.001,
+    "inner_core_visible": true
+  },
+  "body": {
+    "color": "#090A0F",
+    "roughness": 0.45,
+    "metalness": 0.65,
+    "core_magnets": {
+      "color": "#FACC15",
+      "visible_pods": true,
+      "gem_color": "#DEF5FF"
+    },
+    "inner_core": {
+      "material": "translucent_resin",
+      "color": "#FFDF98"
+    }
+  },
+  "layers": {
+    "layer_1_base": {
+      "face_colors": {
+        "U": "#FFFFFF",
+        "R": "#FF1E38",
+        "F": "#00E676",
+        "D": "#FFD600",
+        "L": "#FF6D00",
+        "B": "#0091FF"
+      },
+      "texture_replaces_color": true,
+      "tile_atlases": {
+        "U": "/assets/skins/rank_gold_apex_chrono_01/borderless_u.png",
+        "R": "/assets/skins/rank_gold_apex_chrono_01/borderless_r.png",
+        "F": "/assets/skins/rank_gold_apex_chrono_01/borderless_f.png",
+        "D": "/assets/skins/rank_gold_apex_chrono_01/borderless_d.png",
+        "L": "/assets/skins/rank_gold_apex_chrono_01/borderless_l.png",
+        "B": "/assets/skins/rank_gold_apex_chrono_01/borderless_b.png"
+      }
+    },
+    "layer_2_surface": {
+      "material_type": "matte",
+      "roughness": 0.76,
+      "metalness": 0.02,
+      "opacity": 1,
+      "normal_scale": 0.29,
+      "normal_map": "/assets/skins/rank_gold_apex_chrono_01/matte_micrograin.png"
+    },
+    "layer_3_glow": {
+      "enabled": true,
+      "glow_color": "#FACC15",
+      "emissive_map": "/assets/skins/rank_gold_apex_chrono_01/emissive_seam_mask.png",
+      "emissive_intensity": 1.25
+    },
+    "layer_4_animated_shader": {
+      "enabled": false
+    }
+  },
+  "interaction_fx": {
+    "trail_effect_id": "trail_champion_gold_cut",
+    "sound_pack_id": "sound_champion_flyby",
+    "sound_file": "/assets/skins/rank_gold_apex_chrono_01/champion_flyby.mp3"
+  }
+}

@@ -290,6 +290,9 @@ export function mountShop(account:CloudAccount|undefined, equip:(appearance?:App
     }
   };
   const showInventory = (state:Snapshot) => {
+    const championLink=node('a','Champion · 2×2 / 3×3');
+    championLink.href='/champion.html?lang='+language;
+    content.append(championLink);
     const grid = node('div');
     grid.className = 'shop-grid';
     const equipped = state.inventory.some(item=>item.kind === 'skin' && item.equipped);
