@@ -5,7 +5,7 @@ export function mouseOrbit(canvas:HTMLCanvasElement,camera:PerspectiveCamera,ena
   let pointer:{id:number;x:number;y:number}|undefined;
   const stop=()=>{const p=pointer;pointer=undefined;if(!p)return;finish();if(canvas.hasPointerCapture(p.id))canvas.releasePointerCapture(p.id);};
   const down=(e:PointerEvent)=>{
-    if(e.pointerType!=='mouse'||e.button!==0||!enabled())return;
+    if(e.pointerType!=='mouse'||e.button!==2||!enabled())return;
     e.preventDefault();e.stopImmediatePropagation();
     canvas.tabIndex=0;canvas.focus({preventScroll:true});
     pointer={id:e.pointerId,x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId);
@@ -13,7 +13,7 @@ export function mouseOrbit(canvas:HTMLCanvasElement,camera:PerspectiveCamera,ena
   const move=(e:PointerEvent)=>{
     if(!pointer||pointer.id!==e.pointerId)return;
     e.preventDefault();e.stopImmediatePropagation();
-    if(e.buttons!==1||!enabled()){stop();return;}
+    if(e.buttons!==2||!enabled()){stop();return;}
     const dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;
     pointer.x=e.clientX;pointer.y=e.clientY;
     const axis=new Vector3(dy,dx,0).applyQuaternion(camera.quaternion);

@@ -131,6 +131,7 @@ export class CubeRenderer {
 
   private createControls():OrbitControls {
     const controls=new OrbitControls(this.camera,this.webgl.domElement);
+    controls.mouseButtons={...controls.mouseButtons,LEFT:null,RIGHT:null};
     controls.enablePan=false;controls.enableDamping=true;controls.minDistance=5;controls.maxDistance=18;
     return controls;
   }
