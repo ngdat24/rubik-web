@@ -1,5 +1,7 @@
 # Rubik Lab — Những gì đã làm và workflow GitHub cho hai người
 
+> **Bản lưu lịch sử ngày 16/11/2026.** Trạng thái hiện hành đến PR #65 nằm trong [tổng quan Rubik Lab](tong-quan-rubik-lab-va-lo-trinh-phat-trien.md). Không dùng các luật, trạng thái chưa triển khai hoặc độ nhạy trong bản lưu này để ghi đè code mới. Đặc biệt shop/Champion đã phát hành, phòng đã tái sử dụng và chuột hiện là trái kéo lớp, phải xoay góc nhìn giữ hướng đứng.
+
 Đối chiếu ngày 16/11/2026. Repository: [ngdat24/rubik-web](https://github.com/ngdat24/rubik-web).
 
 Đây là bản tổng kết triển khai, không phải cam kết tính năng tương lai. Mốc đối chiếu khi dọn tài liệu: `main` tại `87b54f5`, đã có PR #34 Time Limit, #35 sửa độ trễ, #36 tổng kết/workflow và #38 hướng dẫn cộng tác viên.

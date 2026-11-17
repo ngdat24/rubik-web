@@ -1,4 +1,4 @@
-# Rubik Lab — Tổng quan, lịch sử phát triển và hướng đi tiếp theo
+# Rubik Lab — Tổng quan, lịch sử phát triển và workflow
 
 Ngày đối chiếu: **18/11/2026, giờ Việt Nam**. Dành cho chủ dự án, Sang và AI cộng tác.
 
@@ -6,7 +6,7 @@ Ngày đối chiếu: **18/11/2026, giờ Việt Nam**. Dành cho chủ dự án
 - Website: [Rubik Lab](https://rubik-web-rho.vercel.app).
 - Mốc ứng dụng: `main` tại `bd32edb9a9e98a0b1261fa9cd5a368c123af9208`, sau PR #65.
 - Đã xác nhận deployment production Vercel **READY**, đúng commit trên khi viết tài liệu.
-- Đây là bản tổng hợp mới, không thay thế spec hoặc xóa các ghi chép cũ. Những mục “đề xuất” chưa phải tính năng đã triển khai hoặc lịch làm đã được duyệt.
+- Đây là bản tổng hợp mới, không thay thế spec hoặc xóa các ghi chép cũ. Không suy mô tả lịch sử thành yêu cầu triển khai mới.
 - Dữ liệu vận hành, gói dịch vụ và trạng thái staging có thể đổi. Tài liệu này không phải báo cáo giám sát trực tiếp hay cam kết số người dùng chịu tải.
 
 ## 1. Web này là gì?
@@ -243,33 +243,16 @@ Phải phân biệt lỗi nghiệp vụ này với database hết RAM hoặc ng�
 
 **Lần viết này không đo lại quota/gói dịch vụ, kích thước DB, lượng user hoặc tài nguyên sống.** Các ảnh từng thấy 57% RAM, 4% CPU, 16% disk, 99% IO balance hoặc 97,8% lỗi chỉ là snapshot lịch sử, không phải chỉ số hiện tại.
 
-## 8. Lộ trình đề xuất
+## 8. Workflow làm việc cho chủ repo, Sang và AI
 
-Thứ tự dưới đây là khuyến nghị để chủ repo chọn, chưa có deadline hay ủy quyền triển khai tự động.
-
-| Ưu tiên | Việc tiếp theo | Điều kiện hoàn thành |
-| --- | --- | --- |
-| P0 — ổn định | Điều tra và dừng polling phòng hết hạn | Có regression cho lỗi terminal/mạng; không còn request lặp vô hạn trong fixture, đối chiếu log sau phát hành |
-| P0 — an toàn phát hành | Xác minh lại env/history staging, quy trình backup và phục hồi | Biết rõ Preview nào dùng DB nào; thử phục hồi trên môi trường riêng, không chỉ có file backup |
-| P1 — quan sát | Đo latency, requests, DB slow queries và tải đồng thời có kiểm soát | Có baseline, kịch bản, môi trường và kết quả; không tạo dữ liệu giả trên production |
-| P1 — trải nghiệm | Nghiệm thu kho/Champion và thao tác trên điện thoại/GPU yếu | Theo dõi độ nóng, pin, kéo lớp, context loss, preview đóng/mở và bộ nhớ khi đổi skin nhiều lần |
-| P1 — hồ sơ | Thiết kế liên kết/khôi phục phiên đa thiết bị | Có phương án danh tính thật an toàn; không lấy tên hiển thị làm bằng chứng sở hữu |
-| P1 — cân bằng | Theo dõi CB/ZN kiếm/tiêu, vé và thưởng theo tuần lịch | Số liệu thực, mô phỏng biên, server/UI cùng luật; thay luật có migration và quy tắc giữ thưởng cũ |
-| P2 — gameplay | Cân nhắc Sandbox undo/redo/cây nhánh, trainer Cross/F2L, ghost race | Chốt issue/spec nhỏ trước, không mở rộng engine ngầm |
-| P2 — online | Cân nhắc matchmaking/Elo hoặc chế độ mới | Có luật, chống abuse và kế hoạch tải trước khi mở cho người dùng |
-
-AI coach, One for all, solver/trainer đầy đủ và matchmaking chưa được coi là đã có chỉ vì xuất hiện trong roadmap cũ. Mua tên miền là bước thương hiệu tùy chọn; không tự giải quyết hiệu năng hay thay cơ sở dữ liệu.
-
-## 9. Workflow làm việc cho chủ repo, Sang và AI
-
-### 9.1. Trước khi nhận việc
+### 8.1. Trước khi nhận việc
 
 1. Đọc `AGENTS.md`, `COLLABORATOR_AGENT.md`, tài liệu này, spec và issue liên quan; đối chiếu code/PR mới nhất.
 2. Kiểm tra `git status`, nhánh, remote, PR đang mở và file có người khác đang sửa. Không xóa/revert file lạ chỉ để tree sạch.
 3. Khi phù hợp, fetch và cập nhật `main` bằng fast-forward. Tạo **một nhánh `codex/...` và một PR cho một yêu cầu**.
 4. Chốt phạm vi, tiêu chí nghiệm thu và môi trường dữ liệu trước khi sửa. Không tự thêm backend/schema/dependency/engine ngoài phạm vi được duyệt.
 
-### 9.2. Trong khi làm
+### 8.2. Trong khi làm
 
 - Commit/push tiếp lên cùng nhánh để cập nhật PR. Viết code cần thiết; không tự viết thêm tài liệu trùng lặp nếu không được yêu cầu.
 - Các PR phụ thuộc phải có base/đồ thị phụ thuộc rõ. Nếu B nhắm A, merge B vào A sẽ đưa thay đổi B đi cùng A khi A được merge sau đó; chưa đồng nghĩa B đã có trên main.
@@ -277,7 +260,7 @@ AI coach, One for all, solver/trainer đầy đủ và matchmaking chưa đượ
 - Khi main/nhánh cha có bản sửa, cập nhật nhánh làm việc và giải conflict theo ý định cả hai bên. Không chọn toàn bộ ours/theirs để cho qua; không force-push như cách chữa conflict thông thường.
 - Description PR phải ghi vấn đề, hành vi mới, scope, thay đổi dữ liệu, kiểm thử và giới hạn. Không chỉ ghi “thêm tính năng”.
 
-### 9.3. Kiểm tra và nghiệm thu
+### 8.3. Kiểm tra và nghiệm thu
 
 Chạy lệnh phù hợp từ gốc repo trên Windows bằng `npm.cmd`:
 
@@ -292,7 +275,7 @@ Theo phần thay đổi, chọn thêm `test:cloud`, `test:race`, `test:time-limi
 
 Phân biệt các cấp bằng chứng: unit → API giả → PGlite → PostgreSQL/Supabase staging thật → trình duyệt với API thật → thiết bị người dùng. Một cấp đạt không tự chứng minh các cấp còn lại. Build/READY không thay kiểm tra flow và dữ liệu.
 
-### 9.4. Database và phát hành
+### 8.4. Database và phát hành
 
 1. Chuẩn bị migration review được; đối chiếu history trên đúng project, sao lưu phần liên quan và test trên môi trường riêng.
 2. Xin quyền riêng cho thao tác production có tác động bền vững. **Cho phép merge không mặc nhiên cho phép chạy migration hoặc cấp quà.**
@@ -303,11 +286,11 @@ Phân biệt các cấp bằng chứng: unit → API giả → PGlite → Postgr
 
 “Able to merge” chỉ nói Git ghép được nhánh, không nói CI đạt, quyền connector đủ hay ứng dụng chạy đúng. Connector 403 là vấn đề quyền của tích hợp/thao tác cụ thể; không suy từ quyền trên giao diện GitHub rằng connector cũng có quyền đó. Không tắt bảo vệ hoặc đổi quyền rộng chỉ để né lỗi.
 
-### 9.5. Khi trao việc cho Sang hoặc AI
+### 8.5. Khi trao việc cho Sang hoặc AI
 
 Gửi link issue/PR, base branch, commit mốc, scope, tiêu chí nghiệm thu, môi trường DB và giới hạn merge/migration. Hai AI không chia sẻ bộ nhớ chat; code đã push và description là tài liệu bàn giao thực tế. Không gửi secret/token vào chat.
 
-## 10. Nguồn tra cứu và bảo trì tài liệu
+## 9. Nguồn tra cứu và bảo trì tài liệu
 
 - [Tổng kết nền tảng và workflow cũ](project-history-and-github-workflow.md): chi tiết giai đoạn đầu; các trạng thái/số luật cũ cần đối chiếu lại.
 - [Lịch sử shop, skin và tiền tệ](lịch%20sử%20cập%20nhật%20shop,%20skin%20và%20tiền%20tệ.md): nghiệm thu staging và chuỗi #43–#51; câu “chưa merge main” chỉ đúng ở thời điểm ghi chép cũ.

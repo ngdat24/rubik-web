@@ -15,7 +15,7 @@ Tên file này không bảo đảm mọi AI tự đọc. Khi mở chat, người
 ## 2. Trước khi code
 
 - Đọc AGENTS.md, issue, spec liên quan, decisions.md và API của module sẽ dùng.
-- Đọc docs/project-history-and-github-workflow.md để hiểu trạng thái đã làm; đối chiếu code/PR/main mới nhất.
+- Đọc docs/tong-quan-rubik-lab-va-lo-trinh-phat-trien.md để hiểu trạng thái đến #65; docs/project-history-and-github-workflow.md là lịch sử cũ. Luôn đối chiếu code/PR/main mới nhất.
 - Tài liệu tổng kết ghi trạng thái theo thời điểm; đối chiếu code/PR mới nhất. Hiện có name-only, 1v1 và Time Limit.
 - Chạy git status, xem nhánh/remote/diff. Giữ thay đổi local và file untracked không thuộc nhiệm vụ; không tự xóa/revert.
 - Khi tree phù hợp, cập nhật main bằng git pull --ff-only rồi tạo nhánh codex/<issue>-<ten-viec>.
@@ -36,7 +36,7 @@ Tên file này không bảo đảm mọi AI tự đọc. Khi mở chat, người
 
 - N luyện tập 2..10. Phím theo góc nhìn mặc định; Khóa xoay phím bật hệ trục cố định.
 - event.code; Shift nghịch, Alt đôi, W wide, số chọn lớp, X/Y/Z; M/E/S chỉ 3×3.
-- Web 40 ms/nước, range 30–100; renderer API có mặc định riêng 150 ms; hệ số kéo chuột 0,675.
+- Web 40 ms/nước, range 30–100; renderer API có mặc định riêng 150 ms; hệ số kéo chuột 0,54, touch 0,7. Chuột trái kéo lớp, chuột phải xoay góc nhìn giữ hướng đứng; gesture ra ngoài canvas bị hủy.
 - Luyện tập: Space chuẩn bị rồi inspection; Shift+Space đổi scramble khi chưa chạy.
 - Giải xong hợp lệ/hủy lúc còn chạy tự chuẩn bị scramble mới; DNF giữ trạng thái, Space chuẩn bị mới.
 - Hộp hủy không dừng đồng hồ. Solve gốc bất biến; penaltyOverride là metadata riêng, không làm nhẹ điểm bảng gốc.

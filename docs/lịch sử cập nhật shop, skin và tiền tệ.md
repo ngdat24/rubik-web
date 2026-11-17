@@ -1,5 +1,7 @@
 # Lịch sử cập nhật shop, skin và tiền tệ
 
+> **Bản ghi nghiệm thu lịch sử, không phải trạng thái hiện tại.** Chuỗi shop đã phát hành vào main qua #54; quà tân thủ #53 là 200 CB ngay khi tạo hồ sơ; luật nhiệm vụ/vé/thưởng/vòng quay tiếp tục sửa ở #62; Champion hoàn thiện đến #65. Các câu “chưa merge”, ví mới 0 CB và ngưỡng cũ bên dưới chỉ mô tả lúc nghiệm thu. Đọc [tổng quan hiện hành](tong-quan-rubik-lab-va-lo-trinh-phat-trien.md) trước; cấu hình staging/history bên dưới không được coi là đã kiểm tra lại hôm nay.
+
 Ngày ghi chép: 17/11/2026 (UTC+7). Dự án Rubik Lab, repository ngdat24/rubik-web.
 
 ## Trạng thái và phạm vi
