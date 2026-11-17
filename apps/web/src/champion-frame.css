@@ -1,0 +1,46 @@
+@font-face{font-family:'Zalando Sans Expanded';src:url('/assets/skins/rank_gold_apex_chrono_01/zalando-sans-expanded.ttf') format('truetype');font-weight:300 900;font-style:normal;font-display:swap}
+#viewport.champion-viewport{
+  isolation:isolate;
+  overflow:hidden;
+  background:radial-gradient(ellipse at 50% 49%,#312d1d 0%,#25241a 36%,#171710 74%,#13130f 100%);
+}
+.champion-frame{position:absolute;inset:0;z-index:3;pointer-events:none;
+  --edge:14px;--corner-size:clamp(48px,10.3%,86px);--join:calc(var(--edge) + var(--corner-size)*.76);
+  --logo-gap:clamp(28px,7%,56px);--side-gap:clamp(42px,9%,67px);--side-center:50%;
+  --rail-gold:linear-gradient(90deg,#a7792f,#f2d291 40%,#e3bc6c 60%,#a7792f)}
+.champion-frame[hidden]{display:none}
+.champion-frame__corner{position:absolute;width:var(--corner-size);height:auto;opacity:.92}
+.champion-frame__corner--tl{top:var(--edge);left:var(--edge)}
+.champion-frame__corner--tr{top:var(--edge);right:var(--edge);transform:scaleX(-1)}
+.champion-frame__corner--bl{bottom:var(--edge);left:var(--edge);transform:scaleY(-1)}
+.champion-frame__corner--br{bottom:var(--edge);right:var(--edge);transform:scale(-1)}
+.champion-frame__rail{position:absolute;display:block;opacity:.87}
+.champion-frame__rail--top-left,.champion-frame__rail--top-right,.champion-frame__rail--bottom{height:6px;
+  background:var(--rail-gold) center top/100% 2px no-repeat,var(--rail-gold) center bottom/100% 1px no-repeat}
+.champion-frame__rail--top-left{top:var(--edge);left:var(--join);right:calc(50% + var(--logo-gap))}
+.champion-frame__rail--top-right{top:var(--edge);right:var(--join);left:calc(50% + var(--logo-gap))}
+.champion-frame__rail--bottom{left:var(--join);right:var(--join);bottom:var(--edge);transform:scaleY(-1)}
+.champion-frame__rail--left-top,.champion-frame__rail--right-top,.champion-frame__rail--left-bottom,.champion-frame__rail--right-bottom{width:6px;
+  --rail-gold:linear-gradient(180deg,#a7792f,#f2d291 40%,#e3bc6c 60%,#a7792f);
+  background:var(--rail-gold) left center/2px 100% no-repeat,var(--rail-gold) right center/1px 100% no-repeat}
+.champion-frame__rail--left-top,.champion-frame__rail--left-bottom{left:var(--edge)}
+.champion-frame__rail--right-top,.champion-frame__rail--right-bottom{right:var(--edge);transform:scaleX(-1)}
+.champion-frame__rail--left-top,.champion-frame__rail--right-top{top:var(--join);bottom:calc(100% - var(--side-center) + var(--side-gap))}
+.champion-frame__rail--left-bottom,.champion-frame__rail--right-bottom{top:calc(var(--side-center) + var(--side-gap));bottom:var(--join)}
+.champion-frame__logo{position:absolute;top:4px;left:50%;width:clamp(47px,9%,78px);transform:translateX(-50%);filter:drop-shadow(0 0 12px #d99c3038)}
+.champion-frame__signature{position:absolute;right:calc(var(--edge) - 4px);top:var(--side-center);width:20%;max-width:145px;transform:translateY(-50%) rotate(-9deg);filter:drop-shadow(0 1px 2px #050400)}
+.champion-frame__title{position:absolute;left:var(--edge);top:var(--side-center);width:20%;max-width:168px;transform:translateY(-50%);margin:0;
+  font:900 clamp(12px,1.3vw,20px)/1.13 "Zalando Sans Expanded","Arial Black",system-ui,sans-serif;text-transform:uppercase;letter-spacing:.018em;color:#ffe8b2;text-align:left;overflow-wrap:anywhere;text-wrap:balance;text-shadow:0 2px 6px #100c02}
+.champion-frame__shower{position:absolute;inset:0;overflow:hidden}
+.champion-frame__leaf{position:absolute;left:var(--left);top:-20px;width:var(--size);height:calc(var(--size)*.64);opacity:0;
+  clip-path:polygon(0 69%,28% 11%,49% 20%,100% 0,76% 63%,56% 88%,19% 100%);
+  background:linear-gradient(135deg,#a87421 7%,#fff6b1 34%,#eebd55 52%,#ffd877 70%,#b57d20);
+  animation:champion-leaf-fall var(--duration) var(--delay) cubic-bezier(.23,.31,.62,.74) both}
+@keyframes champion-leaf-fall{0%{top:-20px;opacity:0;transform:translateX(0) rotate3d(1,1,0,0deg)}12%{opacity:.95}75%{opacity:.84}100%{top:104%;opacity:0;transform:translateX(var(--drift)) rotate3d(1,1,0,var(--twist))}}
+@media(max-width:620px){
+  .champion-frame{--edge:12px;--side-center:77%;--side-gap:30px}
+  .champion-frame__rail--left-bottom,.champion-frame__rail--right-bottom{display:none}
+  .champion-frame__title,.champion-frame__signature{width:27%}
+  .champion-frame__title{font-size:clamp(11px,3.2vw,16px)}
+}
+@media(prefers-reduced-motion:reduce){.champion-frame__leaf{animation:none}}

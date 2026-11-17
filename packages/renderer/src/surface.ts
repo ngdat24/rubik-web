@@ -66,7 +66,7 @@ export class SurfaceMaterials {
     private readonly stickers:readonly MeshStandardMaterial[],
     shared:MeshStandardMaterial|undefined,
     theme:readonly number[],
-    tiled:boolean
+    tileSize:number
   ) {
     body.color.setHex(surface.body?.color ?? 0x171b19);
     body.roughness = surface.body?.roughness ?? 0.7;
@@ -96,21 +96,21 @@ export class SurfaceMaterials {
       this.attach(material,'emissiveMap',surface.glow?.map);
     };
     materials.forEach((material,index)=>configure(material,style?.maps?.[index]));
-    const atlases = tiled ? style?.tileAtlases : undefined;
+    const atlases = tileSize ? style?.tileAtlases : undefined;
     const hasAtlas = atlases?.some(isSkinTexture);
-    const centerMap = tiled ? style?.centerMap : undefined;
+    const centerMap = tileSize===3 ? style?.centerMap : undefined;
     if (hasAtlas || centerMap) {
-      for (const tile of hasAtlas ? [0,1,2,3,4,5,6,7,8] : [4]) this.tiles[tile] = stickers.map((_,color)=>{
+      for (const tile of hasAtlas ? Array.from({length:tileSize*tileSize},(_,index)=>index) : [4]) this.tiles[tile] = stickers.map((_,color)=>{
         const material = new MeshStandardMaterial();
         configure(material,tile===4 && centerMap ? centerMap : style?.maps?.[color]);
-        if(tile===4) {
+        if(tileSize===3 && tile===4) {
           material.bumpScale = style?.centerBumpScale ?? 0;
           this.attach(material,'bumpMap',style?.centerBumpMap);
         }
         return material;
       });
       atlases?.slice(0,stickers.length).forEach((path,color)=>{
-        if(isSkinTexture(path)) this.attachAtlas(path,color,style?.replaceColor === true);
+        if(isSkinTexture(path)) this.attachAtlas(path,color,style?.replaceColor === true,tileSize);
       });
     }
     this.allStickers = [...materials,...this.tiles.flat()];
@@ -139,16 +139,16 @@ export class SurfaceMaterials {
     this.textures.push(texture);
   }
 
-  private attachAtlas(path:string,color:number,replaceColor:boolean):void {
+  private attachAtlas(path:string,color:number,replaceColor:boolean,tileSize:number):void {
     const texture = this.loader.load(path,atlas=>{
       if (this.disposed) return;
       atlas.colorSpace = SRGBColorSpace;
       // The gutters keep neighbouring tiles out of the mip levels at grazing angles.
-      const unit = 1/3, inset = 2/768;
+      const unit = 1/tileSize, inset = 2/(256*tileSize);
       this.tiles.forEach((group,tile)=>{
         const crop = atlas.clone();
         crop.repeat.setScalar(unit-2*inset);
-        crop.offset.set(tile%3*unit+inset,(2-Math.floor(tile/3))*unit+inset);
+        crop.offset.set(tile%tileSize*unit+inset,(tileSize-1-Math.floor(tile/tileSize))*unit+inset);
         crop.needsUpdate = true;
         this.retain(crop);
         const material = group[color]!;

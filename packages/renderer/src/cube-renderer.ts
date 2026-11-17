@@ -1,8 +1,8 @@
 import { FACE_NORMALS, viewFaces } from './view.js';
 import type { FaceName, FaceView } from './view.js';
 import {
-  AmbientLight, Box3, BoxGeometry, DirectionalLight, Group, Mesh, MeshStandardMaterial,
-  Raycaster, Vector2, Plane, PerspectiveCamera, Scene, Shape, ShapeGeometry, SRGBColorSpace, Vector3, WebGLRenderer,
+  AmbientLight, Box3, BoxGeometry, CylinderGeometry, DirectionalLight, EdgesGeometry, Group, LineBasicMaterial, LineSegments, Mesh, MeshPhysicalMaterial, MeshStandardMaterial, OctahedronGeometry,
+  Raycaster, Vector2, Plane, PerspectiveCamera, Scene, Shape, ShapeGeometry, SRGBColorSpace, TorusGeometry, Vector3, WebGLRenderer,
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { parseMove } from '@rubik/engine';
@@ -18,7 +18,7 @@ import type { CubeSurface } from './surface.js';
 import { StickerArtwork } from './sticker-artwork.js';
 import {mouseOrbit} from './mouse-orbit.js';
 
-export interface RendererOptions extends LayoutOptions { size?: number; theme?: ColorTheme; surface?: CubeSurface; measurePerformance?: boolean; instancing?: boolean }
+export interface RendererOptions extends LayoutOptions { size?: number; theme?: ColorTheme; surface?: CubeSurface; measurePerformance?: boolean; instancing?: boolean; centerCornerRatio?: number; coreMagnetColor?: number; fillLightIntensity?: number; resinCoreColor?: number; coreGemColor?: number }
 export interface MoveSnapshot { move: Move; stateAfter: Uint8Array }
 interface PreparedMove extends MoveSnapshot {
   rotation: ReturnType<typeof rotationFor>;
@@ -26,8 +26,8 @@ interface PreparedMove extends MoveSnapshot {
   doubleTurn: boolean;
 }
 
-function roundedSticker(side: number): ShapeGeometry {
-  const half = side / 2, radius = side * 0.09;
+function roundedSticker(side: number, cornerRatio=0.09): ShapeGeometry {
+  const half = side / 2, radius = side * cornerRatio;
   const shape = new Shape();
   shape.moveTo(-half + radius, -half);
   shape.lineTo(half - radius, -half);
@@ -52,12 +52,24 @@ export class CubeRenderer {
   private controls: OrbitControls;
   private readonly mouseCamera:ReturnType<typeof mouseOrbit>;
   private geometry: BoxGeometry | undefined;
+  private centerGeometry: ShapeGeometry | undefined;
+  private magnetGeometry: CylinderGeometry | undefined;
+  private magnetMaterial: MeshStandardMaterial | undefined;
+  private magnetRimGeometry: TorusGeometry | undefined;
+  private magnetRimMaterial: MeshStandardMaterial | undefined;
+  private coreGemGeometry: OctahedronGeometry | undefined;
+  private coreGemMaterial: MeshPhysicalMaterial | undefined;
   private stickerGeometry: ShapeGeometry | undefined;
   private readonly cubeGroup = new Group();
   private plasticMaterial: MeshStandardMaterial | undefined;
+  private resinMaterial: MeshPhysicalMaterial | undefined;
+  private resinInsert: MeshStandardMaterial | undefined;
+  private resinInsertGeometry: BoxGeometry | undefined;
+  private resinEdges: EdgesGeometry | undefined;
+  private resinEdgeMaterial: LineBasicMaterial | undefined;
   private materials: MeshStandardMaterial[] = [];
   private stickers: Mesh<ShapeGeometry, MeshStandardMaterial>[] = [];
-  private bodies: Mesh<BoxGeometry, MeshStandardMaterial>[] = [];
+  private bodies: Mesh<BoxGeometry, MeshStandardMaterial | MeshStandardMaterial[]>[] = [];
   private readonly pivot = new Group();
   private readonly rotationAxis = new Vector3();
   private queue: PreparedMove[] = [];
@@ -82,7 +94,7 @@ export class CubeRenderer {
   private theme: ColorTheme;
   private surface: CubeSurface | undefined;
   private surfaceMaterials: SurfaceMaterials | undefined;
-  private readonly layoutOptions: LayoutOptions;
+  private readonly layoutOptions: RendererOptions;
   private readonly observer: ResizeObserver;
   private frame = 0;
   private disposed = false;
@@ -115,6 +127,11 @@ export class CubeRenderer {
     const light = new DirectionalLight(0xffffff, 3);
     light.position.set(4, 6, 8);
     this.scene.add(light);
+    if (options.fillLightIntensity) {
+      const fill = new DirectionalLight(0xffffff,options.fillLightIntensity);
+      fill.position.set(-4,-5,-6);
+      this.scene.add(fill);
+    }
     this.observer = new ResizeObserver(this.resize);
     this.container.append(this.webgl.domElement);
     this.observer.observe(this.container);
@@ -191,6 +208,33 @@ export class CubeRenderer {
   }
 
   resetCamera(): void { this.setCameraView('ufr'); }
+
+  /** Project the visible portion of a turn into canvas coordinates. */
+  getTurnScreenDirection(move: Move): {x:number;y:number} {
+    const parsed=parseMove(move,this.size);
+    const {axis,angle}=rotationFor(parsed);
+    const {stickerIndices}=layerSlots(parsed,this.size);
+    const layout=buildLayout(this.size,this.layoutOptions);
+    const rect=this.canvas.getBoundingClientRect();
+    this.camera.updateMatrixWorld();
+    const spin=new Vector3(...axis);
+    let score=0, direction={x:1,y:0};
+    for(const index of stickerIndices){
+      const slot=layout.slots[index]!;
+      const point=new Vector3(...slot.position);
+      const visible=new Vector3(...slot.normal).dot(this.camera.position.clone().sub(point).normalize());
+      if(visible<=0)continue;
+      const start=point.clone().project(this.camera);
+      const end=point.clone().applyAxisAngle(spin,0.03).project(this.camera);
+      const x=(end.x-start.x)*rect.width,y=(start.y-end.y)*rect.height;
+      const weight=Math.hypot(x,y)*visible;
+      if(weight>score){
+        score=weight;
+        direction={x:x*Math.sign(angle),y:y*Math.sign(angle)};
+      }
+    }
+    return direction;
+  }
 
   getViewFaces() {
     this.camera.updateMatrixWorld();
@@ -274,10 +318,10 @@ export class CubeRenderer {
     this.stickerColors.set(state);
     for (let index = 0; index < this.stickers.length; index++) {
       const color = state[index]!;
-      this.stickers[index]!.material = this.surfaceMaterials?.stickerFor(color,this.artwork?.tile(index) ?? index%9) ?? this.materials[color]!;
+      this.stickers[index]!.material = this.surfaceMaterials?.stickerFor(color,this.artwork?.tile(index) ?? index%(this.size*this.size)) ?? this.materials[color]!;
       const geometry=this.artworkGeometries[index],turn=this.artwork?.rotation(index) ?? 0;
       if(geometry && this.artworkRotations[index]!==turn){
-        const base=this.stickerGeometry!.getAttribute('uv'),uv=geometry.getAttribute('uv');
+        const base=this.faceGeometry(index).getAttribute('uv'),uv=geometry.getAttribute('uv');
         for(let point=0;point<uv.count;point++){
           const u=base.getX(point),v=base.getY(point);
           uv.setXY(point,turn===0 ? u : turn===1 ? v : turn===2 ? 1-u : 1-v,
@@ -387,18 +431,22 @@ export class CubeRenderer {
   private applySurface(): void {
     this.surfaceMaterials?.dispose();
     this.surfaceMaterials = new SurfaceMaterials(this.surface ?? {},this.plasticMaterial!,
-      this.materials,this.instances?.stickers.material,this.theme,this.size===3);
-    const textured=this.size===3 && Boolean(this.surface?.stickers?.centerMap || this.surface?.stickers?.tileAtlases?.some(Boolean));
+      this.materials,this.instances?.stickers.material,this.theme,this.size<=3?this.size:0);
+    const textured=this.size<=3 && Boolean((this.size===3 && this.surface?.stickers?.centerMap) || this.surface?.stickers?.tileAtlases?.some(Boolean));
     if(textured && !this.artworkGeometries.length){
-      this.artworkGeometries=this.stickers.map(sticker=>{
-        const geometry=this.stickerGeometry!.clone();sticker.geometry=geometry;return geometry;
+      this.artworkGeometries=this.stickers.map((sticker,index)=>{
+        const geometry=this.faceGeometry(index).clone();sticker.geometry=geometry;return geometry;
       });
       this.artworkRotations=new Uint8Array(this.stickers.length).fill(255);
     }else if(!textured && this.artworkGeometries.length){
-      this.stickers.forEach(sticker=>{sticker.geometry=this.stickerGeometry!;});
+      this.stickers.forEach((sticker,index)=>{sticker.geometry=this.faceGeometry(index);});
       this.artworkGeometries.forEach(geometry=>geometry.dispose());this.artworkGeometries=[];
     }
     if (!this.instances) this.paint(this.stickerColors);
+  }
+
+  private faceGeometry(index:number):ShapeGeometry {
+    return index % 9 === 4 && this.centerGeometry ? this.centerGeometry : this.stickerGeometry!;
   }
 
   private assertActive(): void {
@@ -417,8 +465,20 @@ export class CubeRenderer {
     this.artworkGeometries.forEach(geometry=>geometry.dispose());
     this.artworkGeometries=[];
     this.geometry?.dispose();
+    this.centerGeometry?.dispose();this.centerGeometry=undefined;
+    this.magnetGeometry?.dispose();this.magnetGeometry=undefined;
+    this.magnetMaterial?.dispose();this.magnetMaterial=undefined;
+    this.magnetRimGeometry?.dispose();this.magnetRimGeometry=undefined;
+    this.magnetRimMaterial?.dispose();this.magnetRimMaterial=undefined;
+    this.coreGemGeometry?.dispose();this.coreGemGeometry=undefined;
+    this.coreGemMaterial?.dispose();this.coreGemMaterial=undefined;
     this.stickerGeometry?.dispose();
     this.plasticMaterial?.dispose();
+    this.resinMaterial?.dispose();this.resinMaterial=undefined;
+    this.resinInsert?.dispose();this.resinInsert=undefined;
+    this.resinInsertGeometry?.dispose();this.resinInsertGeometry=undefined;
+    this.resinEdges?.dispose();this.resinEdges=undefined;
+    this.resinEdgeMaterial?.dispose();this.resinEdgeMaterial=undefined;
     for (const material of this.materials) material.dispose();
   }
 
@@ -426,23 +486,78 @@ export class CubeRenderer {
     this.releaseCube();
     this.size = layout.size;
     this.stickerColors = Uint8Array.from(layout.slots,slot=>slot.face);
-    this.artwork = layout.size===3 ? new StickerArtwork(3) : undefined;
+    this.artwork = layout.size<=3 ? new StickerArtwork(layout.size) : undefined;
     this.geometry = new BoxGeometry(layout.cubieSize, layout.cubieSize, layout.cubieSize);
     this.stickerGeometry = roundedSticker(layout.stickerSize);
+    if (layout.size===3 && this.layoutOptions.centerCornerRatio !== undefined) {
+      this.centerGeometry=roundedSticker(layout.stickerSize,Math.max(0.09,Math.min(0.45,this.layoutOptions.centerCornerRatio)));
+    }
+    if (layout.size<=3 && this.layoutOptions.coreMagnetColor !== undefined) {
+      const unit=layout.cellSize;
+      this.magnetGeometry=new CylinderGeometry(unit*0.112,unit*0.13,unit*0.038,32);
+      this.magnetRimGeometry=new TorusGeometry(unit*0.106,unit*0.013,10,32);
+      this.magnetMaterial=new MeshStandardMaterial({color:0xab6b16,roughness:0.35,metalness:0.39});
+      this.magnetRimMaterial=new MeshStandardMaterial({color:this.layoutOptions.coreMagnetColor,roughness:0.23,metalness:0.35,emissive:0x9c6506,emissiveIntensity:0.20});
+      if(this.layoutOptions.coreGemColor!==undefined){
+        this.coreGemGeometry=new OctahedronGeometry(unit*0.076);
+        this.coreGemGeometry.scale(1,.30,1);
+        this.coreGemMaterial=new MeshPhysicalMaterial({color:this.layoutOptions.coreGemColor,roughness:0.13,
+          metalness:0.12,clearcoat:0.96,clearcoatRoughness:0.08,flatShading:true,emissive:0x639cbd,emissiveIntensity:0.26});
+      }
+    }
     this.plasticMaterial = new MeshStandardMaterial({ color: 0x171b19, roughness: 0.7 });
+    if (layout.size <= 3 && this.layoutOptions.resinCoreColor !== undefined) {
+      this.resinMaterial=new MeshPhysicalMaterial({color:this.layoutOptions.resinCoreColor,transparent:true,opacity:0.38,
+        depthWrite:false,roughness:0.23,metalness:0,clearcoat:0.83,clearcoatRoughness:0.16,emissive:0x886324,emissiveIntensity:0.16});
+      this.resinInsert=new MeshStandardMaterial({color:0xc6aa6f,roughness:0.33,metalness:0.08,emissive:0x735a29,emissiveIntensity:0.24});
+      const insertSize=layout.cubieSize*0.63;
+      this.resinInsertGeometry=new BoxGeometry(insertSize,insertSize,insertSize);
+      this.resinEdges=new EdgesGeometry(this.resinInsertGeometry);
+      this.resinEdgeMaterial=new LineBasicMaterial({color:0xffefbd,transparent:true,opacity:0.43});
+    }
     this.materials = this.theme.map(color => new MeshStandardMaterial({ color, roughness: 0.65, metalness: 0 }));
     if (this.instancing && layout.size >= 6) this.instances = new InstancedCube(this.cubeGroup, layout,
       this.geometry, this.stickerGeometry, this.plasticMaterial, this.theme);
     else {
     for (const cubie of layout.cubies) {
-      const body = new Mesh(this.geometry, this.plasticMaterial);
+      const finish = this.resinMaterial ? Array.from({length:6},(_,side)=>{
+        const axis=Math.floor(side/2), sign=side%2===0?1:-1;
+        return cubie.coordinates[axis]===sign*(layout.size-1)?this.plasticMaterial!:this.resinMaterial!;
+      }) : this.plasticMaterial;
+      const body = new Mesh(this.geometry, finish);
       body.position.set(...cubie.position);
+      if (this.resinInsert && this.resinInsertGeometry && this.resinEdges && this.resinEdgeMaterial) {
+        body.add(new Mesh(this.resinInsertGeometry,this.resinInsert));
+        body.add(new LineSegments(this.resinEdges,this.resinEdgeMaterial));
+      }
+      if (this.magnetGeometry && this.magnetMaterial && this.magnetRimGeometry && this.magnetRimMaterial) {
+        for (let axis=0;axis<3;axis++) for(const direction of [-1,1]) {
+          if(cubie.coordinates[axis]===direction*(layout.size-1)) continue;
+          const unit=layout.cellSize;
+          const pod = new Mesh(this.magnetGeometry,this.magnetMaterial);
+          const normal = new Vector3().setComponent(axis,direction);
+          const corner = new Vector3(...cubie.coordinates).setComponent(axis,0).multiplyScalar(unit*0.296/(layout.size-1));
+          pod.quaternion.setFromUnitVectors(new Vector3(0,1,0),normal);
+          pod.position.copy(corner).addScaledVector(normal,layout.cubieSize/2-unit*0.026);
+          const rim=new Mesh(this.magnetRimGeometry,this.magnetRimMaterial);
+          rim.rotation.x=-Math.PI/2;
+          rim.position.y=unit*0.019;
+          pod.add(rim);
+          if(this.coreGemGeometry && this.coreGemMaterial){
+            const gem=new Mesh(this.coreGemGeometry,this.coreGemMaterial);
+            gem.rotation.y=Math.PI/4;
+            gem.position.y=unit*0.01;
+            pod.add(gem);
+          }
+          body.add(pod);
+        }
+      }
       this.bodies.push(body);
       this.cubeGroup.add(body);
     }
     const forward = new Vector3(0, 0, 1), normal = new Vector3();
     for (const slot of layout.slots) {
-      const sticker = new Mesh(this.stickerGeometry, this.materials[slot.face]!);
+      const sticker = new Mesh(this.faceGeometry(slot.index), this.materials[slot.face]!);
       normal.set(...slot.normal);
       sticker.position.set(...slot.position).addScaledVector(normal, layout.cellSize * 0.002);
       sticker.quaternion.setFromUnitVectors(forward, normal);

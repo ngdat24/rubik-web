@@ -3,7 +3,8 @@ import type { CubeRenderer } from '@rubik/renderer';
 import type { CubeController } from '@rubik/controller';
 
 /** Pointer gestures choose a move; only the controller commits engine state. */
-export function attachDrag(renderer: CubeRenderer, controller: CubeController, changed: () => void): () => void {
+export function attachDrag(renderer: CubeRenderer, controller: CubeController, changed: () => void,
+  commit = (move: string, stamp: number, _dx: number, _dy: number) => controller.applyMove(move,stamp)): () => void {
   const canvas=renderer.canvas;
   const points=new Map<number,{x:number;y:number}>();
   let gesture: {id:number;x:number;y:number;hit:NonNullable<ReturnType<CubeRenderer['pick']>>;axis?:number;layer?:number;angle:number} | undefined;
@@ -58,7 +59,7 @@ export function attachDrag(renderer: CubeRenderer, controller: CubeController, c
     const opposite=controller.size===2 && layer===2;
     const face=(opposite?['L','D','B']:['R','U','F'])[g.axis]!;
     const token=`${layer===1 || opposite?'':layer}${face}${turns===2?'2':(angle>0)!==opposite?"'":''}`;
-    if(controller.applyMove(token,timestamp)){renderer.resumeDrag(angle);changed();}
+    if(commit(token,timestamp,e.clientX-g.x,e.clientY-g.y)){renderer.resumeDrag(angle);changed();}
   };
   const interrupted=():void=>cancel();
   const menu=(e:Event):void=>{e.preventDefault();};
