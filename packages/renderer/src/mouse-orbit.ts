@@ -1,6 +1,6 @@
-import {PerspectiveCamera, Quaternion, Vector3} from 'three';
+import {PerspectiveCamera, Spherical} from 'three';
 
-/** Mouse-only free orbit; touch remains owned by OrbitControls. */
+/** Mouse orbit with unlimited yaw and a fixed world-up direction. */
 export function mouseOrbit(canvas:HTMLCanvasElement,camera:PerspectiveCamera,enabled:()=>boolean,finish:()=>void) {
   let pointer:{id:number;x:number;y:number}|undefined;
   const stop=()=>{const p=pointer;pointer=undefined;if(!p)return;finish();if(canvas.hasPointerCapture(p.id))canvas.releasePointerCapture(p.id);};
@@ -16,10 +16,11 @@ export function mouseOrbit(canvas:HTMLCanvasElement,camera:PerspectiveCamera,ena
     if(e.buttons!==2||!enabled()){stop();return;}
     const dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;
     pointer.x=e.clientX;pointer.y=e.clientY;
-    const axis=new Vector3(dy,dx,0).applyQuaternion(camera.quaternion);
-    const length=Math.hypot(dx,dy);if(!length)return;
-    const rotation=new Quaternion().setFromAxisAngle(axis.normalize(),-length*2*Math.PI/Math.max(1,canvas.clientHeight));
-    camera.position.applyQuaternion(rotation);camera.up.applyQuaternion(rotation).normalize();camera.lookAt(0,0,0);
+    const scale=2*Math.PI/Math.max(1,canvas.clientHeight);
+    const orbit=new Spherical().setFromVector3(camera.position);
+    orbit.theta-=dx*scale;
+    orbit.phi=Math.max(0.01,Math.min(Math.PI-0.01,orbit.phi-dy*scale));
+    camera.position.setFromSpherical(orbit);camera.up.set(0,1,0);camera.lookAt(0,0,0);
   };
   const up=(e:PointerEvent)=>{if(pointer?.id!==e.pointerId)return;e.stopImmediatePropagation();stop();};
   canvas.addEventListener('pointerdown',down,true);canvas.addEventListener('pointermove',move,true);canvas.addEventListener('pointerup',up,true);

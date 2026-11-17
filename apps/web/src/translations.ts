@@ -379,7 +379,7 @@ export const english: Record<string, string> = {
   "Đặt lại": "Reset",
   "Đang khởi tạo cảnh 3D…": "Initializing 3D scene…",
   "Chuột trái kéo lớp; cảm ứng kéo lớp ": "Left-drag or touch-drag a layer to turn ",
-  " Chuột phải xoay tự do; cảm ứng kéo nền ": " Right-drag to freely orbit; touch-drag the background to orbit ",
+  " Chuột phải xoay góc nhìn, giữ hướng đứng; cảm ứng kéo nền ": " Right-drag to orbit while staying upright; touch-drag the background to orbit ",
   "Kéo lớp để xoay ": "Drag a layer to turn ",
   " Kéo nền để đổi góc nhìn ": " Drag the background to orbit ",
   " Cuộn để thu phóng": " Scroll to zoom",

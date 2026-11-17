@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {resolve} from 'node:path';
 import {chromium} from 'playwright';
-test('mouse free orbit and left drag cancellation',{timeout:60000},async()=>{
+test('upright mouse orbit and left drag cancellation',{timeout:60000},async()=>{
  const {createServer:createViteServer}=await import('vite');let vite,browser;try{
     vite=await createViteServer({configFile:false,root:resolve('.'),publicDir:resolve('apps/web/public'),
       server:{host:'127.0.0.1',port:0},plugins:[{name:'artwork-regression-page',configureServer(server){
@@ -28,7 +28,16 @@ test('mouse free orbit and left drag cancellation',{timeout:60000},async()=>{
     await page.mouse.move(target.x,target.y);await page.mouse.down({button:'right'});
     await page.mouse.move(target.x,target.y+box.height/2,{steps:30});await page.mouse.up({button:'right'});
     assert.equal(await page.evaluate(()=>window.review.moves.length),0);
-    assert.ok(await page.evaluate(()=>window.review.renderer.camera.up.y<0));
+    assert.deepEqual(await page.evaluate(()=>window.review.renderer.camera.up.toArray()),[0,1,0]);
+    assert.ok(await page.evaluate(()=>Math.abs(window.review.renderer.camera.position.y)<window.review.renderer.camera.position.length()));
+    await page.mouse.move(target.x,target.y);await page.mouse.down({button:'right'});
+    await page.mouse.move(target.x,target.y-box.height,{steps:30});await page.mouse.up({button:'right'});
+    assert.deepEqual(await page.evaluate(()=>window.review.renderer.camera.up.toArray()),[0,1,0]);
+    const before=await page.evaluate(()=>window.review.renderer.camera.position.toArray());
+    await page.mouse.move(target.x,target.y);await page.mouse.down({button:'right'});
+    await page.mouse.move(target.x+box.height,target.y,{steps:40});await page.mouse.up({button:'right'});
+    const after=await page.evaluate(()=>window.review.renderer.camera.position.toArray());
+    after.forEach((v,i)=>assert.ok(Math.abs(v-before[i])<1e-6));
     await page.evaluate(()=>window.review.renderer.resetCamera());
     assert.equal(await page.evaluate(()=>window.review.renderer.camera.up.y),1);
     const pick=await page.evaluate(()=>window.review.renderer.getPickTargets().find(p=>p.index>=18&&p.index<27));
