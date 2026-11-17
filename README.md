@@ -2,7 +2,7 @@
 
 Không gian luyện giải Rubik 3D ngay trên trình duyệt: xoay khối bằng bàn phím, chuột hoặc cảm ứng, bấm giờ và theo dõi lịch sử giải.
 
-**[Mở Rubik Lab](https://rubik-web-ngdattttt.vercel.app)**
+**[Mở Rubik Lab](https://rubik-web-rho.vercel.app)**
 
 Dự án đang phát triển. Đã có mô phỏng 2×2 đến 10×10, hồ sơ chỉ đặt tên, lưu lịch sử, phòng mời 1v1 và Time Limit solo. Sandbox và Cross/F2L trainer chưa triển khai.
 
@@ -20,6 +20,10 @@ Dự án đang phát triển. Đã có mô phỏng 2×2 đến 10×10, hồ sơ 
 - Bảng thành tích **2×2 và 3×3**: Top 10 lượt giải all-time, một người có thể có nhiều dòng.
 - Phòng mời **1v1**: Rubik của mình bên trái, đối thủ bên phải; full/F2L/1 mặt, mỗi lượt chạy 3 phút.
 - **Time Limit** solo: ba mục tiêu cùng luật thi đấu và bảng Top 10 riêng; nhiều khối hơn, rồi mốc hoàn thành cuối sớm hơn, rồi ít nước hơn.
+- Ví CB/ZN, nhiệm vụ ngày/online 10 phút, thưởng PB, vé Time Limit Full 3×3, bảng tuần và cược 1v1.
+- Cửa hàng skin, hòm, tiện ích và vòng quay mùa; kho chia Skin 2×2 / Skin 3×3.
+- Champion Huyền thoại được cấp riêng theo kích thước, chỉ không viền; xem thử/trang bị/đặt tên ngay trong kho, đổi tên sau khi nhận tốn 500 CB.
+- Giao diện tiếng Việt/tiếng Anh.
 - Chạy được local, server LAN hoặc Vercel + Supabase.
 
 ## Cách chơi
@@ -41,7 +45,7 @@ Giải xong hợp lệ hoặc xác nhận hủy lượt đang chạy sẽ tự c
 | X / Y / Z | Xoay toàn khối |
 | M / E / S | Slice, chỉ trên 3×3 |
 
-Kéo sticker để xoay lớp, kéo nền để đổi góc nhìn, cuộn hoặc pinch để thu phóng. Alt/Option có thể bị hệ điều hành giữ lại; có thể gán phím thường cho nước đôi trong Cài đặt phím.
+Chuột trái kéo lớp (kể cả viền/khe), chuột phải xoay góc nhìn giữ hướng đứng. Kéo chuột từng ra khỏi vùng canvas sẽ bị hủy. Cảm ứng giữ thao tác kéo lớp/kéo nền và pinch zoom; cuộn chuột để thu phóng. Alt/Option có thể bị hệ điều hành giữ lại; có thể gán phím thường cho nước đôi trong Cài đặt phím.
 
 ## Chạy trên máy
 
@@ -81,6 +85,7 @@ Local dev Vite không tự chạy backend cloud. Tài khoản Vercel/Supabase v�
 | SUPABASE_SECRET_KEY | Secret key chỉ dành cho backend |
 | VITE_SUPABASE_URL | URL project trong browser |
 | VITE_SUPABASE_ANON_KEY | Public/publishable key trong browser |
+| CRON_SECRET | Secret backend xác thực economy maintenance, không đưa vào VITE_ |
 
 Tên ANON_KEY được giữ để tương thích; giá trị có thể là key `sb_publishable_…`. **Không đặt secret key vào biến VITE_, mã nguồn hoặc Git.** Backend hỗ trợ service_role cũ như fallback, ưu tiên secret key hiện hành.
 
@@ -139,6 +144,8 @@ Cloud tests dùng Auth/database giả lập; kiểm tra SQL/RLS nằm ở [supab
 - Lịch sử local phụ thuộc trình duyệt/origin; xóa dữ liệu trang có thể mất bản local. JSON backup vẫn hữu ích để dự phòng.
 
 ## Tài liệu
+
+- [Tổng quan hiện hành đến PR #65](docs/tong-quan-rubik-lab-va-lo-trinh-phat-trien.md)
 
 - [Đặc tả kỹ thuật](docs/spec/)
 - [Nhật ký quyết định](docs/spec/decisions.md)

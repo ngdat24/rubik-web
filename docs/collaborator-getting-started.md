@@ -3,7 +3,9 @@
 Hướng dẫn thực hành cho người mới làm nhóm trên GitHub, dùng AI hỗ trợ viết code. Viết ngày 16/11/2026; đối chiếu code và trạng thái PR mới nhất khi làm.
 
 Repository: [ngdat24/rubik-web](https://github.com/ngdat24/rubik-web).
-Web chính: <https://rubik-web-ngdattttt.vercel.app>.
+Web chính: <https://rubik-web-rho.vercel.app>.
+
+Trạng thái sản phẩm đến #65: [tổng quan Rubik Lab](tong-quan-rubik-lab-va-lo-trinh-phat-trien.md). Tổng kết ngày 16/11 và ghi chép staging là tài liệu theo thời điểm, không phải luật hiện hành.
 
 Mục tiêu buổi đầu: chạy được dự án trên máy mình, nhận một việc nhỏ, tạo PR để chủ repo review. Chưa tự quản lý database hoặc triển khai production.
 
