@@ -4,8 +4,13 @@ test('shared navigation, mode toggle, season and responsive layout',async({page}
  await page.route('**/api/navigation-season',r=>r.fulfill({json:{endsAt:new Date(Date.now()+3*86400000).toISOString()}}));
  await page.route('**/api/leaderboard?**',r=>r.fulfill({json:{rows:[]}}));
  for(const path of ['/','/leaderboard.html','/time-limit.html','/race.html']){
+  await page.setViewportSize({width:1440,height:900});
   await page.goto(path);
   const nav=page.locator('.site-navigation');await expect(nav).toBeVisible();
+  expect((await nav.boundingBox())!.width).toBeGreaterThan(1350);
+  await expect(nav.locator('[data-nav=home]')).toHaveCSS('border-radius','0px');
+  await expect(nav.locator('.nav-modes')).toHaveCSS('border-right-width','1px');
+  await expect(nav.locator('[data-nav=board]')).toHaveCSS('border-right-width','1px');
   await expect(nav.getByText('Còn 3 ngày',{exact:true})).toBeVisible();
   const mode=nav.locator('.nav-modes');await mode.locator('summary').click();
   await expect(mode.getByRole('link',{name:'Time Limit',exact:true})).toBeVisible();
