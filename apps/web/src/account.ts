@@ -4,7 +4,7 @@ import type {SupabaseClient} from '@supabase/supabase-js';
 export interface CloudAccount {id:string;token:()=>Promise<string>;client:SupabaseClient;dispose:()=>void}
 
 /** Names are labels; only the browser's private session owns its records. */
-export async function browserAccount():Promise<CloudAccount|undefined>{
+export async function browserAccount(create=true):Promise<CloudAccount|undefined>{
   const url=import.meta.env.VITE_SUPABASE_URL,key=import.meta.env.VITE_SUPABASE_ANON_KEY;
   if(!url||!key)return;
   const {createClient}=await import('@supabase/supabase-js');
@@ -12,6 +12,7 @@ export async function browserAccount():Promise<CloudAccount|undefined>{
   let {data:{session},error}=await client.auth.getSession();
   if(error)throw error;
   // Keep existing sessions, profiles and history during the transition.
+  if(!session&&!create)return;
   if(!session){
     const result=await client.auth.signInAnonymously();
     if(result.error)throw new Error(t("Chưa tạo được hồ sơ tự động. Kiểm tra mạng và bật Anonymous Sign-Ins trong Supabase."));

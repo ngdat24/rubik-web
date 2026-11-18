@@ -88,6 +88,12 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
           !timingSafeEqual(Buffer.from(token),Buffer.from(cron)))throw new HttpError(401,'Tác vụ không được xác thực.');
         return send(200,await request('/rest/v1/rpc/economy_maintain',{method:'POST',body:{}}));
       }
+      if(route==='navigation-season'&&req.method==='GET'){
+        const now=encodeURIComponent(new Date().toISOString());
+        const rows=await request('/rest/v1/shop_seasons?select=ends_at&starts_at=lte.'+now+'&ends_at=gt.'+now+'&order=ends_at.asc&limit=1');
+        res.setHeader('Cache-Control','public, s-maxage=60, stale-while-revalidate=60');
+        return send(200,{endsAt:rows[0]?.ends_at??null});
+      }
       if(route==='skin-appearance'&&req.method==='GET'){
         const id=url.searchParams.get('id')??'';
         if(!/^[a-z0-9_-]{1,80}$/.test(id))throw new HttpError(400,'Mã skin không hợp lệ.');
