@@ -225,10 +225,8 @@ async function boot():Promise<void>{
     load();save();
     const me=next.players.find(player=>player.id===user),other=next.players.find(player=>player.id!==user);
     const target=solo?({oneFace:translate("1 mặt"),f2lRush:'F2L',fullSolve:'full'} as Record<string,string>)[next.mode]:translate("Bạn");
-    if (!solo) {
-      applySkin(renderer,me?.skinId);
-      if(opponentRenderer)applySkin(opponentRenderer,other?.skinId);
-    }
+    applySkin(renderer,me?.skinId);
+    if(opponentRenderer)applySkin(opponentRenderer,other?.skinId);
     el('race-own-name').dataset.nameplate=me?.nameplate??'';
     if(!solo)el('race-opponent-name').dataset.nameplate=other?.nameplate??'';
     el('race-own-name').textContent=me?`${me.name} · ${target}`:translate("Bạn");
