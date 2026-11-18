@@ -118,7 +118,7 @@ test('shop translates catalogue, preview, confirmation and season in English', {
       if(req.url.startsWith('/api/shop')){
         if(req.method==='POST'){let text='';for await(const chunk of req)text+=chunk;const action=JSON.parse(text);
           if(action.action==='name_prometheus'){nameRequests.push(action);red.customName=action.name;state.cb-=500;}}
-        res.setHeader('Content-Type','application/json');return res.end(JSON.stringify(state));} 
+        res.setHeader('Content-Type','application/json');return res.end(JSON.stringify(state));}
       if(req.url.startsWith('/api/'))return void handler(req,res);
       const file=resolve(dir,'.'+new URL(req.url,'http://localhost').pathname.replace(/^\/$/,'/index.html'));
       if(!file.startsWith(dir+sep)){res.writeHead(403);return res.end();}
