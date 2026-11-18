@@ -490,7 +490,7 @@ export class CubeRenderer {
   private applySurface(): void {
     this.surfaceMaterials?.dispose();
     this.surfaceMaterials = new SurfaceMaterials(this.surface ?? {},this.plasticMaterial!,
-      this.materials,this.instances?.stickers.material,this.theme,this.size<=3?this.size:0,this.layoutOptions.optimize??false,this.requestDraw);
+      this.materials,this.instances?.stickers.material,this.theme,this.size<=3?this.size:0,true,this.requestDraw);
     const textured=this.size<=3 && Boolean((this.size===3 && this.surface?.stickers?.centerMap) || this.surface?.stickers?.tileAtlases?.some(Boolean));
     if(textured && !this.artworkGeometries.length){
       this.artworkGeometries=this.stickers.map((sticker,index)=>{
