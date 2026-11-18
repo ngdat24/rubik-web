@@ -19,7 +19,7 @@ import { StickerArtwork } from './sticker-artwork.js';
 import {DecorationBatches,groupBodyFaces} from './decoration-batches.js';
 import {mouseOrbit} from './mouse-orbit.js';
 
-export interface RendererOptions extends LayoutOptions { size?: number; theme?: ColorTheme; surface?: CubeSurface; measurePerformance?: boolean; instancing?: boolean; centerCornerRatio?: number; coreMagnetColor?: number; fillLightIntensity?: number; resinCoreColor?: number; coreGemColor?: number; detailSize?: 2|3; optimize?: boolean }
+export interface RendererOptions extends LayoutOptions { size?: number; stickerShape?: 'hexagon'|'stone'; stickerCornerRatio?:number; theme?: ColorTheme; surface?: CubeSurface; measurePerformance?: boolean; instancing?: boolean; centerCornerRatio?: number; coreMagnetColor?: number; fillLightIntensity?: number; resinCoreColor?: number; coreGemColor?: number; detailSize?: 2|3; optimize?: boolean }
 export interface MoveSnapshot { move: Move; stateAfter: Uint8Array }
 interface PreparedMove extends MoveSnapshot {
   rotation: ReturnType<typeof rotationFor>;
@@ -27,6 +27,24 @@ interface PreparedMove extends MoveSnapshot {
   doubleTurn: boolean;
 }
 
+function hexagonalSticker(side:number):ShapeGeometry {
+  const shape=new Shape(),r=side/2,cut=side*.17;
+  // Broad six-sided cap: clip opposite corners, keep most of the square's area.
+  const corners=[[-r,-r],[r-cut,-r],[r,-r+cut],[r,r],[-r+cut,r],[-r,r-cut]];
+  corners.forEach(([x,y],i)=>{i?shape.lineTo(x!,y!):shape.moveTo(x!,y!);});
+  shape.closePath();const geometry=new ShapeGeometry(shape),uv=geometry.getAttribute('uv');
+  for(let i=0;i<uv.count;i++)uv.setXY(i,uv.getX(i)/side+.5,uv.getY(i)/side+.5);
+  return geometry;
+}
+function stoneSticker(side:number):ShapeGeometry {
+  // Square-sized stone cap with long sides and short, lightly chamfered corners.
+  const shape=new Shape(),r=side/2,cut=side*.10;
+  const corners=[[-r+cut,-r],[r-cut,-r],[r,-r+cut],[r,r-cut],[r-cut,r],[-r+cut,r],[-r,r-cut],[-r,-r+cut]];
+  corners.forEach(([x,y],i)=>{i?shape.lineTo(x!,y!):shape.moveTo(x!,y!);});
+  shape.closePath();const geometry=new ShapeGeometry(shape),uv=geometry.getAttribute('uv');
+  for(let i=0;i<uv.count;i++)uv.setXY(i,uv.getX(i)/side+.5,uv.getY(i)/side+.5);
+  return geometry;
+}
 function roundedSticker(side: number, cornerRatio=0.09): ShapeGeometry {
   const half = side / 2, radius = side * cornerRatio;
   const shape = new Shape();
@@ -54,6 +72,7 @@ export class CubeRenderer {
   private readonly mouseCamera:ReturnType<typeof mouseOrbit>;
   private geometry: BoxGeometry | undefined;
   private centerGeometry: ShapeGeometry | undefined;
+  private stoneGeometries:ShapeGeometry[]=[];
   private magnetGeometry: CylinderGeometry | undefined;
   private magnetMaterial: MeshStandardMaterial | undefined;
   private magnetRimGeometry: TorusGeometry | undefined;
@@ -486,6 +505,7 @@ export class CubeRenderer {
   }
 
   private faceGeometry(index:number):ShapeGeometry {
+    if(this.stoneGeometries.length)return this.stoneGeometries[index%9]!;
     return index % 9 === 4 && this.centerGeometry ? this.centerGeometry : this.stickerGeometry!;
   }
 
@@ -508,6 +528,7 @@ export class CubeRenderer {
     this.artworkGeometries=[];
     this.geometry?.dispose();
     this.centerGeometry?.dispose();this.centerGeometry=undefined;
+    this.stoneGeometries.forEach(g=>g.dispose());this.stoneGeometries=[];
     this.magnetGeometry?.dispose();this.magnetGeometry=undefined;
     this.magnetMaterial?.dispose();this.magnetMaterial=undefined;
     this.magnetRimGeometry?.dispose();this.magnetRimGeometry=undefined;
@@ -537,8 +558,9 @@ export class CubeRenderer {
     this.stickerColors = Uint8Array.from(layout.slots,slot=>slot.face);
     this.artwork = layout.size<=3 ? new StickerArtwork(layout.size) : undefined;
     this.geometry = new BoxGeometry(layout.cubieSize, layout.cubieSize, layout.cubieSize);
-    this.stickerGeometry = roundedSticker(layout.stickerSize);
-    if (layout.size===3 && details.centerCornerRatio !== undefined) {
+    if(details.stickerShape==='stone')this.stoneGeometries=Array.from({length:9},()=>stoneSticker(layout.stickerSize));
+    this.stickerGeometry = details.stickerShape === 'hexagon' ? hexagonalSticker(layout.stickerSize) : roundedSticker(layout.stickerSize,Math.max(.02,Math.min(.4,details.stickerCornerRatio??.09)));
+    if (layout.size===3 && details.centerCornerRatio !== undefined && details.stickerShape !== 'hexagon' && details.stickerShape !== 'stone') {
       this.centerGeometry=roundedSticker(layout.stickerSize,Math.max(0.09,Math.min(0.45,details.centerCornerRatio)));
     }
     if (layout.size<=3 && details.coreMagnetColor !== undefined) {

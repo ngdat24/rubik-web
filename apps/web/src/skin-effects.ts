@@ -12,19 +12,19 @@ export function readSkinLowFx():boolean {
 const faceOrder = ['U','R','F','D','L','B'] as const;
 type Faces = Partial<Record<typeof faceOrder[number],string>>;
 export interface Appearance {
-  geometry?:{borderless?:boolean;gap_ratio?:number;sticker_inset_ratio?:number;center_corner_ratio?:number};
+  geometry?:{borderless?:boolean;sticker_shape?:'hexagon'|'stone';sticker_corner_ratio?:number;gap_ratio?:number;sticker_inset_ratio?:number;center_corner_ratio?:number};
   body?:{color:string;roughness:number;metalness:number;texture_map?:string};
   layers?:{
-    layer_1_base?:{face_colors:Faces;texture_maps?:Faces|null;texture_replaces_color?:boolean;tile_atlases?:Faces;center_texture_map?:string};
-    layer_2_surface?:{material_type:string;roughness:number;metalness:number;opacity:number;normal_map?:string|null;normal_scale:number;center_bump_map?:string;center_bump_scale?:number};
+    layer_1_base?:{face_colors:Faces;texture_maps?:Faces|null;texture_replaces_color?:boolean;tile_atlases?:Faces;normal_atlases?:Faces;center_texture_map?:string;center_face?:number;center_replace_color?:boolean};
+    layer_2_surface?:{material_type:string;roughness:number;metalness:number;opacity:number;normal_map?:string|null;normal_scale:number;center_bump_map?:string;center_bump_scale?:number;center_metalness_map?:string;center_roughness_map?:string;roughness_map?:string;ao_map?:string;ao_intensity?:number};
     layer_3_glow?:{enabled:boolean;glow_color:string;emissive_intensity:number;emissive_map?:string|null};
     layer_4_animated_shader?:{enabled:boolean;speed:number;secondary_color:string};
   };
   interaction_fx?:{sound_pack_id:string|null;trail_effect_id:string|null};
 }
-export const skinLayout=(appearance?:Appearance)=>!appearance?.geometry?{}:appearance.geometry.borderless
+export const skinLayout=(appearance?:Appearance)=>!appearance?.geometry?{}:({...(appearance.geometry.sticker_corner_ratio!==undefined?{stickerCornerRatio:appearance.geometry.sticker_corner_ratio}:{}),...(appearance.geometry.sticker_shape?{stickerShape:appearance.geometry.sticker_shape}:{}),...(appearance.geometry.borderless
   ? {gapRatio:.018,stickerInsetRatio:0,centerCornerRatio:.28}
-  : {gapRatio:.035,stickerInsetRatio:.075,centerCornerRatio:.22};
+  : {gapRatio:.035,stickerInsetRatio:.075,centerCornerRatio:.22})});
 const hex = (value:string|undefined) => value && /^#[0-9a-f]{6}$/i.test(value) ? Number.parseInt(value.slice(1),16) : undefined;
 const scalar = (value:number|undefined, fallback:number, max=1) =>
   typeof value === 'number' && Number.isFinite(value) ? Math.max(0,Math.min(max,value)) : fallback;
@@ -45,9 +45,16 @@ export function skinSurface(appearance?:Appearance):CubeSurface|undefined {
   if (layer) surface.stickers = {
     roughness:scalar(layer.roughness,0.65),metalness:scalar(layer.metalness,0),opacity:scalar(layer.opacity,1),
     normalScale:scalar(layer.normal_scale,0), ...(layer.normal_map ? {normalMap:layer.normal_map} : {}),
+    ...(layer.roughness_map?{roughnessMap:layer.roughness_map}:{}),
+    ...(layer.ao_map?{aoMap:layer.ao_map,aoIntensity:scalar(layer.ao_intensity,1)}:{}),
     replaceColor:base?.texture_replaces_color === true,
     ...(maps ? {pattern:layer.material_type,maps:faceOrder.map(face=>maps[face])} : {}),
     ...(base?.center_texture_map ? {centerMap:base.center_texture_map} : {}),
+    ...(base?.center_face!==undefined?{centerFace:base.center_face}:{}),
+    ...(base?.center_replace_color?{centerReplaceColor:true}:{}),
+    ...(layer.center_metalness_map?{centerMetalnessMap:layer.center_metalness_map}:{}),
+    ...(layer.center_roughness_map?{centerRoughnessMap:layer.center_roughness_map}:{}),
+    ...(base?.normal_atlases?{normalAtlases:faceOrder.map(face=>base.normal_atlases?.[face])}:{}),
     ...(base?.tile_atlases ? {tileAtlases:faceOrder.map(face=>base.tile_atlases?.[face])} : {}),
     ...(layer.center_bump_map ? {centerBumpMap:layer.center_bump_map,centerBumpScale:scalar(layer.center_bump_scale,0)} : {})
   };
