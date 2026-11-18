@@ -22,7 +22,7 @@ export interface Appearance {
   };
   interaction_fx?:{sound_pack_id:string|null;trail_effect_id:string|null};
 }
-export const skinLayout=(appearance?:Appearance)=>appearance?.geometry?.borderless
+export const skinLayout=(appearance?:Appearance)=>!appearance?.geometry?{}:appearance.geometry.borderless
   ? {gapRatio:.018,stickerInsetRatio:0,centerCornerRatio:.28}
   : {gapRatio:.035,stickerInsetRatio:.075,centerCornerRatio:.22};
 const hex = (value:string|undefined) => value && /^#[0-9a-f]{6}$/i.test(value) ? Number.parseInt(value.slice(1),16) : undefined;

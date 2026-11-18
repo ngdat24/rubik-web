@@ -89,6 +89,7 @@ async function boot():Promise<void>{
   const opponentRenderer=solo?undefined:new CubeRenderer(el('opponent-viewport'));
   if(opponentRenderer){opponentRenderer.setSize(3);opponentRenderer.setState(solvedState(3));cleanup.push(()=>opponentRenderer.dispose());}
   let opponentState='',sentProgress='';
+  let opponentDisplay=solvedState(3);
   const skinAbort=new AbortController();
   const requestedSkins=new Map<CubeRenderer,string>();
   const catalog=new Map<string,Promise<Appearance>>();
@@ -112,7 +113,7 @@ async function boot():Promise<void>{
       if (skinAbort.signal.aborted||requestedSkins.get(viewer)!==key) return;
       const surface=skinSurface(appearance);
       if (surface&&readSkinLowFx()) delete surface.pulse;
-      viewer.setAppearance({...skinLayout(appearance),theme:skinPalette(appearance),...(surface?{surface}:{})},viewer===renderer?controller.cube.state:solvedState(3));
+      viewer.setAppearance({...skinLayout(appearance),theme:skinPalette(appearance),...(surface?{surface}:{})},viewer===renderer?controller.cube.state:opponentDisplay);
       if (viewer===renderer) {
         effects?.dispose();
         effects=appearance&&!readSkinLowFx()?bindSkinEffects(renderer,appearance):undefined;
@@ -151,7 +152,7 @@ async function boot():Promise<void>{
     applySkin(renderer);
     if(opponentRenderer)applySkin(opponentRenderer);
     draft={k:0,preEvents:[],events:[],pending:[]};controller.setMoveGate(undefined);controller.reset();controller.lockInput('race');
-    opponentRenderer?.setState(solvedState(3));opponentState='';
+    opponentDisplay=solvedState(3);opponentRenderer?.setState(opponentDisplay);opponentState='';
     el('race-players').replaceChildren();el('race-result').textContent='';el('scramble-text').textContent=translate("Tạo phòng hoặc nhập mã 8 ký tự để vào phòng.");
     create.disabled=false;if(join)join.disabled=false;if(ready)ready.disabled=true;if(copy)copy.disabled=true;if(leave)leave.disabled=true;
     if(rematch){rematch.hidden=true;rematch.disabled=true;}mode.disabled=true;if(code)code.value='';
@@ -213,7 +214,7 @@ async function boot():Promise<void>{
     if(changedRound){
       loaded=-1;nextScrambleCheck=0;sentProgress='';scrambles.clear();opponentState='';
       controller.setMoveGate(undefined);controller.reset();controller.lockInput('race');
-      renderer.setState(solvedState(3));opponentRenderer?.setState(solvedState(3));
+      renderer.setState(solvedState(3));opponentDisplay=solvedState(3);opponentRenderer?.setState(opponentDisplay);
       draft={k:0,preEvents:[],events:[],pending:[]};
       try{const saved=localStorage.getItem(storageKey());if(saved)draft=readDraft(saved);}catch{/* Invalid/absent draft never leaks into another round. */}
       el('race-result').textContent='';el('scramble-text').textContent=translate("Scramble được mở khi bắt đầu inspection.");
@@ -235,7 +236,7 @@ async function boot():Promise<void>{
     const view=next.opponent;
     if(opponentRenderer&&view&&Array.isArray(view.state)&&view.state.length===54&&view.state.every(n=>Number.isInteger(n)&&n>=0&&n<=5)){
       const key=`${view.k}:${view.state.join(',')}`;
-      if(key!==opponentState){opponentRenderer.setState(Uint8Array.from(view.state));opponentState=key;}
+      if(key!==opponentState){opponentDisplay=Uint8Array.from(view.state);opponentRenderer.setState(opponentDisplay);opponentState=key;}
       el('race-opponent-status').textContent=`${translate("Khối ")}${view.k+1} · ${view.moveCount}${translate(" nước")}${next.final?translate(" · Đã kết thúc"):''}`;
     }else if(!solo)el('race-opponent-status').textContent=other?translate("Chờ inspection để xem Rubik"):translate("Đang chờ đối thủ");
     el('race-players').replaceChildren(...next.players.map(player=>{
