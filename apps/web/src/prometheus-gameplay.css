@@ -1,0 +1,6 @@
+.prometheus-gameplay{position:relative;isolation:isolate;background-color:#07191d;overflow:hidden}
+.prometheus-gameplay::before{content:'';position:absolute;inset:0;z-index:0;background:url('/assets/season/prometheus/gameplay-sanctuary-v2.png') center/100% 100% no-repeat;opacity:.82;pointer-events:none}
+.prometheus-gameplay>canvas{position:relative;z-index:1}
+.prometheus-personal-name{display:none;position:absolute;top:18px;left:50%;transform:translateX(-50%);width:48%;max-height:76px;overflow:hidden;overflow-wrap:anywhere;text-align:center;color:#f5d69b;font:600 clamp(20px,2.4vw,32px)/1.15 PrometheusCard,Georgia,serif;text-shadow:0 2px 10px #000c;pointer-events:none}
+.prometheus-gameplay .prometheus-personal-name:not([hidden]){display:block;z-index:2}
+@media(max-width:600px){.prometheus-gameplay::before{opacity:.62}}

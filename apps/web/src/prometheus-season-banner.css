@@ -1,0 +1,42 @@
+@font-face{font-family:PrometheusCard;src:url('/assets/fonts/cormorant-garamond/CormorantGaramond.ttf') format('truetype');font-style:normal;font-weight:300 700;font-display:swap}
+.shop-season-panel{overflow:hidden;border:1px solid #b88d4366;border-radius:14px;background:linear-gradient(#102529,#111c1e)}
+.shop-season-panel__body{padding:6px 20px 22px}
+.prometheus-inventory-image{display:block;max-width:100%;height:auto;object-fit:contain;margin:auto}
+.shop-card[data-tier=red]{border-left:3px solid #ef4444}
+.prometheus-claim{margin:12px 0}
+.shop-season-progress{max-width:700px;margin:0 auto;padding:16px 22px 0;container-type:inline-size}
+.shop-season-spin-count{margin:0 0 20px;text-align:center;color:#f1cf91;font-size:12px}
+.shop-season-progress-track{position:relative;height:94px}
+#shop-dialog .shop-season-progress-track progress{width:100%;max-width:none}
+.shop-season-progress-track progress{display:block;appearance:none;width:100%;height:8px;border:1px solid #9d794b;border-radius:8px;overflow:hidden;background:#142329;accent-color:#e5bd69}
+.shop-season-progress-track progress::-webkit-progress-bar{background:#142329}
+.shop-season-progress-track progress::-webkit-progress-value{background:linear-gradient(90deg,#a16d29,#ffe3a0)}
+.shop-season-progress-track progress::-moz-progress-bar{background:#e5bd69}
+.shop-season-milestones{position:absolute;inset:0;margin:0;padding:0;list-style:none}
+.shop-season-milestones li{position:absolute;top:-7px;width:0;margin:0;padding:0;text-align:center;color:#d9bd8b}
+.shop-season-milestone-number{display:block;width:22px;height:22px;margin-left:-11px;border:1px solid #b48c51;border-radius:50%;background:#18272b;color:#f4dbaa;font:600 10px/20px system-ui}
+.shop-season-milestone-label{position:absolute;top:30px;left:0;display:block;width:clamp(44px,13cqw,100px);transform:translateX(-50%);font:11px/1.45 system-ui;overflow-wrap:normal}
+.shop-season-milestones li:last-child .shop-season-milestone-label{transform:translateX(-100%);text-align:right}
+.shop-season-milestones li[data-claimed=true] .shop-season-milestone-number{background:#e2b864;color:#152022;box-shadow:0 0 8px #e4ad393b}
+.shop-season-milestones li[data-claimed=true]{color:#f5dc9f}
+.shop-season-spin-actions{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:12px;padding:14px 12px 8px;background:radial-gradient(ellipse at 50% 0,#c98b2230,transparent 70%)}
+.shop-season-spin-actions>button{min-height:44px;padding:11px 18px;border:1px solid #cfab66;border-radius:8px;background:linear-gradient(#3b3525,#202b2b);color:#ffe2a3;font:500 13px/1.4 system-ui,sans-serif}
+.shop-season-spin-actions>button:hover{background:linear-gradient(#54432a,#2c3631);border-color:#ffdb91}
+.shop-season-spin-actions>p{margin:5px;text-align:center;color:#f1cf91}
+.shop-season-panel__body>progress{max-width:100%;width:400px}
+.prometheus-season-banner{position:relative;isolation:isolate;overflow:hidden;min-height:330px;aspect-ratio:2.5;background:#071e23;border-radius:12px;color:#f9dfad;container-type:inline-size}
+.prometheus-season-banner__art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
+.prometheus-season-banner::after{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 19% 35%,#49bde517,transparent 35%),radial-gradient(ellipse at 82% 50%,#ff9d241c,transparent 38%);animation:season-divine-breathe 7s ease-in-out infinite alternate}
+.prometheus-season-banner__badge{position:absolute;top:7%;left:30%;width:40%;margin:0;text-align:center;font:10px/1.5 system-ui,sans-serif;letter-spacing:.16em;color:#eac580}
+.prometheus-season-banner .prometheus-season-banner__title{position:absolute;top:13%;left:27%;width:46%;margin:0;text-align:center;font-family:PrometheusCard,Georgia,serif;color:#f9dfad;line-height:1;text-shadow:0 2px 9px #000}
+.prometheus-season-banner__title span{display:block;font-size:clamp(17px,3.2cqw,28px);font-weight:500}
+.prometheus-season-banner__title strong{display:block;font-size:clamp(31px,6.3cqw,56px);font-weight:600;letter-spacing:-.04em;background:linear-gradient(120deg,#c28b43,#fff1cb 45%,#dfb573 75%,#fff0ce);background-clip:text;color:transparent}
+.prometheus-season-banner__title::after{content:'';display:block;width:85%;height:13px;border-bottom:1px solid #e6bd7d9c;border-radius:50%;margin:-1px auto 0;transform:rotate(-5deg)}
+.prometheus-season-banner__cube{position:absolute;width:27%;height:auto;left:36.5%;bottom:8%;filter:drop-shadow(0 8px 18px #ff9e2d38);animation:season-cube-float 6s ease-in-out infinite}
+.prometheus-season-banner__sparks{position:absolute;inset:0;pointer-events:none}
+.prometheus-season-banner__sparks i{position:absolute;left:var(--x);bottom:8%;width:2px;height:4px;background:#ffd47c;box-shadow:0 0 6px #ff9b21;opacity:0;animation:season-ember-rise 5s linear infinite;animation-delay:var(--delay)}
+@keyframes season-ember-rise{0%{opacity:0;transform:translate(0,0)}20%{opacity:.65}100%{opacity:0;transform:translate(var(--drift),-140px)}}
+@keyframes season-divine-breathe{to{opacity:.35}}
+@keyframes season-cube-float{50%{transform:translateY(-5px)}}
+@media(max-width:560px){.prometheus-season-banner{min-height:290px;aspect-ratio:auto}.prometheus-season-banner__art{height:auto;object-fit:contain}.prometheus-season-banner__badge{top:auto;bottom:20px;left:10%;width:80%;font-size:9px}.prometheus-season-banner .prometheus-season-banner__title{top:auto;bottom:53px;left:8%;width:84%}.prometheus-season-banner__title strong{font-size:46px}.prometheus-season-banner__title span{font-size:25px}.prometheus-season-banner__cube{top:15px;bottom:auto;left:35%;width:30%}.shop-season-panel__body{padding:5px 12px 18px}}
+@media(prefers-reduced-motion:reduce){.prometheus-season-banner::after,.prometheus-season-banner__cube,.prometheus-season-banner__sparks i{animation:none}.prometheus-season-banner__sparks{display:none}}

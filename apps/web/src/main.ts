@@ -130,6 +130,7 @@ const updateAppearance=()=>{
   equippedEffects=undefined;
   const detailed=controller?.size===3;
   champion=championStyles.get(controller!.size);
+  container.classList.toggle('prometheus-gameplay',!champion&&detailed&&container.dataset.prometheusEquipped==='true');
   const key=champion?`${champion.size}:${champion.name}`:'normal';
   if(appearanceKey!==key){
     appearanceKey=key;

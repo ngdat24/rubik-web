@@ -2,6 +2,9 @@ const uuid = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const itemId = value => typeof value === 'string' && /^[a-z0-9_-]{1,80}$/i.test(value);
 
 export const shopErrors = {
+  prometheus_name_required:'Hãy đặt tên để hoàn tất nhận Prometheus.',
+  invalid_prometheus_name:'Tên skin cần từ 1 đến 32 ký tự hợp lệ.',
+  prometheus_same_name:'Tên mới phải khác tên hiện tại.',
   profile_required: 'Hãy đặt tên hồ sơ để sử dụng cửa hàng.',
   insufficient_balance: 'Số dư không đủ.',
   invalid_action: 'Thao tác cửa hàng không hợp lệ.',
@@ -19,6 +22,12 @@ export function parseShopAction(method, body) {
   if (typeof body.requestId !== 'string' || !uuid.test(body.requestId)) return;
   let data;
   switch (body.action) {
+    case 'name_prometheus': {
+      if(typeof body.name!=='string')break;
+      const name=body.name.trim().normalize('NFC');
+      if(name&&Array.from(name).length<=32&&!/[\p{Cc}\p{Cf}]/u.test(name))data={name};
+      break;
+    }
     case 'reroll': data = {}; break;
     case 'buy_skin':
       if (typeof body.offerId === 'string' && uuid.test(body.offerId)) data = {offerId:body.offerId};
