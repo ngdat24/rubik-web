@@ -109,12 +109,16 @@ test('shop translates catalogue, preview, confirmation and season in English', {
       offers:[{id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',tier:'white',skin:skins[0],price:300,currency:'CB',purchased:false}],
       inventory:skins.slice(1).map(skin=>({id:skin.id,kind:'skin',equipped:false,skin})),result:[{skin:skins[0]}],crates:{},
       season:{id:'season_01',name:'Kỷ Nguyên Từ Trường & Lượng Tử',endsAt:'2026-12-08T16:59:59Z',spins:0,milestones:[]}};
+    const nameRequests=[];const red=state.inventory.find(item=>item.id==='s1_red_crimson_core');red.customName='Original';red.nameRequired=false;
     const db=fakeDatabase();const id='11111111-1111-4111-8111-111111111111';db.profiles.set(id,{id,name:'Fixture Player'});
     const handler=createCloudHandler({env:{SUPABASE_URL:'https://db.test',SUPABASE_ANON_KEY:'public-test',SUPABASE_SERVICE_ROLE_KEY:'private-test'},
       fetcher:(url,options)=>db.fetcher(url,new URL(url).pathname==='/auth/v1/user'?{...options,headers:{...options.headers,Authorization:'Bearer anonymous-a'}}:options)});
-    server=createServer((req,res)=>{
+    server=createServer(async(req,res)=>{
       if(req.url.startsWith('/api/champion')){res.setHeader('Content-Type','application/json');return res.end(JSON.stringify({awards:[]}));}
-      if(req.url.startsWith('/api/shop')){res.setHeader('Content-Type','application/json');return res.end(JSON.stringify(state));}
+      if(req.url.startsWith('/api/shop')){
+        if(req.method==='POST'){let text='';for await(const chunk of req)text+=chunk;const action=JSON.parse(text);
+          if(action.action==='name_prometheus'){nameRequests.push(action);red.customName=action.name;state.cb-=500;}}
+        res.setHeader('Content-Type','application/json');return res.end(JSON.stringify(state));}
       if(req.url.startsWith('/api/'))return void handler(req,res);
       const file=resolve(dir,'.'+new URL(req.url,'http://localhost').pathname.replace(/^\/$/,'/index.html'));
       if(!file.startsWith(dir+sep)){res.writeHead(403);return res.end();}
@@ -144,6 +148,15 @@ test('shop translates catalogue, preview, confirmation and season in English', {
     assert.doesNotMatch(await page.locator('#shop-content').innerText(),/[ăâđêôơưĂÂĐÊÔƠƯ\u1ea0-\u1ef9]/);
     await page.locator('#shop-tabs').getByRole('button',{name:'Season Wheel',exact:true}).click();
     await expect(page.locator('#shop-content h3').last()).toHaveText('The Magnetic & Quantum Era');
+    await page.locator('#shop-tabs').getByRole('button',{name:'Inventory',exact:true}).click();
+    const redCard=page.locator('.shop-card').filter({has:page.getByRole('heading',{name:'Original',exact:true})});
+    await redCard.getByLabel('Skin name',{exact:true}).fill('Aster');
+    await redCard.getByRole('button',{name:'Rename · 500 CB',exact:true}).click();
+    await expect(page.locator('#shop-confirmation')).toContainText('500 CB');assert.equal(nameRequests.length,0);
+    await page.locator('#shop-confirmation').getByRole('button',{name:'Cancel',exact:true}).click();assert.equal(nameRequests.length,0);
+    await redCard.getByRole('button',{name:'Rename · 500 CB',exact:true}).click();
+    await page.locator('#shop-confirmation').getByRole('button',{name:'Confirm',exact:true}).click();
+    await expect(page.locator('.shop-card h3').filter({hasText:'Aster'})).toHaveCount(1);assert.equal(nameRequests.length,1);
     await page.setViewportSize({width:390,height:844});
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   }finally{await browser?.close();if(server){server.closeAllConnections();await new Promise(r=>server.close(r));}rmSync(dir,{recursive:true,force:true});}
