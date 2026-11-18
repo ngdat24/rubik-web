@@ -1,4 +1,6 @@
 export const english: Record<string, string> = {
+ 'Carbon':'Carbon', 'Men Rạn':'Crackle Glaze', 'Sa Thạch':'Sandstone', 'Tổ Ong':'Honeycomb',
+ 'Sóng Nước':'Water Ripples', 'Origami':'Origami', 'Tinh Đồ':'Star Chart',
  'Phấn Nhám':'Matte Chalk', 'Sứ Bóng':'Glossy Porcelain', 'Viền Ngà':'Ivory Frame',
  'Gỗ Xưa':'Vintage Wood', 'Tương Phản Chuẩn':'Standard Contrast', 'Ngọc Lam':'Turquoise', 'Xám Tro':'Ash Gray', 'Kem Matcha':'Matcha Cream',
 

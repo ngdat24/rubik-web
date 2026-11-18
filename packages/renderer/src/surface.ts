@@ -6,8 +6,11 @@ export interface CubeSurface {
   stickers?: {
     roughness:number; metalness:number; opacity:number; pattern?:string;
     maps?:readonly (string|undefined)[]; tileAtlases?:readonly (string|undefined)[];
+    normalAtlases?:readonly (string|undefined)[];
     centerMap?:string; centerBumpMap?:string; centerBumpScale?:number;
+    centerFace?:number; centerReplaceColor?:boolean; centerMetalnessMap?:string; centerRoughnessMap?:string;
     replaceColor?:boolean; normalMap?:string; normalScale:number;
+    roughnessMap?:string; aoMap?:string; aoIntensity?:number;
   };
   glow?: {color:number; intensity:number; map?:string};
   pulse?: {speed:number; secondary:number};
@@ -82,7 +85,7 @@ export class SurfaceMaterials {
     const pattern = style?.pattern ? this.retain(makePattern(style.pattern)) : null;
     const mask = surface.glow ? this.retain(makePattern('border',true)) : null;
     const materials = shared ? [...stickers,shared] : stickers;
-    const configure = (material:MeshStandardMaterial,map:string|undefined) => {
+    const configure = (material:MeshStandardMaterial,map:string|undefined,center=false) => {
       material.roughness = style?.roughness ?? 0.65;
       material.metalness = style?.metalness ?? 0;
       material.opacity = style?.opacity ?? 1;
@@ -90,6 +93,8 @@ export class SurfaceMaterials {
       material.depthWrite = material.opacity === 1;
       material.map = pattern;
       material.normalMap = null;
+      material.roughnessMap=null;material.aoMap=null;material.metalnessMap=null;material.bumpMap=null;material.bumpScale=0;
+      material.aoMapIntensity=style?.aoIntensity??1;
       material.normalScale.setScalar(style?.normalScale ?? 0);
       material.emissive.setHex(surface.glow?.color ?? 0);
       material.emissiveIntensity = surface.glow?.intensity ?? 0;
@@ -97,6 +102,8 @@ export class SurfaceMaterials {
       material.needsUpdate = true;
       this.attach(material,'map',map,style?.replaceColor);
       this.attach(material,'normalMap',style?.normalMap);
+      this.attach(material,'roughnessMap',center&&style?.centerRoughnessMap?style.centerRoughnessMap:style?.roughnessMap);
+      this.attach(material,'aoMap',style?.aoMap);
       this.attach(material,'emissiveMap',surface.glow?.map);
     };
     materials.forEach((material,index)=>configure(material,style?.maps?.[index]));
@@ -106,15 +113,21 @@ export class SurfaceMaterials {
     if (hasAtlas || centerMap) {
       for (const tile of hasAtlas ? Array.from({length:tileSize*tileSize},(_,index)=>index) : [4]) this.tiles[tile] = stickers.map((_,color)=>{
         const material = new MeshStandardMaterial();
-        configure(material,tile===4 && centerMap ? centerMap : style?.maps?.[color]);
-        if(tileSize===3 && tile===4) {
+        const decoratedCenter=tile===4 && Boolean(centerMap) && (style?.centerFace===undefined || style.centerFace===color);
+        configure(material,decoratedCenter ? centerMap : style?.maps?.[color],decoratedCenter);
+        if(decoratedCenter && style?.centerReplaceColor){this.albedoMaterials.add(material);material.color.setHex(0xffffff);}
+        if(tileSize===3 && tile===4 && (style?.centerFace===undefined || style.centerFace===color)) {
           material.bumpScale = style?.centerBumpScale ?? 0;
           this.attach(material,'bumpMap',style?.centerBumpMap);
+          if(style?.centerMetalnessMap){material.metalness=1;this.attach(material,'metalnessMap',style.centerMetalnessMap);}
         }
         return material;
       });
       atlases?.slice(0,stickers.length).forEach((path,color)=>{
         if(isSkinTexture(path)) this.attachAtlas(path,color,style?.replaceColor === true,tileSize);
+      });
+      style?.normalAtlases?.slice(0,stickers.length).forEach((path,color)=>{
+        if(isSkinTexture(path))this.attachAtlas(path,color,false,tileSize,'normalMap');
       });
     }
     this.allStickers = [...materials,...this.tiles.flat()];
@@ -128,7 +141,7 @@ export class SurfaceMaterials {
     return texture ?? null;
   }
 
-  private attach(material:MeshStandardMaterial,key:'map'|'normalMap'|'emissiveMap'|'bumpMap',path:string|undefined,replaceColor=false) {
+  private attach(material:MeshStandardMaterial,key:'map'|'normalMap'|'emissiveMap'|'bumpMap'|'metalnessMap'|'roughnessMap'|'aoMap',path:string|undefined,replaceColor=false) {
     if (!isSkinTexture(path)) return;
     this.loadTexture(path,key==='map'||key==='emissiveMap',loaded => {
       if (this.disposed) return;
@@ -157,20 +170,21 @@ export class SurfaceMaterials {
     if(this.reuseTextures)this.cache.set(key,{texture,loaded:loadedTexture,listeners});
   }
 
-  private attachAtlas(path:string,color:number,replaceColor:boolean,tileSize:number):void {
-    this.loadTexture(path,true,atlas=>{
+  private attachAtlas(path:string,color:number,replaceColor:boolean,tileSize:number,key:'map'|'normalMap'='map'):void {
+    this.loadTexture(path,key==='map',atlas=>{
       if (this.disposed) return;
-      atlas.colorSpace = SRGBColorSpace;
       // The gutters keep neighbouring tiles out of the mip levels at grazing angles.
       const unit = 1/tileSize, inset = 2/(256*tileSize);
       this.tiles.forEach((group,tile)=>{
+        const style=this.surface.stickers;
+        if(key==='map'&&tile===4&&style?.centerMap&&(style.centerFace===undefined||style.centerFace===color))return;
         const crop = atlas.clone();
         crop.repeat.setScalar(unit-2*inset);
         crop.offset.set(tile%tileSize*unit+inset,(tileSize-1-Math.floor(tile/tileSize))*unit+inset);
         crop.needsUpdate = true;
         this.retain(crop);
         const material = group[color]!;
-        material.map = crop;
+        material[key] = crop;
         if(replaceColor){
           this.albedoMaterials.add(material);
           material.color.setHex(0xffffff);
