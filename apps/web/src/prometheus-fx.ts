@@ -1,4 +1,4 @@
-import {AdditiveBlending,BufferAttribute,BufferGeometry,Color,DoubleSide,Group,Mesh,MeshBasicMaterial,Points,ShaderMaterial,TorusGeometry,Vector3} from 'three';
+import {AdditiveBlending,BufferAttribute,BufferGeometry,Color,DoubleSide,DynamicDrawUsage,Group,Mesh,MeshBasicMaterial,Points,ShaderMaterial,TorusGeometry,Vector3} from 'three';
 import type {Camera,Scene,WebGLRenderer} from 'three';
 import {parseMove} from '@rubik/engine';
 import {rotationFor} from '@rubik/renderer';
@@ -18,6 +18,12 @@ export function prometheusFx(scene:Scene,reduced=matchMedia('(prefers-reduced-mo
       vec3 c=mix(vec3(1.,.95,.69),vec3(1.,.165,.333),age);gl_FragColor=vec4(c,(1.-r*r)*(1.-age));}`
   });
   const particles=new Points(particleGeometry,particleMaterial);particles.frustumCulled=false;root.add(particles);
+  // At most 256 turn sparks plus the unchanged 64 solve particles.
+  const positions=new BufferAttribute(new Float32Array(320*3),3).setUsage(DynamicDrawUsage);
+  const sizes=new BufferAttribute(new Float32Array(320),1).setUsage(DynamicDrawUsage);
+  const lives=new BufferAttribute(new Float32Array(320),1).setUsage(DynamicDrawUsage);
+  particleGeometry.setAttribute('position',positions);particleGeometry.setAttribute('size',sizes);particleGeometry.setAttribute('life',lives);particleGeometry.setDrawRange(0,0);
+  const waveStartColor=new Color(0xff2a55),waveEndColor=new Color(0xfff3b0);
   const waveGeometry=new TorusGeometry(1,.055,6,64),waveMaterial=new MeshBasicMaterial({color:0xffb703,transparent:true,opacity:0,depthWrite:false,blending:AdditiveBlending});
   const wave=new Mesh(waveGeometry,waveMaterial);wave.rotation.x=Math.PI/2;wave.visible=false;root.add(wave);
   const removeRibbon=()=>{const item=ribbons.shift();if(item){root.remove(item.mesh);item.mesh.geometry.dispose();item.mesh.material.dispose();}};
@@ -74,21 +80,25 @@ export function prometheusFx(scene:Scene,reduced=matchMedia('(prefers-reduced-mo
     }
     while(ribbons.length&&now-ribbons[0]!.born>=config.turn.duration)removeRibbon();
     for(let i=flashes.length-1;i>=0;i--){const f=flashes[i]!,t=(now-f.born)/config.turn.flashMs;f.mesh.material.opacity=Math.max(0,1-t);if(t>=1){root.remove(f.mesh);f.mesh.geometry.dispose();f.mesh.material.dispose();flashes.splice(i,1);}}
-    sparks=sparks.filter(s=>now-s.birth<s.life);
-    const data:number[]=[],sizes:number[]=[],life:number[]=[];
-    for(const s of sparks){s.v.multiplyScalar(Math.pow(config.turn.drag,dt*60));s.v.y+=config.turn.buoyancy*dt;s.p.addScaledVector(s.v,dt);data.push(...s.p.toArray());sizes.push(s.size);life.push((now-s.birth)/s.life);}
+    let alive=0;
+    for(const spark of sparks)if(now-spark.birth<spark.life)sparks[alive++]=spark;
+    sparks.length=alive;
+    let count=0;
+    const particle=(x:number,y:number,z:number,size:number,life:number)=>{positions.setXYZ(count,x,y,z);sizes.setX(count,size);lives.setX(count,life);count++;};
+    for(const s of sparks){s.v.multiplyScalar(Math.pow(config.turn.drag,dt*60));s.v.y+=config.turn.buoyancy*dt;s.p.addScaledVector(s.v,dt);particle(s.p.x,s.p.y,s.p.z,s.size,(now-s.birth)/s.life);}
     const elapsed=now-solveStart,solveActive=elapsed>=0&&elapsed<config.solve.duration;
     if(solveActive&&elapsed>=1300){
       const t=(elapsed-1300)/(config.solve.duration-1300);
       for(let i=0;i<64;i++){
         const angle=i*2.39996+t*4.2,r=.5+((i*17)%43)/43*1.2;
         const y=-1.4+(i%11)/11*2.8+t*1.4;
-        data.push(Math.cos(angle)*r,y,Math.sin(angle)*r);sizes.push(2+(i%4));life.push(Math.max(0,(elapsed-(config.solve.duration-500))/500));
+        particle(Math.cos(angle)*r,y,Math.sin(angle)*r,2+(i%4),Math.max(0,(elapsed-(config.solve.duration-500))/500));
       }
     }
-    particleGeometry.setAttribute('position',new BufferAttribute(new Float32Array(data),3));particleGeometry.setAttribute('size',new BufferAttribute(new Float32Array(sizes),1));particleGeometry.setAttribute('life',new BufferAttribute(new Float32Array(life),1));
+    particleGeometry.setDrawRange(0,count);
+    if(count)for(const attribute of [positions,sizes,lives]){attribute.clearUpdateRanges();attribute.addUpdateRange(0,count*attribute.itemSize);attribute.needsUpdate=true;}
     wave.visible=solveActive&&elapsed>=config.solve.waveStart&&elapsed<config.solve.waveEnd;
-    if(wave.visible){const t=(elapsed-config.solve.waveStart)/(config.solve.waveEnd-config.solve.waveStart);wave.scale.setScalar(.1+3.1*(1-Math.pow(1-t,3)));waveMaterial.opacity=1-t;waveMaterial.color.copy(new Color(0xff2a55).lerp(new Color(0xfff3b0),t));}
+    if(wave.visible){const t=(elapsed-config.solve.waveStart)/(config.solve.waveEnd-config.solve.waveStart);wave.scale.setScalar(.1+3.1*(1-Math.pow(1-t,3)));waveMaterial.opacity=1-t;waveMaterial.color.copy(waveStartColor).lerp(waveEndColor,t);}
     if(!solveActive)return 0;
     const fade=Math.min(1,(config.solve.duration-elapsed)/500);
     return (elapsed<250?2.8*(1-elapsed/250):.9+1.9*bloomAmount(elapsed))*fade;

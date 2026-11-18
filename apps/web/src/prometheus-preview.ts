@@ -26,6 +26,7 @@ import {solarHeart} from './prometheus-solar-heart.js';
 import {WebGLRenderTarget as CardRenderTarget} from 'three';
 import './prometheus-gameplay.css';
 import './prometheus-preview.css';
+import {PrometheusBatches} from './prometheus-batches.js';
 
 const el=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
 const stage=el('stage'),status=el('status');
@@ -37,6 +38,8 @@ const materials=design.colors.map(color=>new MeshPhysicalMaterial({color,roughne
   clearcoat:1,clearcoatRoughness:.065,ior:1.52,envMapIntensity:.5}));
 /** Local study display: consumes controller snapshots; never owns or mutates a Cube. */
 class PrometheusStudy {
+  private readonly optimize=new URLSearchParams(location.search).get('optimize')!=='0';
+  private batches:PrometheusBatches|undefined;
   private scene=new Scene();
   private camera=new PerspectiveCamera(34,1,.1,80);
   private webgl=new WebGLRenderer({antialias:true,alpha:true});
@@ -236,6 +239,7 @@ class PrometheusStudy {
     this.pivot.rotation.set(0,0,0);this.pivot.position.set(0,0,0);this.active=undefined;this.queue=[];this.manualOpen=false;this.fx.clear();
   }
   setState(state:Uint8Array){
+    this.batches?.dispose();this.batches=undefined;
     this.cancel();this.root.clear();this.coreDecor=[];this.geometry.forEach(g=>g.dispose());this.geometry=[];
     const round=design.fixedAppearance.edgeRound;
     this.caps=layout.slots.map((slot,index)=>{
@@ -312,6 +316,7 @@ class PrometheusStudy {
     images['preview.png']=renderer.domElement.toDataURL('image/png');renderer.dispose();renderer.forceContextLoss();return images;
   }
   setQuality(value:Quality){
+    this.batches?.dispose();this.batches=undefined;
     this.quality=value;
     this.pom.value=value==='ultra'&&this.heightReady?1:0;
     this.coreLight.visible=value==='ultra';this.heart&&(this.heart.visible=value==='ultra');
@@ -335,6 +340,7 @@ class PrometheusStudy {
     this.fx.setEnabled(value!=='lite');
     this.webgl.setPixelRatio(Math.min(devicePixelRatio,value==='ultra'?2:value==='balanced'?1.5:1));
     this.resize();el('quality-note').textContent=(value==='ultra'?'Ultra · Parallax 12 bước, lõi plasma 3D, 24 nam châm, đèn động':value==='balanced'?'Balanced · PBR, lõi sprite, giữ vệt xoay 3D':'Lite · Phát sáng tĩnh, tắt đèn động và hiệu ứng hạt');
+    if(this.optimize)this.batches=new PrometheusBatches(this.scene,this.root,this.camera);
   }
   feedback(move:string){this.audio.turn(move);this.lastTurn=performance.now();this.turnTimes.push(this.lastTurn);}
   setSolvedAppearance(solved:boolean,immediate=false){this.unification.setSolved(solved,performance.now(),immediate);}
@@ -443,11 +449,12 @@ class PrometheusStudy {
     this.unification.update(now);
     const solarBurst=this.solar.update(now,this.bloom?now-this.bloom.start:undefined);
     this.coreLight.color.setHex(solarBurst>0?0xffb703:0xff4d2a);this.coreLight.intensity+=solarBurst*3.;
-    this.controls.update();this.webgl.render(this.scene,this.camera);
+    this.controls.update();this.batches?.update();
+    try{this.webgl.render(this.scene,this.camera);}finally{this.batches?.restoreLayers();}
     if(now-this.lastStats>500){el('performance').textContent=`${this.webgl.info.render.calls} draw calls · ${this.webgl.info.render.triangles.toLocaleString('vi')} tam giác`;this.lastStats=now;}
     this.frame=requestAnimationFrame(this.draw);
   };
-  dispose(){this.solar.dispose();this.centerGold.dispose();this.solvingRims.forEach(material=>material.dispose());this.ringEngraving.dispose();this.cancelBloom();this.disposed=true;cancelAnimationFrame(this.frame);this.observer.disconnect();this.controls.dispose();this.fx.dispose();this.audio.dispose();this.geometry.forEach(g=>g.dispose());this.pyramidMaterials.forEach(m=>m.dispose());this.bronze.dispose();this.spindle.dispose();this.axle.dispose();this.cage.dispose();this.pod.dispose();this.lens.dispose();this.podMaterial.dispose();this.magnetMaterial.dispose();this.flameGeometry.dispose();this.fire.dispose();this.glowTexture.dispose();this.glowSprite.material.dispose();materials.forEach(m=>m.dispose());this.maps.forEach(t=>t.dispose());this.referenceMaterials.forEach(m=>m.dispose());this.medallionMaterials.forEach(m=>m.dispose());this.atlases.forEach(m=>m.dispose());this.liteAtlases.forEach(m=>m.dispose());this.environment.dispose();this.webgl.dispose();this.webgl.domElement.remove();}
+  dispose(){this.batches?.dispose();this.batches=undefined;this.channels.dispose();this.antiBleed.dispose();this.centerGlass.forEach(m=>m.dispose());this.centerFire.forEach(m=>m.dispose());this.solar.dispose();this.centerGold.dispose();this.solvingRims.forEach(material=>material.dispose());this.ringEngraving.dispose();this.cancelBloom();this.disposed=true;cancelAnimationFrame(this.frame);this.observer.disconnect();this.controls.dispose();this.fx.dispose();this.audio.dispose();this.geometry.forEach(g=>g.dispose());this.pyramidMaterials.forEach(m=>m.dispose());this.bronze.dispose();this.spindle.dispose();this.axle.dispose();this.cage.dispose();this.pod.dispose();this.lens.dispose();this.podMaterial.dispose();this.magnetMaterial.dispose();this.flameGeometry.dispose();this.fire.dispose();this.glowTexture.dispose();this.glowSprite.material.dispose();materials.forEach(m=>m.dispose());this.maps.forEach(t=>t.dispose());this.referenceMaterials.forEach(m=>m.dispose());this.medallionMaterials.forEach(m=>m.dispose());this.atlases.forEach(m=>m.dispose());this.liteAtlases.forEach(m=>m.dispose());this.environment.dispose();this.webgl.dispose();this.webgl.domElement.remove();}
 }
 
 const display=new PrometheusStudy(),controller=new CubeController(display,3);
