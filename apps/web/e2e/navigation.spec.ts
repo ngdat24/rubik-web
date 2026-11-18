@@ -7,7 +7,10 @@ test('shared navigation, mode toggle, season and responsive layout',async({page}
   await page.setViewportSize({width:1440,height:900});
   await page.goto(path);
   const nav=page.locator('.site-navigation');await expect(nav).toBeVisible();
-  expect((await nav.boundingBox())!.width).toBeGreaterThan(1350);
+  const bounds=(await nav.boundingBox())!;
+  expect(bounds.width).toBeGreaterThan(1350);expect(bounds.height).toBeLessThanOrEqual(66);
+  const badge=(await nav.locator('.nav-season').boundingBox())!;expect(badge.y).toBeGreaterThanOrEqual(bounds.y+bounds.height-1);
+  expect(await nav.evaluate(el=>getComputedStyle(el,'::after').borderBottomLeftRadius)).toBe('18px');
   await expect(nav.locator('[data-nav=home]')).toHaveCSS('border-radius','0px');
   await expect(nav.locator('.nav-modes')).toHaveCSS('border-right-width','1px');
   await expect(nav.locator('[data-nav=board]')).toHaveCSS('border-right-width','1px');
