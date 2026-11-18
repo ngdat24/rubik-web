@@ -17,7 +17,7 @@ Dự án đang phát triển. Đã có mô phỏng 2×2 đến 10×10, hồ sơ 
 - Hồ sơ chỉ đặt tên qua Supabase Anonymous Sign-Ins; tên phải chưa được dùng, không cần email/mật khẩu.
 - Lịch sử tách theo phiên hồ sơ; đồng bộ server và gửi lại khi mất mạng. Tên không phải cách đăng nhập hồ sơ cũ trên thiết bị khác.
 - Đồng bộ tăng dần các bản ghi mới/sửa/xóa; ngừng các đợt đồng bộ mới khi tab ẩn.
-- Bảng thành tích **2×2 và 3×3**: Top 10 lượt giải all-time, một người có thể có nhiều dòng.
+- Bảng thành tích **2×2 và 3×3**: bảng nhỏ Top 10 và trang BXH Toàn Cầu tối đa 1.000 lượt all-time; một người có thể có nhiều dòng.
 - Phòng mời **1v1**: Rubik của mình bên trái, đối thủ bên phải; full/F2L/1 mặt, mỗi lượt chạy 3 phút.
 - **Time Limit** solo: ba mục tiêu cùng luật thi đấu và bảng Top 10 riêng; nhiều khối hơn, rồi mốc hoàn thành cuối sớm hơn, rồi ít nước hơn.
 - Ví CB/ZN, nhiệm vụ ngày/online 10 phút, thưởng PB, vé Time Limit Full 3×3, bảng tuần và cược 1v1.
@@ -150,7 +150,7 @@ Cloud tests dùng Auth/database giả lập; kiểm tra SQL/RLS nằm ở [supab
 - [Đặc tả kỹ thuật](docs/spec/)
 - [Nhật ký quyết định](docs/spec/decisions.md)
 - [Tổng kết triển khai và workflow GitHub hai người](docs/project-history-and-github-workflow.md)
-- [Hướng dẫn bạn mới tham gia](docs/collaborator-getting-started.md)
+- [Workflow cho Sang và AI](docs/workflow-sang-va-ai.md)
 - [Hướng dẫn AI cộng tác viên](COLLABORATOR_AGENT.md)
 
 Đối chiếu quyết định mới, mã nguồn và lịch sử PR khi tiếp tục phát triển. Preview hiện dùng chung database production; thay đổi database/secrets do chủ repo điều phối.
