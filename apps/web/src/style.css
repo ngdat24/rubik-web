@@ -44,3 +44,5 @@
 [data-nameplate=gold]{color:#ffdb76!important;box-shadow:inset 2px 0 #b78a2b;text-shadow:0 0 8px #eab30880}
 #viewport{position:relative}
 .skin-trail{position:absolute;z-index:1;height:3px;border-radius:3px;opacity:0;pointer-events:none;transform-origin:left center}
+
+.leaderboard-link{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:10px;padding:10px 14px;text-decoration:none;font-size:12px;white-space:nowrap}.leaderboard-link:hover{border-color:#aab692}

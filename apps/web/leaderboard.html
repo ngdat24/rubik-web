@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Rubik Lab — Bảng xếp hạng</title></head>
+<body><main class="full-leaderboard"><header><a class="brand" href="/">Rubik Lab</a><span class="header-mode">Bảng xếp hạng</span></header>
+<section aria-labelledby="board-title"><h1 id="board-title">Bảng xếp hạng</h1>
+<p>1.000 lượt giải nhanh nhất từ trước đến nay; một người có thể xuất hiện nhiều lần. +2 được cộng vào thời gian; DNF không xếp hạng. Chỉnh phạt local không đổi kết quả trên bảng.</p>
+<div class="board-actions" role="group" aria-label="Khối"><button type="button" data-size="3" aria-pressed="true">3×3</button><button type="button" data-size="2" aria-pressed="false">2×2</button><button type="button" id="board-refresh">Làm mới</button></div>
+<p id="board-status" role="status"></p><table class="leaderboard-table"><caption id="board-caption">3×3</caption><thead><tr><th scope="col">Hạng</th><th scope="col">Tên</th><th scope="col">Thời gian</th></tr></thead><tbody id="board-rows"></tbody></table>
+</section></main><script type="module" src="/src/full-leaderboard.ts"></script></body></html>

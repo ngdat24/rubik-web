@@ -1,4 +1,12 @@
 export const english: Record<string, string> = {
+ 'Làm mới':'Refresh',
+ 'Rubik Lab — Bảng xếp hạng':'Rubik Lab — Leaderboard',
+ '1.000 lượt giải nhanh nhất từ trước đến nay; một người có thể xuất hiện nhiều lần. +2 được cộng vào thời gian; DNF không xếp hạng. Chỉnh phạt local không đổi kết quả trên bảng.':'The 1,000 fastest solves of all time; a player can appear multiple times. +2 is included; DNF is not ranked. Local penalty edits do not change leaderboard results.',
+ 'Đang tải bảng xếp hạng…':'Loading leaderboard…',
+ 'Số lượt giải hợp lệ trên bảng: ':'Valid solves on the board: ',
+ 'Chưa có lượt giải hợp lệ.':'No valid solves yet.',
+ 'Không tải được bảng xếp hạng. Hãy thử làm mới.':'Unable to load the leaderboard. Please refresh.',
+
   "Pastel Nhám Tiêu Chuẩn": "Standard Matte Pastel",
   "Nhựa Bóng Cổ Điển": "Classic Glossy Plastic",
   "Khung Trắng Tinh Khôi": "Pure White Frame",

@@ -112,7 +112,10 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
       }
       if(route==='leaderboard'&&req.method==='GET'){
         const size=Number(url.searchParams.get('size'));if(![2,3].includes(size))throw new HttpError(400,'Chỉ có bảng 2×2 và 3×3.');
-        const rows=await request('/rest/v1/rpc/leaderboard_with_nameplates',{method:'POST',body:{p_size:size}});
+        const limit=url.searchParams.get('limit')??'10';
+        if(!['10','1000'].includes(limit))throw new HttpError(400,'Invalid limit.');
+        const rpc=limit==='1000'?'leaderboard_top1000':'leaderboard_with_nameplates';
+        const rows=await request('/rest/v1/rpc/'+rpc,{method:'POST',body:{p_size:size}});
         res.setHeader('Cache-Control','public, s-maxage=15, stale-while-revalidate=15');return send(200,{rows});
       }
       if(!['player','solves','account','race','time-limit','practice','wallet','quests','skins','shop','champion'].includes(route)||!['GET','POST','DELETE'].includes(req.method))throw new HttpError(404,'Không có API này.');
