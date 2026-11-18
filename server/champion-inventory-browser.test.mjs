@@ -50,9 +50,13 @@ test('Champion inventory: sizes, inline naming, preview and equip', {timeout:600
       const access_token=[{alg:'HS256',typ:'JWT'},{sub:id,aud:'authenticated',role:'authenticated',exp,iat:exp-3600},'c2lnbmF0dXJl'].map(x=>typeof x==='string'?x:Buffer.from(JSON.stringify(x)).toString('base64url')).join('.');
       await route.fulfill({json:{access_token,refresh_token:'fixture-refresh',expires_in:3600,expires_at:exp,token_type:'bearer',user},headers:{'access-control-allow-origin':'*'}});
     });
+    const openInventory=async()=>{
+      await page.locator('#shop-open').click();
+      await page.locator('#shop-tabs').getByRole('button',{name:'Kho skin',exact:true}).click();
+    };
     const errors=[],resources=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>resources.push(r.url()));
     await page.goto(base+'/?lang=vi&diagnostics');await expect(page.locator('#player-label')).toHaveText('Fixture Player');
-    await page.locator('#inventory-open').click();
+    await openInventory();
     const card3=page.locator('[data-champion="3"]');
     await expect(card3).toHaveAttribute('data-tier','gold');
     await expect(page.locator('#shop-content a[href*="champion"]')).toHaveCount(0);
@@ -85,12 +89,12 @@ test('Champion inventory: sizes, inline naming, preview and equip', {timeout:600
     await page.locator('#shop-close').click();await page.selectOption('#cube-size','2');
     await expect(page.locator('#viewport .champion-frame__title')).toContainText('Kiếm bạc');
     await page.reload();await expect(page.locator('#viewport .champion-frame')).toHaveCount(1);
-    await page.locator('#inventory-open').click();await page.getByRole('button',{name:'Skin 2×2',exact:true}).click();
+    await openInventory();await page.getByRole('button',{name:'Skin 2×2',exact:true}).click();
     await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
     if(process.env.CHAMPION_CAPTURE)await page.screenshot({path:'.env.backups/champion-inventory-mobile.png'});
     await page.setViewportSize({width:1280,height:900});if(process.env.CHAMPION_CAPTURE)await page.screenshot({path:'.env.backups/champion-inventory-desktop.png'});
     awards=awards.filter(a=>a.size===2);
-    await page.reload();await page.locator('#inventory-open').click();
+    await page.reload();await openInventory();
     await expect(page.locator('[data-champion="3"]')).toHaveCount(0);
     await expect(page.locator('#viewport .champion-frame')).toHaveCount(0);
     await page.goto(base+'/champion.html?size=2&lang=en');

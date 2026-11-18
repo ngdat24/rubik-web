@@ -21,7 +21,7 @@ test('two browsers share ranking, names survive reload, offline solves retry', {
       await page.goto(base);await expect(page.locator('#player-dialog')).toBeVisible();await page.locator('#player-name').fill(name);await page.locator('#player-form button[type=submit]').click();await expect(page.locator('#player-dialog')).not.toBeVisible();
     }
     await a.locator('#workspace-tools summary').click();await a.locator('#instant').check();await a.locator('#view-keys').check();
-    await a.selectOption('#cube-size','2');await a.locator('#scramble').click();const moves=(await a.locator('#scramble-text').textContent()).trim().split(/\s+/);
+    await a.selectOption('#cube-size','2');await a.locator('#timer-start').click();const moves=(await a.locator('#scramble-text').textContent()).trim().split(/\s+/);
     await a.locator('#timer-start').click();
     await context.setOffline(true);
     for(const move of moves.reverse())await a.keyboard.press(move.endsWith('2')?'Alt+'+move[0].toLowerCase():move.endsWith("'")?move[0].toLowerCase():'Shift+'+move[0].toLowerCase());

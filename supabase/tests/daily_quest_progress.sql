@@ -1,16 +1,19 @@
 begin;
 insert into auth.users(id,email) values
   ('9e000000-0000-4000-8000-000000000001','quests2@example.invalid'),
-  ('9e000000-0000-4000-8000-000000000002','quests5@example.invalid');
+  ('9e000000-0000-4000-8000-000000000002','quests3@example.invalid'),
+  ('9e000000-0000-4000-8000-000000000003','quests4@example.invalid');
 insert into public.profiles(id,name) values
   ('9e000000-0000-4000-8000-000000000001','Quest Two'),
-  ('9e000000-0000-4000-8000-000000000002','Quest Five');
+  ('9e000000-0000-4000-8000-000000000002','Quest Three'),
+  ('9e000000-0000-4000-8000-000000000003','Quest Four');
 
 set local role service_role;
 do $$
 declare
   p uuid:='9e000000-0000-4000-8000-000000000001';
   q uuid:='9e000000-0000-4000-8000-000000000002';
+  r uuid:='9e000000-0000-4000-8000-000000000003';
   day date:=public.economy_day(clock_timestamp());
   stamp bigint:=floor(extract(epoch from clock_timestamp())*1000)::bigint;
   result jsonb;
@@ -19,27 +22,36 @@ begin
   perform public.save_solve(p,'{"id":"import-old","size":2,"timeMs":2000,"penalty":"none"}',null,false,false,null);
   perform public.save_solve_with_quests(p,'{"id":"import-old","size":2,"timeMs":2000,"penalty":"none"}',null,false,false,null);
   perform public.save_solve_with_quests(p,'{"id":"dnf","size":2,"timeMs":0,"penalty":"DNF"}',null,false,false,null);
-  for i in 1..10 loop
+  for i in 1..8 loop
     solve:=jsonb_build_object('id','verified-two-'||i,'size',2,'timeMs',75000,'penalty','none');
     perform public.save_solve_with_quests(p,solve,null,false,true,null);
     perform public.save_solve_with_quests(p,solve,null,false,true,null);
     result:=public.economy_progress_snapshot(p);
-    if result->'counts'->>0<>i::text or (result->>'completed')::int<>(case when i=10 then 1 else 0 end)
+    if result->'counts'->>0<>i::text or (result->>'completed')::int<>(case when i=8 then 1 else 0 end)
       then raise exception 'Wrong solve progress or duplicate receipt: %',result; end if;
   end loop;
 
-  for i in 1..5 loop
+  for i in 1..4 loop
     solve:=jsonb_build_object('id','verified-three-'||i,'size',3,'timeMs',75000,'penalty','none');
     perform public.save_solve_with_quests(q,solve,null,false,false,null);
     result:=public.economy_progress_snapshot(q);
-    if result->'counts'->>1<>i::text or (result->>'completed')::int<>(case when i=5 then 1 else 0 end)
-      then raise exception '3x3 needs exactly five solves: %',result; end if;
+    if result->'counts'->>1<>i::text or (result->>'completed')::int<>(case when i=4 then 1 else 0 end)
+      then raise exception '3x3 needs exactly four solves: %',result; end if;
   end loop;
+  perform public.save_solve_with_quests(r,'{"id":"first-four","size":4,"timeMs":3500,"penalty":"none"}',null,false,false,null);
+  if (public.economy_progress_snapshot(r)->>'completed')::int<>1
+    then raise exception 'One 4x4 solve must complete the practice quest'; end if;
+
+  perform public.save_solve_with_quests(q,'{"id":"verified-four","size":4,"timeMs":3500,"penalty":"none"}',null,false,false,null);
+  if public.economy_quest_counts(q,day)<>array[0,4,1,0] then raise exception '4x4 not credited'; end if;
+  if (select count(*) from public.currency_ledger where user_id=q and reason='quest_practice')<>1
+    then raise exception 'Alternative practice targets duplicated the reward'; end if;
+
   perform public.save_solve_with_quests(p,'{"id":"verified-six","size":6,"timeMs":3500,"penalty":"+2"}',null,false,false,null);
-  if public.economy_quest_counts(p,day)<>array[10,0,0,1] then raise exception 'Large range not credited'; end if;
+  if public.economy_quest_counts(p,day)<>array[8,0,0,1] then raise exception 'Large range not credited'; end if;
 
   perform public.save_solve_with_quests(p,'{"id":"verified-five","size":5,"timeMs":3500,"penalty":"none"}',null,false,false,null);
-  if public.economy_quest_counts(p,day)<>array[10,0,0,2] then raise exception '5x5 must count in large range'; end if;
+  if public.economy_quest_counts(p,day)<>array[8,0,0,2] then raise exception '5x5 must count in large range'; end if;
 
   insert into public.time_limit_sessions(id,user_id,mode,seed,start_ms,abandoned)
     values(repeat('d',32),p,'f2lRush','demo',stamp-202000,true);

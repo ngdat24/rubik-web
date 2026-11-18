@@ -15,7 +15,6 @@ export function attachCloudHistory(account:CloudAccount|undefined,history:SolveH
   const tbody=document.querySelector<HTMLTableSectionElement>('#leaderboard-rows')!,edit=document.querySelector<HTMLButtonElement>('#player-edit')!;
   const dialog=document.querySelector<HTMLDialogElement>('#player-dialog')!,form=document.querySelector<HTMLFormElement>('#player-form')!;
   const name=document.querySelector<HTMLInputElement>('#player-name')!,nameError=document.querySelector<HTMLElement>('#player-error')!;
-  const syncButton=document.querySelector<HTMLButtonElement>('#cloud-sync')!,importButton=document.querySelector<HTMLButtonElement>('#cloud-import')!;
   const resolveButton=document.querySelector<HTMLButtonElement>('#cloud-use-server')!;
   const abort=new AbortController(),pending=new Map<string,Pending>(),revisions=new Map<string,number>();
   const prefix='rubik.cloud.pending.'+account?.id+'.',revisionPrefix='rubik.cloud.revision.'+account?.id+'.';
@@ -31,7 +30,7 @@ export function attachCloudHistory(account:CloudAccount|undefined,history:SolveH
       const entry=validateHistoryBackup({version:1,entries:[raw.entry]}).entries[0]!;
       if(typeof raw.deleted!=='boolean'||typeof raw.ranked!=='boolean'||typeof raw.nonce!=='string'||(raw.revision!==null&&(!Number.isSafeInteger(raw.revision)||raw.revision<1)))continue;
       if(!pending.has(entry.solve.id))pending.set(entry.solve.id,{...raw,entry});
-    }}catch{storageError=true;status.textContent=t("Không đọc được hàng đợi; có thể xuất backup trước khi tải lại.");}
+    }}catch{storageError=true;status.textContent=t("Không đọc được hàng đợi trên thiết bị.");}
   };
   const revision=(id:string)=>{if(revisions.has(id))return revisions.get(id)!;try{const value=Number(localStorage.getItem(revisionPrefix+id));return Number.isSafeInteger(value)&&value>0?value:null;}catch{return null;}};
   const remember=(row:Row)=>{revisions.set(row.id,row.revision);try{localStorage.setItem(revisionPrefix+row.id,String(row.revision));}catch{/* A missing revision causes a safe conflict, never an unguarded overwrite. */}};
@@ -78,11 +77,11 @@ export function attachCloudHistory(account:CloudAccount|undefined,history:SolveH
     cursor=nextCursor;
   };
   const sync=async()=>{
-    if(disposed||document.hidden)return;if(busy){syncAgain=true;return;}busy=true;syncButton.disabled=true;
+    if(disposed||document.hidden)return;if(busy){syncAgain=true;return;}busy=true;
     try{
       await ui.loaded;if(disposed||document.hidden)return;if(!account){await board();status.textContent=t("Chưa kết nối được hồ sơ tự động; kết quả vẫn lưu trên thiết bị.");return;}
       load();const profile=await api('player');if(disposed)return;
-      profileName=profile.name??'';label.textContent=profileName||t("Chưa đặt tên");if(!profileName&&!prompted&&!document.querySelector('dialog[open]')){prompted=true;showName();}
+      profileName=profile.name??'';label.textContent=profileName;if(!profileName&&!prompted&&!document.querySelector('dialog[open]')){prompted=true;showName();}
       for(const [id,item] of [...pending]){
         if(document.hidden)return;
         if(item.error)continue;
@@ -106,7 +105,7 @@ export function attachCloudHistory(account:CloudAccount|undefined,history:SolveH
       const failed=[...pending.values()].find(item=>item.error);resolveButton.hidden=![...pending.values()].some(item=>item.conflict);
       status.textContent=failed?`${t("Một thay đổi chưa đồng bộ: ")}${t(failed.error ?? "")}`:storageError?t("Đã gửi; lưu hàng đợi trên thiết bị gặp lỗi."):t("Đã đồng bộ lịch sử tài khoản.");
     }catch(error){if(!disposed)status.textContent=error instanceof Error?t(error.message):t("Chưa kết nối được server; kết quả vẫn ở thiết bị.");}
-    finally{busy=false;if(!disposed){syncButton.disabled=!account;if(syncAgain){syncAgain=false;queueMicrotask(()=>{void sync();});}}}
+    finally{busy=false;if(!disposed){if(syncAgain){syncAgain=false;queueMicrotask(()=>{void sync();});}}}
   };
   const queue=(entry:HistoryEntry,deleted:boolean,ranked=false)=>{
     if(!account||disposed)return;load();const old=pending.get(entry.solve.id);
@@ -115,12 +114,11 @@ export function attachCloudHistory(account:CloudAccount|undefined,history:SolveH
   const showName=()=>{if(!account){status.textContent=t("Chưa tạo được hồ sơ tự động. Kiểm tra mạng rồi tải lại trang.");return;}name.value=profileName;nameError.textContent='';if(!document.querySelector('dialog[open]'))dialog.showModal();};
   const submitName=async(event:SubmitEvent)=>{event.preventDefault();const button=form.querySelector<HTMLButtonElement>('button[type=submit]')!;button.disabled=true;try{const profile=await api('player',{name:name.value});profileName=profile.name;label.textContent=profile.name;dialog.close();window.dispatchEvent(new Event('rubik-profile-updated'));void sync();}catch(error){nameError.textContent=error instanceof Error?t(error.message):t("Không lưu được tên.");}finally{button.disabled=false;}};
   const change=()=>{void sync();};
-  const importHistory=()=>{if(!account)return;for(const entry of history.entries())if(revision(entry.solve.id)===null)queue(entry,false,false);void sync();};
   const useServer=()=>{for(const [id,item] of pending)if(item.conflict){pending.delete(id);try{localStorage.removeItem(prefix+id);}catch{storageError=true;}}cursor=0;resolveButton.hidden=true;void sync();};
   const close=()=>dialog.close();
-  label.textContent=account?t("Đang tải tên…"):t("Khách");edit.textContent=account?t("Đổi tên"):t("Đặt tên");syncButton.hidden=importButton.hidden=!account;
-  edit.addEventListener('click',showName);form.addEventListener('submit',submitName);document.querySelector('#player-close')!.addEventListener('click',close);size.addEventListener('change',change);syncButton.addEventListener('click',change);importButton.addEventListener('click',importHistory);resolveButton.addEventListener('click',useServer);window.addEventListener('online',change);
+  edit.textContent=account?t("Đổi tên"):t("Đặt tên");
+  edit.addEventListener('click',showName);form.addEventListener('submit',submitName);document.querySelector('#player-close')!.addEventListener('click',close);size.addEventListener('change',change);resolveButton.addEventListener('click',useServer);window.addEventListener('online',change);
   void sync();const interval=window.setInterval(change,30000);
   const visible=()=>{if(!document.hidden)change();};document.addEventListener('visibilitychange',visible);
-  return {completed(solve:Solve){queue({solve,penaltyOverride:null},false,true);},mutated:queue,dispose(){disposed=true;abort.abort();clearInterval(interval);document.removeEventListener('visibilitychange',visible);edit.removeEventListener('click',showName);form.removeEventListener('submit',submitName);document.querySelector('#player-close')!.removeEventListener('click',close);size.removeEventListener('change',change);syncButton.removeEventListener('click',change);importButton.removeEventListener('click',importHistory);resolveButton.removeEventListener('click',useServer);window.removeEventListener('online',change);dialog.close();}};
+  return {completed(solve:Solve){queue({solve,penaltyOverride:null},false,true);},mutated:queue,dispose(){disposed=true;abort.abort();clearInterval(interval);document.removeEventListener('visibilitychange',visible);edit.removeEventListener('click',showName);form.removeEventListener('submit',submitName);document.querySelector('#player-close')!.removeEventListener('click',close);size.removeEventListener('change',change);resolveButton.removeEventListener('click',useServer);window.removeEventListener('online',change);dialog.close();}};
 }

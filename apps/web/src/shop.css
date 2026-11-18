@@ -42,4 +42,4 @@
 @media(max-width:780px){
   main>header:has(#shop-open){height:auto;min-height:76px;padding-block:8px;flex-wrap:wrap;gap:6px 12px}
 }
-@media(max-width:480px){#shop-dialog{padding:12px}#inventory-open{font-size:11px}}
+@media(max-width:480px){#shop-dialog{padding:12px}}
