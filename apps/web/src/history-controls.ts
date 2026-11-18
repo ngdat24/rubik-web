@@ -7,6 +7,7 @@ import type {HistoryEntry} from '@rubik/timer';
 
 export function attachHistory(history: SolveHistory, getSize: ()=>number, onMutation:(entry:HistoryEntry,deleted:boolean)=>void=()=>{}) {
   const list=document.querySelector<HTMLOListElement>('#solve-history')!;
+  const stats=document.querySelector<HTMLElement>('#solve-stats')!;
   const status=document.querySelector<HTMLElement>('#history-message')!;
   const storageStatus=document.querySelector<HTMLElement>('#history-storage-status')!;
   let ready=false,disposed=false,canPersist=true;let writes=Promise.resolve();
@@ -30,6 +31,11 @@ export function attachHistory(history: SolveHistory, getSize: ()=>number, onMuta
       }
       list.append(row);
     }
+    stats.replaceChildren(...Object.entries(history.statistics(getSize())).map(([kind,value])=>{
+      const cell=document.createElement('span');
+      cell.textContent=`${kind}: ${value.display}`;
+      return cell;
+    }));
     document.querySelector('#history-empty')!.textContent=entries.length?'':`${t("Chưa có lần giải ")}${getSize()}${t("×")}${getSize()}.`;
   };
   const click=(event:MouseEvent):void=>{

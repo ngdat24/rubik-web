@@ -92,14 +92,100 @@
   display: none;
 }
 
-.practice-workspace #quest-panel {
-  text-align: left;
-  font-weight: 650;
-  opacity: 1;
-}
-
 .practice-workspace #history-title {
   font-size: 18px;
   font-weight: 700;
   margin: 0 0 12px;
+}
+
+#quest-panel {
+  position: relative;
+  padding: 0;
+  border: 0;
+}
+
+#quest-panel > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+  margin: 0;
+  color: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  list-style: none;
+}
+
+#quest-panel > summary::-webkit-details-marker { display: none; }
+#quest-panel > summary::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 180ms ease;
+}
+#quest-panel[open] > summary::after { transform: rotate(225deg); }
+#quest-panel > summary:hover { background: #292b25; }
+
+#quest-content {
+  position: absolute;
+  z-index: 4;
+  inset: 0 auto auto calc(100% + 12px);
+  width: 330px;
+  padding: 0;
+  box-shadow: 0 16px 32px #0007;
+  transform-origin: top left;
+}
+
+#quest-panel[open] > #quest-content {
+  animation: quest-open 220ms ease-out both;
+}
+
+@keyframes quest-open {
+  from { opacity: 0; transform: translateX(-14px) scale(.97); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+#quest-status, .quest-group, .quest-row {
+  margin: 0;
+  padding: 14px 16px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.quest-group > p { margin: 0 0 6px; }
+.quest-row { border-top: 1px solid var(--line); }
+
+.quest-bar {
+  height: 8px;
+  border-radius: 99px;
+  overflow: hidden;
+  background: #343932;
+}
+
+.quest-bar:not(:last-child) { margin-bottom: 12px; }
+
+.quest-bar > span {
+  display: block;
+  height: 100%;
+  background: #459bff;
+  transform: scaleX(var(--quest-fill, 0));
+  transform-origin: left;
+  transition: transform 280ms ease;
+}
+
+@media (max-width: 620px) {
+  #quest-content {
+    position: static;
+    width: auto;
+    margin-top: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #quest-panel[open] > #quest-content { animation: none; }
+  #quest-panel > summary::after, .quest-bar > span { transition: none; }
 }

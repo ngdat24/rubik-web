@@ -14,7 +14,7 @@ import {mountChampionFrame} from './champion-frame.js';
 import {mountChampionMotion} from './champion-motion.js';
 import {mountPracticeChallenge} from './practice-challenge.js';
 import {mountWallet} from './wallet.js';
-import {startQuestHeartbeat} from './quest-heartbeat.js';
+import {mountDailyQuests} from './daily-quests.js';
 import {mountWeeklyBoard} from './weekly-board.js';
 import {mountShop} from './shop.js';
 import {bindSkinEffects,readSkinLowFx,skinFxKey,skinLayout,skinPalette,skinSurface} from './skin-effects.js';
@@ -214,7 +214,7 @@ resetButton.addEventListener('click', onReset);
 const account=await accountReady;
 if(new URLSearchParams(location.search).get('panel')==='profile')document.querySelector<HTMLButtonElement>('#account-open')?.click();
 const wallet=mountWallet(account);
-const stopQuestHeartbeat=startQuestHeartbeat(account);
+const disposeDailyQuests=mountDailyQuests(account);
 const weekly=mountWeeklyBoard();
 const shop=mountShop(account,appearance=>{equippedAppearance=appearance;updateAppearance();},
   ()=>!timerUI?.isRunning(),()=>lowFx.checked,async(size,award)=>{
@@ -238,14 +238,14 @@ if(controller) timerUI=attachTimer(controller,()=>onScramble(newId()),account,
     if(practice)void practice.completed(solve).then(()=>wallet.refresh());
   });
 const onPageHide = (event: PageTransitionEvent): void => {
-  if (!event.persisted) { championMotion?.dispose(); championFrame?.dispose(); practice?.dispose(); wallet.dispose(); stopQuestHeartbeat(); weekly.dispose(); shop.dispose(); equippedEffects?.dispose(); lowFx.removeEventListener('change',onLowFx); account?.dispose();clearInterval(viewLabelTimer); timerUI?.dispose(); detachDrag?.(); detachKeyboard?.(); keySettings.dispose(); controller?.dispose(); }
+  if (!event.persisted) { championMotion?.dispose(); championFrame?.dispose(); practice?.dispose(); wallet.dispose(); disposeDailyQuests(); weekly.dispose(); shop.dispose(); equippedEffects?.dispose(); lowFx.removeEventListener('change',onLowFx); account?.dispose();clearInterval(viewLabelTimer); timerUI?.dispose(); detachDrag?.(); detachKeyboard?.(); keySettings.dispose(); controller?.dispose(); }
 };
 window.addEventListener('pagehide', onPageHide);
 if (import.meta.hot) import.meta.hot.dispose(() => {
   championMotion?.dispose();championFrame?.dispose();
   practice?.dispose();
   wallet.dispose();
-  stopQuestHeartbeat();
+  disposeDailyQuests();
   weekly.dispose();
   shop.dispose();
   equippedEffects?.dispose();

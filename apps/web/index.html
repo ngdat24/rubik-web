@@ -11,9 +11,27 @@
     <main>
 <header><a class="brand" href="/" aria-label="Rubik Lab"><span class="brand-cube" aria-hidden="true">▦</span> rubik<span class="brand-light">lab</span><span class="brand-period">.</span></a><span class="header-mode">Không gian luyện tập <span class="live-dot"></span></span><span class="stage">XOAY. TẬP TRUNG. TIẾN BỘ.</span><a class="leaderboard-link" href="/leaderboard.html">Bảng xếp hạng</a><nav class="mode-links" aria-label="Chế độ chơi"><a href="/time-limit.html">Time Limit</a><a href="/race.html">Đấu 1v1</a></nav><button id="account-open" type="button" hidden>Hồ sơ</button><button id="shop-open" type="button"><span>Ví &amp; Cửa hàng</span><output id="economy-wallet" aria-live="polite" hidden></output></button></header>
 <div class="workspace practice-workspace"><aside aria-label="Phiên giải và cài đặt">
-<button id="quest-panel" class="history-panel" type="button" disabled>Nhiệm vụ ngày</button>
+<details id="quest-panel">
+  <summary class="history-panel">Nhiệm vụ ngày</summary>
+  <div id="quest-content" class="history-panel">
+    <p id="quest-status" role="status">Đang tải nhiệm vụ…</p>
+    <div id="quest-progress" hidden>
+      <div class="quest-group" role="group" aria-label="Giải một trong các mục sau">
+        <p><strong id="quest-count-2"></strong> Giải 8 lần 2×2</p>
+        <div id="quest-bar-2" class="quest-bar" role="progressbar" aria-label="Giải 8 lần 2×2" aria-valuemin="0" aria-valuemax="8" aria-valuenow="0"><span></span></div>
+        <p><strong id="quest-count-3"></strong> Giải 4 lần 3×3</p>
+        <div id="quest-bar-3" class="quest-bar" role="progressbar" aria-label="Giải 4 lần 3×3" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0"><span></span></div>
+        <p><strong id="quest-count-other"></strong> Giải 1 lần các khối còn lại</p>
+        <div id="quest-bar-other" class="quest-bar" role="progressbar" aria-label="Giải 1 lần các khối còn lại" aria-valuemin="0" aria-valuemax="1" aria-valuenow="0"><span></span></div>
+      </div>
+      <p class="quest-row"><strong id="quest-time-limit"></strong> Hoàn thành một phiên Time Limit ở chế độ bất kỳ</p>
+      <p class="quest-row"><strong id="quest-online-status"></strong> Online 10 phút · <span id="quest-online-time"></span></p>
+    </div>
+  </div>
+</details>
 <section class="history-panel" aria-labelledby="history-title">
   <div class="section-heading"><h2 id="history-title">Phiên hiện tại</h2><span class="session-dot" aria-hidden="true"></span></div>
+  <p id="solve-stats" aria-label="Thống kê"></p>
   <p id="history-empty"></p><ol id="solve-history" reversed></ol><p id="history-message" role="status"></p>
   <p id="history-storage-status" role="status" hidden></p><p id="cloud-message" role="status" hidden></p>
   <button id="cloud-use-server" type="button" hidden>Dùng bản server, bỏ thay đổi đang xung đột</button>
