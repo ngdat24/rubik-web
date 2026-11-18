@@ -198,17 +198,20 @@ export function mountShop(account:CloudAccount|undefined, equip:(appearance?:App
   const prometheusNameForm=(item:Item)=>{
     const form=node('form');form.className='champion-name-form';
     const label=node('label',t('Tên skin'));const input=node('input');input.type='text';input.maxLength=32;input.required=true;
-    input.value=pending?.action==='name_prometheus'?pending.name:item.customName??'';input.placeholder='Lửa thiêng Prometheus';
+    input.value=pending?.action==='name_prometheus'?pending.name:item.customName??'';input.placeholder=language==='en'?'Divine Flame Prometheus':'Lửa thiêng Prometheus';
     input.disabled=busy||Boolean(pending);label.append(input);
     const save=node('button',item.nameRequired?t('Đặt tên & nhận · Miễn phí'):t('Đổi tên · 500 CB'));save.type='submit';
     save.disabled=busy||Boolean(pending)||(!item.nameRequired&&!canSpend(500,'CB'));
     form.append(label,save,node('p',item.nameRequired?t('Đặt tên để hoàn tất nhận skin. Lần đầu miễn phí.'):t('Đổi tên tốn 500 CB/lần.')));
     form.onsubmit=event=>{event.preventDefault();const name=input.value.trim().normalize('NFC');
       if(busy||pending||!name||Array.from(name).length>32)return;
-      void load({action:'name_prometheus',name,requestId:newId()});
+      const submit=()=>{closeConfirm();void load({action:'name_prometheus',name,requestId:newId()});};
+      if(item.nameRequired){submit();return;}
+      confirmation.hidden=false;
+      confirmation.replaceChildren(node('p',t('Xác nhận đổi tên Prometheus với giá 500 CB?')),button(t('Xác nhận'),submit),button(t('Hủy'),closeConfirm));
     };return form;
   };
-  const skinCard = (skin:Skin, appendActions:(card:HTMLElement)=>void) => {
+  const skinCard = (skin:Skin, appendActions:(card:HTMLElement)=>void, literalName=false) => {
     const card = node('article');
     card.className = 'shop-card';
     card.dataset.tier = skin.tier;
@@ -220,7 +223,7 @@ export function mountShop(account:CloudAccount|undefined, equip:(appearance?:App
       swatch.style.backgroundColor = '#' + color.toString(16).padStart(6,'0');
       colors.append(swatch);
     }
-    card.append(node('p',t(tiers[skin.tier])),node('h3',t(skin.name)),colors,
+    card.append(node('p',t(tiers[skin.tier])),node('h3',literalName?skin.name:t(skin.name)),colors,
       button(t('Thử trên khối 3D'),()=>showPreview(skin),busy));
     if (/^[a-z0-9_-]+$/i.test(skin.id) && !missingPreviews.has(skin.id)) {
       const thumbnail = node('img');
@@ -361,14 +364,14 @@ export function mountShop(account:CloudAccount|undefined, equip:(appearance?:App
       if(inventorySize===2)continue;
       if (item.skin) {
         if(item.id==='s1_red_crimson_core'){
-          const personal={...item.skin,name:item.customName??'Lửa thiêng Prometheus'};
+          const personal={...item.skin,name:item.customName??(language==='en'?'Divine Flame Prometheus':'Lửa thiêng Prometheus')};
           const card=skinCard(personal,card=>{
             const image=node('img');image.src='/assets/skins/s1_red_prometheus_flame/preview-current.png';image.alt='Lửa thiêng Prometheus';image.width=image.height=240;image.className='prometheus-inventory-image';card.prepend(image);
             if(item.nameRequired)card.append(node('p',t('Đang chờ đặt tên để nhận skin.')));
             else if(item.equipped&&!champions.isEquipped(3))card.append(node('p',t('Đang trang bị')));
             else card.append(button(t('Trang bị'),()=>{if(!canPreview())return;void champions.clear(3).then(()=>load({action:'equip_skin',id:item.id,requestId:newId()}));},busy||Boolean(pending)));
             card.append(prometheusNameForm(item));
-          });grid.append(card);continue;
+          },true);grid.append(card);continue;
         }
         grid.append(skinCard(item.skin,card=>{
           if (item.equipped&&!champions.isEquipped(3)) card.append(node('p',t('Đang trang bị')));
@@ -435,7 +438,7 @@ export function mountShop(account:CloudAccount|undefined, equip:(appearance?:App
     if(unclaimed&&active!=='inventory'){
       const claim=node('article');claim.className='shop-card prometheus-claim';claim.dataset.tier='red';
       const image=node('img');image.src='/assets/skins/s1_red_prometheus_flame/preview-current.png';image.alt='Lửa thiêng Prometheus';image.width=image.height=240;image.className='prometheus-inventory-image';claim.append(image);
-      claim.append(node('h3','Lửa thiêng Prometheus'),node('p',t('Bạn đã nhận quyền sở hữu. Đặt tên để hoàn tất nhận skin.')),prometheusNameForm(unclaimed));content.append(claim);
+      claim.append(node('h3',t('Lửa thiêng Prometheus')),node('p',t('Bạn đã nhận quyền sở hữu. Đặt tên để hoàn tất nhận skin.')),prometheusNameForm(unclaimed));content.append(claim);
     }
     ({skins:showSkins,crates:showCrates,utilities:showUtilities,season:showSeason,inventory:showInventory})[active](snapshot);
   }
@@ -446,7 +449,7 @@ export function mountShop(account:CloudAccount|undefined, equip:(appearance?:App
     nameplate.textContent=personal?.customName??'';nameplate.hidden=!personal?.customName;
     const skin = state.inventory.find(item=>item.kind==='skin' && item.equipped)?.skin;
     const viewport=document.querySelector<HTMLElement>('#viewport');
-    if(viewport){viewport.dataset.prometheusEquipped=String(skin?.id==='s1_red_crimson_core');viewport.classList.toggle('prometheus-gameplay',skin?.id==='s1_red_crimson_core'&&!champions.isEquipped(3));}
+    if(viewport){viewport.dataset.prometheusEquipped=String(skin?.id==='s1_red_crimson_core');viewport.classList.toggle('prometheus-gameplay',skin?.id==='s1_red_crimson_core'&&!champions.isEquipped(3)&&document.querySelector<HTMLSelectElement>('#cube-size')?.value==='3');}
     const effects = state.inventory.filter(item=>item.kind==='utility' && item.equipped);
     const sound = effects.find(item=>effectSlot(item.id)==='sound')?.id;
     const trail = effects.find(item=>effectSlot(item.id)==='trail')?.id;

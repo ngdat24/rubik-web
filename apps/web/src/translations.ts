@@ -658,4 +658,13 @@ export const english: Record<string, string> = {
   "Tên trống dùng tên mặc định. Sau khi nhận, đổi tên tốn 500 CB.": "Leave blank to use the default name. Renaming after claiming costs 500 CB.",
   "Xác nhận đổi tên Champion với giá 500 CB?": "Rename Champion for 500 CB?",
   "Xác nhận tên Champion này?": "Confirm this Champion name?",
+  "Lửa thiêng Prometheus": "Divine Flame Prometheus",
+  "Đặt tên & nhận · Miễn phí": "Name & claim · Free",
+  "Đặt tên để hoàn tất nhận skin. Lần đầu miễn phí.": "Name the skin to finish claiming it. The first name is free.",
+  "Đang chờ đặt tên để nhận skin.": "Name the skin to finish claiming it.",
+  "Đã hoàn tất nhận Lửa thiêng Prometheus.": "Divine Flame Prometheus claimed.",
+  "Bạn đã nhận quyền sở hữu. Đặt tên để hoàn tất nhận skin.": "You own this skin. Name it to finish claiming it.",
+  "Xác nhận đổi tên Prometheus với giá 500 CB?": "Rename Prometheus for 500 CB?",
+  "Hãy đặt tên để hoàn tất nhận Prometheus.": "Name Prometheus to finish claiming it.",
+  "Tên skin cần từ 1 đến 32 ký tự hợp lệ.": "The skin name must contain 1 to 32 valid characters.",
 };
