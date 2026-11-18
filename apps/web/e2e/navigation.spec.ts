@@ -21,7 +21,7 @@ test('shared navigation, mode toggle, season and responsive layout',async({page}
   await mode.locator('summary').click();await expect(mode).not.toHaveAttribute('open','');
   await mode.locator('summary').click();await page.keyboard.press('Escape');await expect(mode).not.toHaveAttribute('open','');
   await page.setViewportSize({width:390,height:844});
-  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  }
  await page.goto('/leaderboard.html?lang=en');await expect(page.locator('.site-navigation').getByRole('link',{name:'Main',exact:true})).toBeVisible();
  await page.screenshot({path:'test-results/navigation-mobile.png',fullPage:true});

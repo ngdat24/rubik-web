@@ -21,3 +21,4 @@
 .site-navigation .site-links>*{border-right:1px solid var(--line)}
 
 .site-navigation::after{content:"";position:absolute;pointer-events:none;left:0;right:0;bottom:0;height:18px;border:1px solid #49503d;border-top:0;border-radius:0 0 18px 18px;box-sizing:border-box}.site-navigation .brand{box-sizing:border-box}.nav-season{z-index:1}
+.site-navigation::after{left:calc((100% - var(--nav-screen-width, 100vw))/2);right:calc((100% - var(--nav-screen-width, 100vw))/2)}

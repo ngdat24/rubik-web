@@ -6,6 +6,9 @@ export function mountNavigation(en:boolean){
  const race=location.pathname.endsWith('/race.html'),solo=location.pathname.endsWith('/time-limit.html');
  const account=header.querySelector('#account-open'),shop=header.querySelector('#shop-open');
  header.classList.add('site-navigation');header.replaceChildren();
+ const fitDivider=()=>header.style.setProperty('--nav-screen-width',document.documentElement.clientWidth+'px');
+ fitDivider();window.addEventListener('resize',fitDivider);
+ const dividerObserver=new ResizeObserver(fitDivider);dividerObserver.observe(document.documentElement);
  header.innerHTML=`<a class="brand" href="/" aria-label="Rubik Lab"><span class="brand-cube" aria-hidden="true">▦</span>rubik<span class="brand-light">lab</span>.</a><nav class="site-links" aria-label="${en?'Navigation':'Điều hướng'}"><a class="nav-item" data-nav="home" href="/">${en?'Main':'Trang chủ'}</a><details class="nav-modes"><summary class="nav-item">Mode</summary><div class="mode-options"><a class="nav-item" href="/time-limit.html" ${solo?'aria-current="page"':''}>Time Limit</a><a class="nav-item" href="/race.html" ${race?'aria-current="page"':''}>${en?'1v1':'Đấu 1v1'}</a></div></details><a class="nav-item" data-nav="board" href="/leaderboard.html">${en?'Global leaderboard':'BXH Toàn Cầu'}</a><div class="fashion-nav"></div><span class="profile-nav"></span></nav><output id="economy-wallet" class="nav-wallet" aria-live="polite" hidden></output>`;
  const fashion=header.querySelector('.fashion-nav')!,profile=header.querySelector('.profile-nav')!;
  const shopLink=shop??Object.assign(document.createElement('a'),{href:'/?panel=shop'});
@@ -32,5 +35,5 @@ export function mountNavigation(en:boolean){
   season.textContent=Number.isFinite(remaining)&&remaining>0?(en?`${Math.ceil(remaining/86400000)} days left`:`Còn ${Math.ceil(remaining/86400000)} ngày`):(en?'Season ended':'Đã hết mùa');
  }catch{if(!abort.signal.aborted)season.textContent=en?'Season unavailable':'Chưa tải được mùa';}}
  void refreshSeason();const timer=setInterval(()=>{if(!document.hidden)void refreshSeason();},60000);
- window.addEventListener('pagehide',()=>{abort.abort();clearInterval(timer);observer.disconnect();},{once:true});
+ window.addEventListener('pagehide',()=>{abort.abort();clearInterval(timer);observer.disconnect();dividerObserver.disconnect();window.removeEventListener('resize',fitDivider);},{once:true});
 }
