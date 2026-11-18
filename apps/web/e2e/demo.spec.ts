@@ -26,7 +26,7 @@ test('custom keymaps handle conflict cancel/swap, persist, import/export and ret
   await expect(rRow).not.toContainText('KeyB');
   await page.locator('#key-settings-close').click();
   await page.locator('#timer-start').click(); await page.locator('#timer-start').click(); await page.locator('#viewport').click({position:{x:5,y:5}}); await page.keyboard.press('u');
-  await expect(page.locator('#move-status')).toContainText('R');
+  await expect(page.locator('#timer-phase')).toContainText('Đang giải');
   await expect(page.locator('#cube-description')).toContainText('Đang luyện tập');
   await page.reload(); await expect(page.locator('canvas')).toBeVisible();
   await page.locator('#key-settings-open').click(); await expect(page.locator('#key-profile')).toHaveValue('backup');
@@ -56,7 +56,7 @@ test('blocked storage does not prevent in-session key configuration', async ({pa
   await expect(page.locator('#key-storage-status')).toContainText('phiên này');
   await page.locator('#key-settings-close').click();
   await page.locator('#timer-start').click(); await page.locator('#timer-start').click(); await page.locator('#viewport').click({position:{x:5,y:5}}); await page.keyboard.press('a');
-  await expect(page.locator('#move-status')).toContainText('R');
+  await expect(page.locator('#timer-phase')).toContainText('Đang giải');
 });
 
 
@@ -68,7 +68,7 @@ test('timer flow, focused Space, rotations, solved result and next scramble stay
  await page.locator('#workspace-tools').evaluate((node:HTMLDetailsElement)=>{node.open=true;});await page.locator('#timer-start').click();const scramble=(await page.locator('#scramble-text').textContent())!.trim().split(/\s+/);
  await page.locator('#reset').focus();await page.keyboard.press('Space');await expect(page.locator('#timer-phase')).toContainText('Inspection');
  await expect(page.locator('#scramble-text')).not.toContainText('Chưa có');
- await expect(page.locator('#key-settings-open')).toBeDisabled();await expect(page.locator('#algorithm')).toBeDisabled();
+ await expect(page.locator('#key-settings-open')).toBeDisabled();
  await page.keyboard.press('x');await expect(page.locator('#timer-phase')).toContainText('Inspection');await page.keyboard.press('Shift+x');
  for(const move of scramble.reverse()){
   const face=move[0]!.toLowerCase();await page.keyboard.press(move.endsWith('2')?'Alt+'+face:move.endsWith("'")?face:'Shift+'+face);
@@ -140,7 +140,6 @@ test('demo renders, runs moves, changes N/camera and frees old geometries', asyn
   const memoryAfter = await memorySession.send('Runtime.getHeapUsage');
   expect(memoryAfter.usedSize - memoryBefore.usedSize).toBeLessThan(8 * 1024 * 1024);
   expect(await page.evaluate(() => (window as any).rubikDiagnostics().geometries)).toBe(2);
-  await page.locator('#workspace-tools').evaluate((node:HTMLDetailsElement)=>{node.open=true;});await page.locator('#algorithm').fill(''); await page.locator('#algorithm-form button').click();
   await page.screenshot({path: 'test-results/demo-10x10.png', fullPage: true});
   expect((await visiblePixel())[3]).toBeGreaterThan(0);
   await page.locator('#workspace-tools').evaluate((node:HTMLDetailsElement)=>{node.open=true;});await page.locator('#timer-start').click();

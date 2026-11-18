@@ -30,7 +30,7 @@ export function attachTimer(controller: CubeController, newScramble: () => void,
   const running=()=>timer.phase==='inspecting'||timer.phase==='solving';
   const sync=():void=>{
     if(running())controller.unlockInput('timer');else controller.lockInput('timer');
-    for(const node of document.querySelectorAll<HTMLInputElement|HTMLButtonElement|HTMLSelectElement|HTMLTextAreaElement>('#cube-size,#practice-online,#reset,#move-buttons button,#algorithm-form textarea,#algorithm-form button,#key-settings-open')) node.disabled=running();
+    for(const node of document.querySelectorAll<HTMLButtonElement|HTMLSelectElement>('#cube-size,#reset,#key-settings-open')) node.disabled=running();
     start.disabled=running();cancel.disabled=!running();
     start.textContent=timer.phase==='finished'||!timer.armed?t("Chuẩn bị scramble"):t("Bắt đầu inspection");
     phaseLabel.textContent={idle:timer.armed?t("Sẵn sàng · Space để inspection"):t("Chờ scramble"),inspecting:t("Inspection · nước xoay lớp đầu tiên bắt đầu giải"),solving:t("Đang giải"),finished:t("Đã kết thúc")}[timer.phase];

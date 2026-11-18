@@ -36,18 +36,20 @@
   <p id="history-storage-status" role="status" hidden></p><p id="cloud-message" role="status" hidden></p>
   <button id="cloud-use-server" type="button" hidden>Dùng bản server, bỏ thay đổi đang xung đột</button>
 </section><button id="player-edit" type="button" hidden>Đặt / đổi tên</button><fieldset id="move-controls" disabled><legend>Điều khiển</legend>
+<p class="hint basic-keys">
+  <span>Phím cơ bản: U/R/L/F/D/B</span>
+  <span>Bấm Shift + R: R'</span>
+  <span>Bấm Alt + R: R2</span>
+  <span>Bấm x/y/z : thay đổi góc nhìn mặt</span>
+  <span>Bấm M/E/S: xoay giữa</span>
+</p>
 <button id="key-settings-open" type="button">⌘ &nbsp; Cài đặt phím</button><p id="key-storage-status" role="status"></p>
 <label class="view-toggle"><input id="view-keys" type="checkbox" /> Khóa xoay phím</label><p id="view-key-map" role="status">Phím theo hệ trục khối</p>
 <details id="workspace-tools"><summary>Điều khiển nâng cao</summary>
 <label class="view-toggle"><input id="skin-low-fx" type="checkbox" /> Giảm hiệu ứng &amp; âm thanh</label>
-<button id="practice-online" type="button" hidden>Scramble máy chủ</button>
-<p id="practice-status" class="hint" role="status"></p>
         <div class="toolbar"><label for="speed">Thời gian/nước</label><input id="speed" type="range" min="30" max="100" value="40" step="10" /><output id="speed-value" for="speed">40 ms</output>
         <label><input id="instant" type="checkbox" /> Tức thì</label></div>
-<p class="hint">U/R/F/D/L/B · Shift: nghịch · Alt: đôi · W: wide · số: lớp · X/Y/Z: quay khối.</p>        <div id="move-buttons"></div>
-        <form id="algorithm-form"><label for="algorithm">Chuỗi nước đi</label><textarea id="algorithm" rows="2" maxlength="16000" placeholder="R U R' U'" aria-describedby="algorithm-error"></textarea><button type="submit">Chạy chuỗi</button><p id="algorithm-error" role="alert"></p></form>
-        <div class="toolbar queue-toolbar"><span id="queue-status" role="status">Chờ hiển thị: 0 nước</span></div>
-        <p id="move-status" role="status"></p></details></fieldset></aside>
+</details></fieldset></aside>
 <section class="solve-space" aria-label="Không gian giải Rubik">
 <div class="cube-toolbar"><div class="size-control"><label for="cube-size">Khối</label><select id="cube-size">
         <option value="2">2×2</option><option value="3" selected>3×3</option><option value="4">4×4</option>

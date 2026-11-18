@@ -5,6 +5,11 @@ test('cube workspace is responsive, uncluttered and keeps cube larger than clock
  await expect(page.getByLabel('Khóa xoay phím',{exact:true})).not.toBeChecked();
  await expect(page.locator('#speed')).toHaveValue('40');await expect(page.locator('#speed')).toHaveAttribute('min','30');await expect(page.locator('#speed')).toHaveAttribute('max','100');
  await expect(page.locator('#burst,#catch-up')).toHaveCount(0);await expect(page.locator('.timer-actions #scramble')).toHaveCount(0);
+ await expect(page.locator('#practice-online,#move-buttons,#algorithm-form,#queue-status')).toHaveCount(0);
+ await expect(page.locator('.basic-keys > span')).toHaveText([
+  'Phím cơ bản: U/R/L/F/D/B', "Bấm Shift + R: R'", 'Bấm Alt + R: R2',
+  'Bấm x/y/z : thay đổi góc nhìn mặt', 'Bấm M/E/S: xoay giữa',
+ ]);
  await page.locator('#key-settings-open').click();
  const actions=(await page.locator('.key-file-actions').boundingBox())!,profiles=(await page.locator('#key-profile').boundingBox())!;
  expect(actions.y).toBeLessThan(profiles.y);await page.locator('#key-settings-close').click();
