@@ -4,13 +4,14 @@ import type {ChampionAward} from './champion-account.js';
 import type {ChampionSize} from './champion-design.js';
 import {newId} from './id.js';
 import {t} from './i18n.js';
+import {championPreferenceKey} from './champion-equipped.js';
 
 export function championInventory(account:CloudAccount|undefined,changed:()=>void,
   equip:(size:ChampionSize,award?:ChampionAward)=>Promise<void>,canChange:()=>boolean,transactionDone:()=>void) {
   let awards:ChampionAward[]=[],disposed=false,busy=false,error='';
   const selected=new Set<ChampionSize>();
   const pending=new Map<ChampionSize,{action:'rename';size:ChampionSize;name:string;requestId:string}>();
-  const key=(size:ChampionSize)=>`rubik.champion.equipped.${account?.id}.${size}`;
+  const key=(size:ChampionSize)=>championPreferenceKey(account?.id,size);
   for(const size of [2,3] as const)try{if(localStorage.getItem(key(size))==='1')selected.add(size);}catch{/* Optional preference. */}
   const apply=async(size:ChampionSize,enabled:boolean)=>{
     const award=awards.find(row=>row.size===size);

@@ -12,6 +12,9 @@ import {mountTimeLimitBoard} from './time-limit-board.js';
 import {bindSkinEffects,readSkinLowFx,skinPalette,skinSurface} from './skin-effects.js';
 import type {Appearance} from './skin-effects.js';
 import './style.css';
+import {loadEquippedChampion} from './champion-equipped.js';
+import {mountChampionFrame} from './champion-frame.js';
+import {mountChampionMotion} from './champion-motion.js';
 
 interface Run {k:number;endT:number;preEvents:MoveEvent[];events:MoveEvent[]}
 interface Snapshot {
@@ -59,6 +62,8 @@ async function boot():Promise<void>{
   const renderer=new CubeRenderer(el('viewport'));renderer.setSpeed(40);
   const controller=new CubeController(renderer);controller.lockInput('race');
   cleanup.push(()=>controller.dispose());
+  let championWarning='';
+  const championRequest=loadEquippedChampion(account,3).catch(()=>{championWarning=translate('Không tải được quyền nhận Champion.');return undefined;});
   const profileRequest=async(name?:string)=>{
     const response=await fetch('/api/player',{method:name===undefined?'GET':'POST',headers:{Authorization:'Bearer '+await account.token(),'Content-Type':'application/json'},...(name===undefined?{}:{body:JSON.stringify({name})}),signal:AbortSignal.timeout(10000)});
     const value=await response.json();if(!response.ok)throw new Error(value.error??translate("Chưa lưu được tên."));return value;
@@ -74,6 +79,13 @@ async function boot():Promise<void>{
     };});
   }
   if(disposed)return;
+  // Finish cosmetics before enabling room actions; snapshots/polling must never replace it mid-solve.
+  const champion=await championRequest;
+  if(disposed)return;
+  const championFrame=champion?mountChampionFrame(el('viewport'),champion.name,3):undefined;
+  if(champion)renderer.setAppearance(champion.options,controller.cube.state);
+  const championMotion=champion?mountChampionMotion(el('viewport'),renderer,controller,champion.sound,()=>!readSkinLowFx()&&!loading,3):undefined;
+  cleanup.push(()=>{championMotion?.dispose();championFrame?.dispose();});
   const opponentRenderer=solo?undefined:new CubeRenderer(el('opponent-viewport'));
   if(opponentRenderer){opponentRenderer.setSize(3);opponentRenderer.setState(solvedState(3));cleanup.push(()=>opponentRenderer.dispose());}
   let opponentState='',sentProgress='';
@@ -83,6 +95,7 @@ async function boot():Promise<void>{
   let effects:ReturnType<typeof bindSkinEffects>|undefined;
   cleanup.push(()=>{skinAbort.abort();effects?.dispose();});
   const applySkin=(viewer:CubeRenderer,id?:string)=>{
+    if(champion&&viewer===renderer)return;
     const key=id??'';
     if ((requestedSkins.get(viewer)??'')===key) return;
     requestedSkins.set(viewer,key);
@@ -115,7 +128,7 @@ async function boot():Promise<void>{
   const settings=loadSettings(()=>localStorage).settings;
   cleanup.push(attachKeyboard(controller,()=>{},()=>settings.profiles[settings.activeProfile]!.bindings,
     move=>el<HTMLInputElement>('race-fixed-keys').checked?move:viewMove(move,renderer.getViewFaces())));
-  cleanup.push(attachDrag(renderer,controller,()=>{}));
+  cleanup.push(attachDrag(renderer,controller,()=>{},championMotion?.commit));
   let room:Snapshot|undefined,roomId='',busy=false,origin:number|undefined,loaded=-1,loading=false;
   const connection=crypto.randomUUID().replaceAll('-','');let accessToken='';
   let queuedAction:{action:string;extra:Record<string,unknown>}|undefined;
@@ -306,6 +319,7 @@ async function boot():Promise<void>{
     else{
       draft.events.push(item);
       if(raceComplete(event.stateAfter,room.mode)){
+        if(!readSkinLowFx())championFrame?.celebrate();
         draft.pending.push({k:draft.k,endT:t,preEvents:draft.preEvents,events:draft.events});
         draft.k++;draft.preEvents=[];draft.events=[];save();load();
         if(loaded!==draft.k)controller.lockInput('race');
@@ -344,7 +358,7 @@ async function boot():Promise<void>{
     const space=(e:KeyboardEvent)=>{if(e.code==='Space'&&!e.repeat&&!e.isComposing&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!e.shiftKey&&!document.querySelector('dialog[open]')&&!e.composedPath().some(t=>t instanceof HTMLElement&&(t.matches('input,textarea,select')||t.isContentEditable))){e.preventDefault();if(!create.disabled)create.click();}};
     window.addEventListener('keydown',space,true);cleanup.push(()=>window.removeEventListener('keydown',space,true));
   }
-  message.textContent=solo?translate("Chọn danh mục rồi bấm Bắt đầu hoặc Space."):translate("Tạo phòng hoặc mở link mời từ bạn.");
+  message.textContent=(solo?translate("Chọn danh mục rồi bấm Bắt đầu hoặc Space."):translate("Tạo phòng hoặc mở link mời từ bạn."))+(championWarning?' '+championWarning:'');
   if(!solo){
     mode.disabled=true;
     const depart=()=>{if(roomId.length===8&&accessToken)void fetch('/api/race',{method:'POST',headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},body:JSON.stringify({action:'leave',id:roomId,client:connection,depart:true}),keepalive:true}).catch(()=>{});};
