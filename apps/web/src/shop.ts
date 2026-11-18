@@ -507,6 +507,7 @@ export function mountShop(account:CloudAccount|undefined, equip:(appearance?:App
     if (!pending) void load();
   };
   shopOpen.onclick = () => open('skins');
+  if(new URLSearchParams(location.search).get('panel')==='shop')open('skins');
   inventoryOpen.onclick = () => open('inventory');
   shopClose.onclick = () => dialog.close();
   previewClose.onclick = closePreview;

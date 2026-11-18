@@ -20,7 +20,7 @@ export function mountWallet(account:CloudAccount|undefined) {
       if (!response.ok) throw new Error();
       const {cb,zn}=await response.json();
       if (current!==latest || abort.signal.aborted) return;
-      balance.textContent=formatter.format(cb)+' CB · '+formatter.format(zn)+' ZN';
+      balance.replaceChildren(...[formatter.format(cb)+' CB',formatter.format(zn)+' ZN'].map(text=>{const chip=document.createElement('span');chip.textContent=text;return chip;}));
     } catch {
       if (!abort.signal.aborted && current===latest && !balance.textContent) balance.textContent=t('Chưa tải được số dư.');
     }

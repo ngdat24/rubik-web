@@ -1,3 +1,4 @@
+import {mountNavigation} from './navigation.js';
 import {english} from './translations.js';
 
 export type Language = 'vi' | 'en';
@@ -15,6 +16,7 @@ export function t(text: string): string {
 // Translate the static document once. Dynamic UI uses t() at its render sites;
 // user names, algorithms and saved data never pass through this document walk.
 function mountLanguage(): void {
+  mountNavigation(language==='en');
   document.documentElement.lang = language;
   const walker = document.createTreeWalker(document.documentElement, NodeFilter.SHOW_TEXT);
   while (walker.nextNode()) {

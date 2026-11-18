@@ -1,3 +1,4 @@
+import {mountWallet} from './wallet.js';
 import {t as translate} from './i18n.js';
 import {startQuestHeartbeat} from './quest-heartbeat.js';
 import {browserAccount} from './account.js';
@@ -58,6 +59,7 @@ async function boot():Promise<void>{
   const targetLabel=document.querySelector<HTMLElement>('#time-limit-target');
   const showTarget=(value:string,playing=false)=>{if(targetLabel)targetLabel.textContent=(playing?translate("Đang chơi: "):translate("Sẽ chơi: "))+({oneFace:translate("1 mặt"),f2lRush:'F2L',fullSolve:'full'} as Record<string,string>)[value];};
   if(solo){showTarget(mode.value);mode.onchange=()=>{showTarget(mode.value);board?.select(mode.value);};}
+  const navWallet=mountWallet(account);cleanup.push(navWallet.dispose);
   const {client}=account,user=account.id;
   const renderer=new CubeRenderer(el('viewport'));renderer.setSpeed(40);
   const controller=new CubeController(renderer);controller.lockInput('race');

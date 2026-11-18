@@ -222,6 +222,7 @@ instant.addEventListener('change', onInstant);
 resetButton.addEventListener('click', onReset);
 scrambleButton.addEventListener('click', onScramble);
 const account=await accountReady;
+if(new URLSearchParams(location.search).get('panel')==='profile')document.querySelector<HTMLButtonElement>('#account-open')?.click();
 const wallet=mountWallet(account);
 const quests=mountQuestProgress(account);
 const weekly=mountWeeklyBoard();
