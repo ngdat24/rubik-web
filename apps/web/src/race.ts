@@ -9,7 +9,7 @@ import type {MoveEvent} from '@rubik/engine';
 import {attachKeyboard} from './keyboard.js';
 import {attachDrag} from './drag.js';
 import {mountTimeLimitBoard} from './time-limit-board.js';
-import {bindSkinEffects,readSkinLowFx,skinPalette,skinSurface} from './skin-effects.js';
+import {bindSkinEffects,readSkinLowFx,skinLayout,skinPalette,skinSurface} from './skin-effects.js';
 import type {Appearance} from './skin-effects.js';
 import './style.css';
 import {loadEquippedChampion} from './champion-equipped.js';
@@ -110,10 +110,9 @@ async function boot():Promise<void>{
     }
     void Promise.resolve(loadingAppearance).then(appearance=>{
       if (skinAbort.signal.aborted||requestedSkins.get(viewer)!==key) return;
-      viewer.setTheme(skinPalette(appearance));
       const surface=skinSurface(appearance);
       if (surface&&readSkinLowFx()) delete surface.pulse;
-      viewer.setSurface(surface);
+      viewer.setAppearance({...skinLayout(appearance),theme:skinPalette(appearance),...(surface?{surface}:{})},viewer===renderer?controller.cube.state:solvedState(3));
       if (viewer===renderer) {
         effects?.dispose();
         effects=appearance&&!readSkinLowFx()?bindSkinEffects(renderer,appearance):undefined;

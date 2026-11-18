@@ -17,7 +17,7 @@ import {mountWallet} from './wallet.js';
 import {mountQuestProgress} from './quest-progress.js';
 import {mountWeeklyBoard} from './weekly-board.js';
 import {mountShop} from './shop.js';
-import {bindSkinEffects,readSkinLowFx,skinFxKey,skinPalette,skinSurface} from './skin-effects.js';
+import {bindSkinEffects,readSkinLowFx,skinFxKey,skinLayout,skinPalette,skinSurface} from './skin-effects.js';
 import type {Appearance} from './skin-effects.js';
 
 let detachDrag: (()=>void) | undefined;
@@ -131,11 +131,11 @@ const updateAppearance=()=>{
   const detailed=controller?.size===3;
   champion=championStyles.get(controller!.size);
   container.classList.toggle('prometheus-gameplay',!champion&&detailed&&container.dataset.prometheusEquipped==='true');
-  const key=champion?`${champion.size}:${champion.name}`:'normal';
+  const key=champion?`${champion.size}:${champion.name}`:`normal:${equippedAppearance?.geometry?.borderless?'borderless':'framed'}`;
   if(appearanceKey!==key){
     appearanceKey=key;
     championMotion?.dispose();championFrame?.dispose();championMotion=undefined;championFrame=undefined;
-    renderer.setAppearance(champion?.options??{},controller!.cube.state);
+    renderer.setAppearance(champion?.options??skinLayout(detailed?equippedAppearance:undefined),controller!.cube.state);
     if(champion){
       championSize=champion.size;
       championFrame=mountChampionFrame(container,champion.name,champion.size);

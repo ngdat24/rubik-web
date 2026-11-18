@@ -16,8 +16,8 @@
     },
     "body": {
       "color": "#18181B",
-      "roughness": 0.8,
-      "metalness": 0.04
+      "roughness": 0.93,
+      "metalness": 0
     },
     "layers": {
       "layer_1_base": {
@@ -29,15 +29,16 @@
           "L": "#F97316",
           "R": "#EF4444"
         },
-        "texture_maps": null
+        "texture_maps": null,
+        "center_texture_map": "/assets/skins/std_matte_pastel_01/center_chalk.svg"
       },
       "layer_2_surface": {
         "material_type": "matte",
-        "roughness": 0.82,
-        "metalness": 0.0,
-        "opacity": 1.0,
+        "roughness": 0.93,
+        "metalness": 0,
+        "opacity": 1,
         "normal_map": null,
-        "normal_scale": 0.0
+        "normal_scale": 0
       },
       "layer_3_glow": {
         "enabled": false
@@ -49,6 +50,9 @@
     "interaction_fx": {
       "trail_effect_id": null,
       "sound_pack_id": "default_click"
+    },
+    "geometry": {
+      "borderless": true
     }
   },
   {
@@ -67,9 +71,9 @@
       "amount": 300
     },
     "body": {
-      "color": "#0F0F11",
-      "roughness": 0.28,
-      "metalness": 0.05
+      "color": "#17131A",
+      "roughness": 0.07,
+      "metalness": 0.03
     },
     "layers": {
       "layer_1_base": {
@@ -78,18 +82,19 @@
           "D": "#EAB308",
           "F": "#15803D",
           "B": "#1D4ED8",
-          "L": "#EA580C",
+          "L": "#F472B6",
           "R": "#B91C1C"
         },
-        "texture_maps": null
+        "texture_maps": null,
+        "center_texture_map": "/assets/skins/std_glossy_classic_02/center_bowl.svg"
       },
       "layer_2_surface": {
         "material_type": "glossy",
-        "roughness": 0.24,
-        "metalness": 0.05,
-        "opacity": 1.0,
+        "roughness": 0.07,
+        "metalness": 0.03,
+        "opacity": 1,
         "normal_map": null,
-        "normal_scale": 0.0
+        "normal_scale": 0
       },
       "layer_3_glow": {
         "enabled": false
@@ -101,6 +106,9 @@
     "interaction_fx": {
       "trail_effect_id": null,
       "sound_pack_id": "default_click"
+    },
+    "geometry": {
+      "borderless": true
     }
   },
   {
@@ -119,9 +127,9 @@
       "amount": 300
     },
     "body": {
-      "color": "#D6D3D1",
-      "roughness": 0.65,
-      "metalness": 0.0
+      "color": "#B79B7A",
+      "roughness": 0.48,
+      "metalness": 0
     },
     "layers": {
       "layer_1_base": {
@@ -133,15 +141,16 @@
           "L": "#EA580C",
           "R": "#DC2626"
         },
-        "texture_maps": null
+        "texture_maps": null,
+        "center_texture_map": "/assets/skins/std_white_frame_03/center_ivory.svg"
       },
       "layer_2_surface": {
         "material_type": "matte",
-        "roughness": 0.68,
-        "metalness": 0.0,
-        "opacity": 1.0,
+        "roughness": 0.48,
+        "metalness": 0,
+        "opacity": 1,
         "normal_map": null,
-        "normal_scale": 0.0
+        "normal_scale": 0
       },
       "layer_3_glow": {
         "enabled": false
@@ -153,6 +162,9 @@
     "interaction_fx": {
       "trail_effect_id": null,
       "sound_pack_id": "default_click"
+    },
+    "geometry": {
+      "borderless": false
     }
   },
   {
@@ -171,9 +183,9 @@
       "amount": 300
     },
     "body": {
-      "color": "#262322",
-      "roughness": 0.78,
-      "metalness": 0.0
+      "color": "#593A25",
+      "roughness": 1,
+      "metalness": 0
     },
     "layers": {
       "layer_1_base": {
@@ -183,17 +195,18 @@
           "F": "#166534",
           "B": "#1E40AF",
           "L": "#C2410C",
-          "R": "#991B1B"
+          "R": "#7C3F24"
         },
-        "texture_maps": null
+        "texture_maps": null,
+        "center_texture_map": "/assets/skins/std_retro_90s_04/center_log.svg"
       },
       "layer_2_surface": {
         "material_type": "matte",
-        "roughness": 0.78,
-        "metalness": 0.0,
-        "opacity": 1.0,
+        "roughness": 1,
+        "metalness": 0,
+        "opacity": 1,
         "normal_map": null,
-        "normal_scale": 0.0
+        "normal_scale": 0
       },
       "layer_3_glow": {
         "enabled": false
@@ -205,6 +218,9 @@
     "interaction_fx": {
       "trail_effect_id": null,
       "sound_pack_id": "default_click"
+    },
+    "geometry": {
+      "borderless": false
     }
   },
   {
@@ -223,29 +239,30 @@
       "amount": 300
     },
     "body": {
-      "color": "#09090B",
-      "roughness": 0.5,
-      "metalness": 0.02
+      "color": "#0B0B0D",
+      "roughness": 0.015,
+      "metalness": 0.06
     },
     "layers": {
       "layer_1_base": {
         "face_colors": {
-          "U": "#F4F4F5",
-          "D": "#F59E0B",
-          "F": "#16A34A",
-          "B": "#2563EB",
-          "L": "#EA580C",
-          "R": "#DC2626"
+          "U": "#FFFFFF",
+          "D": "#FFE000",
+          "F": "#00D84A",
+          "B": "#005BFF",
+          "L": "#FF7200",
+          "R": "#FF1838"
         },
-        "texture_maps": null
+        "texture_maps": null,
+        "center_texture_map": "/assets/skins/std_high_contrast_05/center_star.svg"
       },
       "layer_2_surface": {
         "material_type": "matte",
-        "roughness": 0.55,
-        "metalness": 0.02,
-        "opacity": 1.0,
+        "roughness": 0.015,
+        "metalness": 0.06,
+        "opacity": 1,
         "normal_map": null,
-        "normal_scale": 0.0
+        "normal_scale": 0
       },
       "layer_3_glow": {
         "enabled": false
@@ -257,6 +274,9 @@
     "interaction_fx": {
       "trail_effect_id": null,
       "sound_pack_id": "default_click"
+    },
+    "geometry": {
+      "borderless": true
     }
   },
   {
@@ -275,9 +295,9 @@
       "amount": 300
     },
     "body": {
-      "color": "#0F172A",
-      "roughness": 0.32,
-      "metalness": 0.05
+      "color": "#073E56",
+      "roughness": 0.31,
+      "metalness": 0
     },
     "layers": {
       "layer_1_base": {
@@ -289,15 +309,16 @@
           "L": "#EA580C",
           "R": "#BE123C"
         },
-        "texture_maps": null
+        "texture_maps": null,
+        "center_texture_map": "/assets/skins/std_primary_teal_07/center_wave.svg"
       },
       "layer_2_surface": {
         "material_type": "glossy",
-        "roughness": 0.28,
-        "metalness": 0.05,
-        "opacity": 1.0,
+        "roughness": 0.31,
+        "metalness": 0,
+        "opacity": 1,
         "normal_map": null,
-        "normal_scale": 0.0
+        "normal_scale": 0
       },
       "layer_3_glow": {
         "enabled": false
@@ -309,6 +330,9 @@
     "interaction_fx": {
       "trail_effect_id": null,
       "sound_pack_id": "default_click"
+    },
+    "geometry": {
+      "borderless": false
     }
   },
   {
@@ -326,29 +350,30 @@
       "amount": 300
     },
     "body": {
-      "color": "#334155",
-      "roughness": 0.7,
-      "metalness": 0.08
+      "color": "#3F4448",
+      "roughness": 0.88,
+      "metalness": 0
     },
     "layers": {
       "layer_1_base": {
         "face_colors": {
-          "U": "#F8FAFC",
-          "D": "#EAB308",
-          "F": "#22C55E",
-          "B": "#2563EB",
-          "L": "#EA580C",
-          "R": "#DC2626"
+          "U": "#D9DADC",
+          "D": "#CEA31D",
+          "F": "#32B160",
+          "B": "#3464CE",
+          "L": "#CE5C20",
+          "R": "#C33535"
         },
-        "texture_maps": null
+        "texture_maps": null,
+        "center_texture_map": "/assets/skins/std_slate_frame_08/center_ash.svg"
       },
       "layer_2_surface": {
         "material_type": "matte",
-        "roughness": 0.72,
-        "metalness": 0.0,
-        "opacity": 1.0,
+        "roughness": 0.88,
+        "metalness": 0,
+        "opacity": 1,
         "normal_map": null,
-        "normal_scale": 0.0
+        "normal_scale": 0
       },
       "layer_3_glow": {
         "enabled": false
@@ -360,6 +385,9 @@
     "interaction_fx": {
       "trail_effect_id": null,
       "sound_pack_id": "default_click"
+    },
+    "geometry": {
+      "borderless": false
     }
   }
 ]
