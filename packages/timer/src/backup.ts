@@ -33,12 +33,3 @@ export function validateHistoryBackup(value:unknown):HistoryBackup {
   });
   return {version:1,entries};
 }
-export function parseHistoryBackup(text:string):HistoryBackup {
-  if(text.length>10_000_000)throw new Error('Backup quá lớn (tối đa 10 MB).');
-  let value:unknown;try{value=JSON.parse(text);}catch{throw new Error('JSON backup không hợp lệ.');}
-  return validateHistoryBackup(value);
-}
-export function historyCsv(entries:readonly HistoryEntry[]):string {
-  const cell=(v:string|number)=>'"'+String(v).replace(/^[=+@\-\t\r]/,"'$&").replace(/"/g,'""')+'"';
-  return '\uFEFF'+[['id','size','startedAt','timeMs','originalPenalty','penaltyOverride','effectivePenalty'],...entries.map(e=>[e.solve.id,e.solve.size,e.solve.startedAt,e.solve.timeMs,e.solve.penalty,e.penaltyOverride??'',e.penaltyOverride??e.solve.penalty])].map(row=>row.map(cell).join(',')).join('\r\n');
-}

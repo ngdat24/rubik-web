@@ -2,21 +2,20 @@ import {t} from './i18n.js';
 import { loadHistory, saveHistory } from './history-storage.js';
 import { formatTime } from '@rubik/engine';
 import type { Penalty } from '@rubik/engine';
-import { SolveHistory, parseHistoryBackup, validateHistoryBackup, historyCsv } from '@rubik/timer';
+import { SolveHistory, validateHistoryBackup } from '@rubik/timer';
 import type {HistoryEntry} from '@rubik/timer';
 
 export function attachHistory(history: SolveHistory, getSize: ()=>number, onMutation:(entry:HistoryEntry,deleted:boolean)=>void=()=>{}) {
   const list=document.querySelector<HTMLOListElement>('#solve-history')!;
-  const stats=document.querySelector<HTMLElement>('#solve-stats')!;
   const status=document.querySelector<HTMLElement>('#history-message')!;
   const storageStatus=document.querySelector<HTMLElement>('#history-storage-status')!;
   let ready=false,disposed=false,canPersist=true;let writes=Promise.resolve();
   const persist=():void=>{
     if(!ready||disposed||!canPersist)return;const snapshot={version:1 as const,entries:history.entries()};
-    writes=writes.then(async()=>{await saveHistory(validateHistoryBackup(snapshot));if(!disposed)storageStatus.textContent=t("Đã lưu lịch sử trên trình duyệt này.");}).catch(()=>{if(!disposed)storageStatus.textContent=t("Không lưu được lịch sử; hãy backup JSON trước khi đóng trang.");});
+    writes=writes.then(async()=>{await saveHistory(validateHistoryBackup(snapshot));if(!disposed)storageStatus.textContent=t("Đã lưu lịch sử trên trình duyệt này.");}).catch(()=>{if(!disposed)storageStatus.textContent=t("Không lưu được lịch sử trên trình duyệt.");});
   };
   const render=():void=>{
-    const entries=history.list(getSize());list.replaceChildren();
+    const entries=history.list(getSize()).slice(0, 5);list.replaceChildren();
     for(const entry of entries){
       const row=document.createElement('li');row.dataset.solveId=entry.solve.id;
       const penalty=entry.penaltyOverride??entry.solve.penalty;
@@ -31,8 +30,6 @@ export function attachHistory(history: SolveHistory, getSize: ()=>number, onMuta
       }
       list.append(row);
     }
-    stats.replaceChildren();
-    for(const [kind,value] of Object.entries(history.statistics(getSize()))){const cell=document.createElement('span');cell.textContent=`${kind}: ${value.display}`;stats.append(cell);}
     document.querySelector('#history-empty')!.textContent=entries.length?'':`${t("Chưa có lần giải ")}${getSize()}${t("×")}${getSize()}.`;
   };
   const click=(event:MouseEvent):void=>{
@@ -44,24 +41,10 @@ export function attachHistory(history: SolveHistory, getSize: ()=>number, onMuta
     onMutation(action==='delete'?original:history.entries().find(entry=>entry.solve.id===id)!,action==='delete');
     render();persist();status.textContent=action==='delete'?t("Đã xóa lần giải."):t("Đã cập nhật phạt và thống kê; bản ghi gốc được giữ nguyên.");
   };
-  const download=(text:string,type:string,name:string):void=>{
-    const url=URL.createObjectURL(new Blob([text],{type})),link=document.createElement('a');link.href=url;link.download=name;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);
-  };
-  const exportJson=()=>download(JSON.stringify({version:1,entries:history.entries()},null,2),'application/json','rubik-history.json');
-  const exportCsv=()=>download(historyCsv(history.entries()),'text/csv;charset=utf-8','rubik-history.csv');
-  const input=document.querySelector<HTMLInputElement>('#history-import')!;
-  const importFile=():void=>{
-    const file=input.files?.[0];input.value='';if(!file)return;
-    if(!ready){status.textContent=t("Hãy chờ tải lịch sử xong trước khi nhập.");return;}
-    if(file.size>10_000_000){status.textContent=t("Backup quá lớn (tối đa 10 MB).");return;}
-    void file.text().then(text=>{if(disposed)return;const backup=parseHistoryBackup(text),current=history.entries(),ids=new Set(current.map(e=>e.solve.id)),fresh=backup.entries.filter(e=>!ids.has(e.solve.id));validateHistoryBackup({version:1,entries:[...current,...fresh]});const added=history.merge(fresh);render();persist();status.textContent=`${t("Đã nhập ")}${added}${t(" lần giải; ID đã có được giữ nguyên, không ghi đè phạt chỉnh.")}`;}).catch(()=>{if(!disposed)status.textContent=t("Backup không hợp lệ hoặc không đọc được; lịch sử hiện tại được giữ nguyên.");});
-  };
-  const jsonButton=document.querySelector('#history-export')!,csvButton=document.querySelector('#history-csv')!;
-  jsonButton.addEventListener('click',exportJson);csvButton.addEventListener('click',exportCsv);input.addEventListener('change',importFile);
   list.addEventListener('click',click);render();
   const loaded=loadHistory().then(value=>{
     if(disposed)return;const unsaved=history.entries().length>0;if(value!==undefined)history.merge(validateHistoryBackup(value).entries);
     ready=true;render();storageStatus.textContent=t("Đã tải lịch sử trên trình duyệt này.");if(unsaved)persist();
-  }).catch(()=>{if(!disposed){ready=true;canPersist=false;storageStatus.textContent=t("Không đọc được lịch sử đã lưu; phiên hiện tại vẫn dùng được. Hãy giữ backup JSON.");}});
-  return {loaded,render,changed:()=>{render();persist();},dispose:()=>{disposed=true;list.removeEventListener('click',click);jsonButton.removeEventListener('click',exportJson);csvButton.removeEventListener('click',exportCsv);input.removeEventListener('change',importFile);}};
+  }).catch(()=>{if(!disposed){ready=true;canPersist=false;storageStatus.textContent=t("Không đọc được lịch sử đã lưu; phiên hiện tại vẫn dùng được.");}});
+  return {loaded,render,changed:()=>{render();persist();},dispose:()=>{disposed=true;list.removeEventListener('click',click);}};
 }

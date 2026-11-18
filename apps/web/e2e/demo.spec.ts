@@ -65,7 +65,7 @@ test('timer flow, focused Space, rotations, solved result and next scramble stay
  await page.goto('/?diagnostics=1');await expect(page.locator('canvas')).toBeVisible();
  await page.locator('#workspace-tools').evaluate((node:HTMLDetailsElement)=>{node.open=true;});await page.locator('#instant').check();await page.locator('#timer-start').click();await expect(page.locator('#timer-phase')).toContainText('Sẵn sàng');
  await page.keyboard.press('r');await expect(page.locator('#timer-phase')).toContainText('Sẵn sàng');
- await page.locator('#workspace-tools').evaluate((node:HTMLDetailsElement)=>{node.open=true;});await page.locator('#seed').fill('timer-e2e');await page.locator('#seed').press('Enter');const scramble=(await page.locator('#scramble-text').textContent())!.trim().split(/\s+/);
+ await page.locator('#workspace-tools').evaluate((node:HTMLDetailsElement)=>{node.open=true;});await page.locator('#timer-start').click();const scramble=(await page.locator('#scramble-text').textContent())!.trim().split(/\s+/);
  await page.locator('#reset').focus();await page.keyboard.press('Space');await expect(page.locator('#timer-phase')).toContainText('Inspection');
  await expect(page.locator('#scramble-text')).not.toContainText('Chưa có');
  await expect(page.locator('#key-settings-open')).toBeDisabled();await expect(page.locator('#algorithm')).toBeDisabled();
@@ -76,12 +76,12 @@ test('timer flow, focused Space, rotations, solved result and next scramble stay
  await expect(page.locator('#timer-phase')).toContainText('Sẵn sàng');await expect(page.locator('#timer-readout')).not.toHaveText('DNF');
  await expect(page.locator('#key-settings-open')).toBeEnabled();
  await page.keyboard.press('Space');await expect(page.locator('#timer-phase')).toContainText('Inspection');
- await expect(page.locator('#seed')).not.toHaveValue('timer-e2e');expect(errors).toEqual([]);
+ expect(errors).toEqual([]);
 });
 
 test('cancel prepares a new scramble, timeout continues behind the dialog',async({page})=>{
  await page.clock.install();await page.goto('/');await expect(page.locator('canvas')).toBeVisible();
- await page.locator('#workspace-tools').evaluate((node:HTMLDetailsElement)=>{node.open=true;});await page.locator('#seed').fill('cancel-seed');await page.locator('#seed').press('Enter');const original=await page.locator('#scramble-text').textContent();
+ await page.locator('#workspace-tools').evaluate((node:HTMLDetailsElement)=>{node.open=true;});await page.locator('#timer-start').click();const original=await page.locator('#scramble-text').textContent();
  await page.locator('#timer-start').click();await page.keyboard.press('r');await expect(page.locator('#timer-phase')).toContainText('Đang giải');
  await page.keyboard.press('Escape');await expect(page.locator('#timer-cancel-dialog')).toBeVisible();
  await page.locator('#timer-confirm-cancel').click();await expect(page.locator('#timer-phase')).toContainText('Sẵn sàng');await expect(page.locator('#scramble-text')).not.toHaveText(original!);
@@ -94,11 +94,9 @@ test('cancel prepares a new scramble, timeout continues behind the dialog',async
 test('drag cannot start while idle; during inspection it starts the solve, context recovery preserves locks',async({page})=>{
  await page.goto('/?diagnostics=1');await expect(page.locator('canvas')).toBeVisible();await page.selectOption('#cube-size','7');
  await page.locator('#timer-start').click();await page.locator('canvas').scrollIntoViewIfNeeded();
- const target=await page.evaluate(()=>(window as any).rubikDiagnostics(true).pickTargets.find((p:any)=>Math.floor(p.index/49)===2));
  const drag=async()=>{await page.locator('canvas').scrollIntoViewIfNeeded();const target=await page.evaluate(()=>(window as any).rubikDiagnostics(true).pickTargets.find((p:any)=>Math.floor(p.index/49)===2));await page.mouse.move(target.x,target.y);await page.mouse.down({button:'left'});await page.mouse.move(target.x+120,target.y,{steps:10});await page.mouse.up({button:'left'});};
  await drag();await expect(page.locator('#timer-phase')).toContainText('Sẵn sàng');
- await page.locator('#workspace-tools').evaluate((node: HTMLDetailsElement) => { node.open = true; });
- await page.locator('#camera-reset').click();await page.locator('#timer-start').click();await drag();await expect(page.locator('#timer-phase')).toContainText('Đang giải');
+ await page.locator('#timer-start').click();await drag();await expect(page.locator('#timer-phase')).toContainText('Đang giải');
  await page.evaluate(()=>{const ext=document.querySelector('canvas')!.getContext('webgl2')!.getExtension('WEBGL_lose_context')!;(window as any).loss=ext;ext.loseContext();});
  await expect(page.locator('#context-message')).toBeVisible();await page.evaluate(()=>(window as any).loss.restoreContext());await expect(page.locator('#context-message')).toBeHidden();
  await expect(page.locator('#timer-phase')).toContainText('Đang giải');await page.locator('#timer-cancel').click();await page.locator('#timer-confirm-cancel').click();
@@ -118,11 +116,13 @@ test('demo renders, runs moves, changes N/camera and frees old geometries', asyn
     resolve([...pixel]);
   })));
   expect((await visiblePixel())[3]).toBeGreaterThan(0);
-  await page.locator('#workspace-tools').evaluate((node: HTMLDetailsElement) => { node.open = true; });
-  await page.locator('#camera-back').click();
-  const camera = await page.evaluate(() => (window as any).rubikDiagnostics().camera as number[]);
-  for (const [axis, value] of [-6,-5,-7].entries()) expect(camera[axis]).toBeCloseTo(value);
-  await page.locator('#camera-reset').click();
+  const beforeOrbit = await page.evaluate(() => (window as any).rubikDiagnostics().camera);
+  const viewport = (await page.locator('#viewport').boundingBox())!;
+  await page.mouse.move(viewport.x + viewport.width / 2, viewport.y + viewport.height / 2);
+  await page.mouse.down({button:'right'});
+  await page.mouse.move(viewport.x + viewport.width / 2 + 100, viewport.y + viewport.height / 2, {steps:8});
+  await page.mouse.up({button:'right'});
+  await expect.poll(() => page.evaluate(() => (window as any).rubikDiagnostics().camera)).not.toEqual(beforeOrbit);
   for (const size of ['2','3','4','5','6','7','8','9','10','2','10','2','10']) {
     await page.selectOption('#cube-size', size);
     await expect.poll(() => page.evaluate(() => (window as any).rubikDiagnostics().size)).toBe(Number(size));
@@ -143,7 +143,7 @@ test('demo renders, runs moves, changes N/camera and frees old geometries', asyn
   await page.locator('#workspace-tools').evaluate((node:HTMLDetailsElement)=>{node.open=true;});await page.locator('#algorithm').fill(''); await page.locator('#algorithm-form button').click();
   await page.screenshot({path: 'test-results/demo-10x10.png', fullPage: true});
   expect((await visiblePixel())[3]).toBeGreaterThan(0);
-  await page.locator('#workspace-tools').evaluate((node:HTMLDetailsElement)=>{node.open=true;});await page.locator('#seed').fill('e2e'); await page.locator('#seed').press('Enter');
+  await page.locator('#workspace-tools').evaluate((node:HTMLDetailsElement)=>{node.open=true;});await page.locator('#timer-start').click();
   await expect(page.locator('#scramble-text')).not.toContainText('Chưa có');
   await page.locator('#reset').click();
   await expect(page.locator('#cube-description')).toContainText('đã giải');
@@ -189,26 +189,25 @@ test('touch Start enters inspection without a hardware keyboard',async({browser}
  await expect(page.locator('#timer-phase')).toContainText('Inspection');await expect(page.locator('#key-settings-open')).toBeDisabled();await context.close();
 });
 
-test('Space prepares then starts, Shift+Space regenerates; view keys default on and fixed keys are opt-in',async({page})=>{
+test('Space prepares then starts, Shift+Space leaves the scramble alone; view keys default on and fixed keys are opt-in',async({page})=>{
  await page.goto('/');await expect(page.locator('canvas')).toBeVisible();await page.locator('#workspace-tools').evaluate((node:HTMLDetailsElement)=>{node.open=true;});await page.locator('#instant').check();
  await page.locator('#viewport').click({position:{x:5,y:5}});await page.keyboard.press('Space');
- await expect(page.locator('#timer-phase')).toContainText('Sẵn sàng');const first=await page.locator('#seed').inputValue();
- await page.keyboard.press('Shift+Space');await expect(page.locator('#seed')).not.toHaveValue(first);await expect(page.locator('#timer-phase')).toContainText('Sẵn sàng');
- await expect(page.locator('#view-keys')).not.toBeChecked();await page.locator('#view-keys').check();await expect(page.locator('#view-key-map')).toContainText('hệ trục');await page.locator('#view-keys').uncheck();await page.locator('#workspace-tools').evaluate((node: HTMLDetailsElement) => { node.open = true; });
-  await page.locator('#camera-back').click();
- await expect(page.locator('#view-key-map')).toContainText('F → B');await expect(page.locator('#view-key-map')).toContainText('R → L');
+ await expect(page.locator('#timer-phase')).toContainText('Sẵn sàng');const first=await page.locator('#scramble-text').textContent();
+ await page.keyboard.press('Shift+Space');await expect(page.locator('#scramble-text')).toHaveText(first!);await expect(page.locator('#timer-phase')).toContainText('Sẵn sàng');
+ await expect(page.locator('#view-keys')).not.toBeChecked();await page.locator('#view-keys').check();await expect(page.locator('#view-key-map')).toContainText('hệ trục');await page.locator('#view-keys').uncheck();
+ await expect(page.locator('#view-key-map')).toContainText('R →');
  await page.locator('#viewport').click({position:{x:5,y:5}});await page.keyboard.press('Space');await expect(page.locator('#timer-phase')).toContainText('Inspection');
- await page.keyboard.press('r');await expect(page.locator('#move-status')).toContainText('L');await expect(page.locator('#timer-phase')).toContainText('Đang giải');
+ await page.keyboard.press('r');await expect(page.locator('#timer-phase')).toContainText('Đang giải');
 });
 
-test('history adds each result once, preserves original penalties and recomputes per size',async({page})=>{
+test('history adds each result once, preserves original penalties and filters by size',async({page})=>{
  await page.clock.install();await page.goto('/');await expect(page.locator('canvas')).toBeVisible();
  await page.locator('#timer-start').click();await page.locator('#timer-start').click();await page.clock.runFor(17100);
  const row=page.locator('#solve-history li').first();await expect(page.locator('#solve-history li')).toHaveCount(1);
- await expect(row.locator('.solve-time')).toContainText('gốc DNF');await expect(page.locator('#solve-stats')).toContainText('single: -');
- await row.getByRole('button',{name:'Không phạt',exact:true}).click();await expect(row.locator('.solve-time')).toContainText('đã chỉnh');await expect(row.locator('.solve-time')).toContainText('gốc DNF');await expect(page.locator('#solve-stats')).toContainText('single: 0.00');
- await row.getByRole('button',{name:'+2',exact:true}).click();await expect(page.locator('#solve-stats')).toContainText('single: 2.00');
- await row.getByRole('button',{name:'Phạt gốc',exact:true}).click();await expect(page.locator('#solve-stats')).toContainText('single: -');
+ await expect(row.locator('.solve-time')).toContainText('gốc DNF');
+ await row.getByRole('button',{name:'Không phạt',exact:true}).click();await expect(row.locator('.solve-time')).toContainText('đã chỉnh');await expect(row.locator('.solve-time')).toContainText('gốc DNF');
+ await row.getByRole('button',{name:'+2',exact:true}).click();await expect(row.locator('.solve-time')).toContainText('2.00');
+ await row.getByRole('button',{name:'Phạt gốc',exact:true}).click();
  await page.selectOption('#cube-size','7');await expect(page.locator('#solve-history li')).toHaveCount(0);await page.selectOption('#cube-size','3');await expect(page.locator('#solve-history li')).toHaveCount(1);
- await row.getByRole('button',{name:'Xóa',exact:true}).click();await expect(page.locator('#solve-history li')).toHaveCount(0);await expect(page.locator('#solve-stats')).toContainText('ao5: -');
+ await row.getByRole('button',{name:'Xóa',exact:true}).click();await expect(page.locator('#solve-history li')).toHaveCount(0);
 });

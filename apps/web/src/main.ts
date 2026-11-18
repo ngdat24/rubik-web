@@ -52,7 +52,6 @@ lowFx.checked=readSkinLowFx();
 const sizeSelect = document.querySelector<HTMLSelectElement>('#cube-size')!;
 
 const description = document.querySelector<HTMLElement>('#cube-description')!;
-const seed = document.querySelector<HTMLInputElement>('#seed')!;
 const resetButton = document.querySelector<HTMLButtonElement>('#reset')!;
 const scrambleText = document.querySelector<HTMLElement>('#scramble-text')!;
 const moveControls = document.querySelector<HTMLFieldSetElement>('#move-controls')!;
@@ -62,8 +61,6 @@ const queueStatus = document.querySelector<HTMLElement>('#queue-status')!;
 const speed = document.querySelector<HTMLInputElement>('#speed')!;
 const speedValue = document.querySelector<HTMLOutputElement>('#speed-value')!;
 const instant = document.querySelector<HTMLInputElement>('#instant')!;
-const cameraReset = document.querySelector<HTMLButtonElement>('#camera-reset')!;
-const cameraBack = document.querySelector<HTMLButtonElement>('#camera-back')!;
 const algorithmForm = document.querySelector<HTMLFormElement>('#algorithm-form')!;
 const algorithm = document.querySelector<HTMLTextAreaElement>('#algorithm')!;
 const algorithmError = document.querySelector<HTMLElement>('#algorithm-error')!;
@@ -84,9 +81,8 @@ const buildMoveButtons = (): void => {
     moveButtons.append(button);
   }
 };
-seed.value = newId();
 const disableControls = (): void => {
-  sizeSelect.disabled = seed.disabled = resetButton.disabled = true;
+  sizeSelect.disabled = resetButton.disabled = true;
   moveControls.disabled = true;
 };
 try {
@@ -174,10 +170,10 @@ const onReset = (): void => {
   scrambleText.textContent = '';
   updateMoveControls(); moveStatus.textContent = '';
 };
-const onScramble = (): boolean => {
-  const moves = controller?.scramble(seed.value);
+const onScramble = (seed: string): boolean => {
+  const moves = controller?.scramble(seed);
   if (!moves) return false;
-  timerUI?.scrambled(seed.value);
+  timerUI?.scrambled(seed);
   scrambleText.textContent = moves.join(' ');
   description.textContent = `Rubik ${sizeSelect.value}×${sizeSelect.value}${t(" · Đã trộn")}`;
   updateMoveControls(); moveStatus.textContent = '';
@@ -195,8 +191,6 @@ const onMove = (event: MouseEvent): void => {
 moveButtons.addEventListener('click', onMove);
 const onSpeed = (): void => { renderer?.setSpeed(Number(speed.value)); speedValue.value = `${speed.value} ms`; };
 const onInstant = (): void => { renderer?.setInstant(instant.checked); };
-const onCameraReset = (): void => { renderer?.resetCamera(); };
-const onCameraBack = (): void => { renderer?.setCameraView('dbl'); };
 const onAlgorithm = (event: SubmitEvent): void => {
   const inputTime = performance.now();
   event.preventDefault();
@@ -211,20 +205,12 @@ const onAlgorithm = (event: SubmitEvent): void => {
     algorithm.setAttribute('aria-invalid', 'true');
   }
 };
-cameraReset.addEventListener('click', onCameraReset);
-cameraBack.addEventListener('click', onCameraBack);
 algorithmForm.addEventListener('submit', onAlgorithm);
 speed.addEventListener('input', onSpeed);
 instant.addEventListener('change', onInstant);
 
 
 resetButton.addEventListener('click', onReset);
-const onSeedKeyDown = (event: KeyboardEvent): void => {
-  if (event.key !== 'Enter' || event.isComposing || event.repeat) return;
-  event.preventDefault();
-  if (!timerUI?.isRunning()) onScramble();
-};
-seed.addEventListener('keydown', onSeedKeyDown);
 const account=await accountReady;
 if(new URLSearchParams(location.search).get('panel')==='profile')document.querySelector<HTMLButtonElement>('#account-open')?.click();
 const wallet=mountWallet(account);
@@ -240,9 +226,9 @@ const shop=mountShop(account,appearance=>{equippedAppearance=appearance;updateAp
     championStyles.set(size,{options:style.championRendererOptions(design,'borderless',size),name:award.name??design.name,sound:design.interaction_fx.sound_file,size});
     updateAppearance();
   });
-const practice = controller && mountPracticeChallenge(account,controller,value=>{seed.value=value;return onScramble();},
+const practice = controller && mountPracticeChallenge(account,controller,onScramble,
   ()=>timerUI?.isRunning() ?? false);
-if(controller) timerUI=attachTimer(controller,()=>{seed.value=newId();onScramble();},account,
+if(controller) timerUI=attachTimer(controller,()=>onScramble(newId()),account,
   solve=>{
     queueMicrotask(updateAppearance);
     if(solve.penalty!=='DNF'){
@@ -273,14 +259,11 @@ if (import.meta.hot) import.meta.hot.dispose(() => {
   window.removeEventListener('pagehide', onPageHide);
   sizeSelect.removeEventListener('change', onSizeChange);
   resetButton.removeEventListener('click', onReset);
-  seed.removeEventListener('keydown', onSeedKeyDown);
   moveButtons.removeEventListener('click', onMove);
   speed.removeEventListener('input', onSpeed);
   instant.removeEventListener('change', onInstant);
 
 
-  cameraReset.removeEventListener('click', onCameraReset);
-  cameraBack.removeEventListener('click', onCameraBack);
   algorithmForm.removeEventListener('submit', onAlgorithm);
   Reflect.deleteProperty(window, 'rubikDiagnostics');
   controller?.dispose();

@@ -54,7 +54,7 @@ test('name-only profile, uniqueness, persistent session, offline sync and privat
         return fulfill({json:{access_token:token,refresh_token:'refresh-'+id,expires_in:3600,expires_at:exp,token_type:'bearer',user}});
       });
       const page=await context.newPage();await page.goto(base);await expect(page.locator('canvas')).toBeVisible();
-      await expect(page.locator('#cloud-sync')).not.toHaveAttribute('hidden');await expect(page.locator('#account-open')).toHaveText('Hồ sơ');
+      await expect(page.locator('#account-open')).toHaveText('Hồ sơ');
       await expect(page.locator('input[type=email],input[type=password],#account-signout,#account-mode')).toHaveCount(0);
       return {context,page};
     };
@@ -68,18 +68,17 @@ test('name-only profile, uniqueness, persistent session, offline sync and privat
     await page.locator('#solve-history li').getByRole('button',{name:'+2',exact:true}).click();await expect.poll(()=>[...db.solves.values()][0]?.penalty_override).toBe('+2');
     const second=await create('a@example.test',await context.storageState());await expect(second.page.locator('#player-label')).toHaveText('An online');await second.page.selectOption('#cube-size','2');await expect(second.page.locator('#solve-history li')).toHaveCount(1);await expect(second.page.locator('#solve-history li')).toContainText('đã chỉnh');
     await second.page.selectOption('#leaderboard-size','2');await expect(second.page.locator('#leaderboard-rows')).toContainText('An online');
-    await expect(second.page.locator('#cloud-sync')).toBeEnabled();
-    await second.page.locator('#history-tools > summary').click();
-    const unchanged=second.page.waitForResponse(r=>r.url().includes('/api/solves?since=')&&r.request().method()==='GET');await second.page.locator('#cloud-sync').click();
+
+    const unchanged=second.page.waitForResponse(r=>r.url().includes('/api/solves?since=')&&r.request().method()==='GET');await second.page.evaluate(()=>{for(const tick of window.rubikPollers)tick();});
     const delta=await (await unchanged).json();assert.equal(delta.rows.length,0);assert.ok(delta.cursor>0);
-    await expect(second.page.locator('#cloud-sync')).toBeEnabled();
+
     const requests=[];second.page.on('request',r=>{if(r.url().startsWith(base+'/api/'))requests.push(r.url());});
     await second.page.evaluate(async()=>{Object.defineProperty(document,'hidden',{get:()=>true,configurable:true});for(const tick of window.rubikPollers)tick();window.dispatchEvent(new Event('online'));await new Promise(r=>setTimeout(r,100));});
     assert.equal(requests.length,0);
     const resumed=second.page.waitForResponse(r=>r.url().includes('/api/solves?since='));
     await second.page.evaluate(()=>{delete document.hidden;document.dispatchEvent(new Event('visibilitychange'));});await resumed;
     await page.bringToFront();await page.locator('#solve-history li').getByRole('button',{name:'DNF',exact:true}).click();await expect.poll(()=>[...db.solves.values()][0]?.penalty_override).toBe('DNF');
-    const changed=second.page.waitForResponse(r=>r.url().includes('/api/solves?since='+delta.cursor));await second.page.bringToFront();await second.page.locator('#cloud-sync').click();
+    const changed=second.page.waitForResponse(r=>r.url().includes('/api/solves?since='+delta.cursor));await second.page.bringToFront();await second.page.evaluate(()=>{for(const tick of window.rubikPollers)tick();});
     const changedRows=(await (await changed).json()).rows;assert.equal(changedRows.length,1);assert.equal(changedRows[0].penalty_override,'DNF');
     await expect(second.page.locator('#solve-history li')).toContainText('phạt DNF');
     await page.bringToFront();
