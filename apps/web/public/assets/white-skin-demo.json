@@ -1,0 +1,365 @@
+[
+  {
+    "skin_id": "std_matte_pastel_01",
+    "name": "Phấn Nhám",
+    "tier": "white",
+    "season_id": "standard",
+    "sources": [
+      "core_crate",
+      "maglev_crate",
+      "daily_shop",
+      "season_spin"
+    ],
+    "shop_price": {
+      "currency": "CB",
+      "amount": 300
+    },
+    "body": {
+      "color": "#18181B",
+      "roughness": 0.8,
+      "metalness": 0.04
+    },
+    "layers": {
+      "layer_1_base": {
+        "face_colors": {
+          "U": "#F1F5F9",
+          "D": "#FACC15",
+          "F": "#10B981",
+          "B": "#3B82F6",
+          "L": "#F97316",
+          "R": "#EF4444"
+        },
+        "texture_maps": null
+      },
+      "layer_2_surface": {
+        "material_type": "matte",
+        "roughness": 0.82,
+        "metalness": 0.0,
+        "opacity": 1.0,
+        "normal_map": null,
+        "normal_scale": 0.0
+      },
+      "layer_3_glow": {
+        "enabled": false
+      },
+      "layer_4_animated_shader": {
+        "enabled": false
+      }
+    },
+    "interaction_fx": {
+      "trail_effect_id": null,
+      "sound_pack_id": "default_click"
+    }
+  },
+  {
+    "skin_id": "std_glossy_classic_02",
+    "name": "Sứ Bóng",
+    "tier": "white",
+    "season_id": "standard",
+    "sources": [
+      "core_crate",
+      "maglev_crate",
+      "daily_shop",
+      "season_spin"
+    ],
+    "shop_price": {
+      "currency": "CB",
+      "amount": 300
+    },
+    "body": {
+      "color": "#0F0F11",
+      "roughness": 0.28,
+      "metalness": 0.05
+    },
+    "layers": {
+      "layer_1_base": {
+        "face_colors": {
+          "U": "#F8FAFC",
+          "D": "#EAB308",
+          "F": "#15803D",
+          "B": "#1D4ED8",
+          "L": "#EA580C",
+          "R": "#B91C1C"
+        },
+        "texture_maps": null
+      },
+      "layer_2_surface": {
+        "material_type": "glossy",
+        "roughness": 0.24,
+        "metalness": 0.05,
+        "opacity": 1.0,
+        "normal_map": null,
+        "normal_scale": 0.0
+      },
+      "layer_3_glow": {
+        "enabled": false
+      },
+      "layer_4_animated_shader": {
+        "enabled": false
+      }
+    },
+    "interaction_fx": {
+      "trail_effect_id": null,
+      "sound_pack_id": "default_click"
+    }
+  },
+  {
+    "skin_id": "std_white_frame_03",
+    "name": "Viền Ngà",
+    "tier": "white",
+    "season_id": "standard",
+    "sources": [
+      "core_crate",
+      "maglev_crate",
+      "daily_shop",
+      "season_spin"
+    ],
+    "shop_price": {
+      "currency": "CB",
+      "amount": 300
+    },
+    "body": {
+      "color": "#D6D3D1",
+      "roughness": 0.65,
+      "metalness": 0.0
+    },
+    "layers": {
+      "layer_1_base": {
+        "face_colors": {
+          "U": "#FAF8F5",
+          "D": "#EAB308",
+          "F": "#059669",
+          "B": "#0284C7",
+          "L": "#EA580C",
+          "R": "#DC2626"
+        },
+        "texture_maps": null
+      },
+      "layer_2_surface": {
+        "material_type": "matte",
+        "roughness": 0.68,
+        "metalness": 0.0,
+        "opacity": 1.0,
+        "normal_map": null,
+        "normal_scale": 0.0
+      },
+      "layer_3_glow": {
+        "enabled": false
+      },
+      "layer_4_animated_shader": {
+        "enabled": false
+      }
+    },
+    "interaction_fx": {
+      "trail_effect_id": null,
+      "sound_pack_id": "default_click"
+    }
+  },
+  {
+    "skin_id": "std_retro_90s_04",
+    "name": "Gỗ Xưa",
+    "tier": "white",
+    "season_id": "standard",
+    "sources": [
+      "core_crate",
+      "maglev_crate",
+      "daily_shop",
+      "season_spin"
+    ],
+    "shop_price": {
+      "currency": "CB",
+      "amount": 300
+    },
+    "body": {
+      "color": "#262322",
+      "roughness": 0.78,
+      "metalness": 0.0
+    },
+    "layers": {
+      "layer_1_base": {
+        "face_colors": {
+          "U": "#FEF3C7",
+          "D": "#CA8A04",
+          "F": "#166534",
+          "B": "#1E40AF",
+          "L": "#C2410C",
+          "R": "#991B1B"
+        },
+        "texture_maps": null
+      },
+      "layer_2_surface": {
+        "material_type": "matte",
+        "roughness": 0.78,
+        "metalness": 0.0,
+        "opacity": 1.0,
+        "normal_map": null,
+        "normal_scale": 0.0
+      },
+      "layer_3_glow": {
+        "enabled": false
+      },
+      "layer_4_animated_shader": {
+        "enabled": false
+      }
+    },
+    "interaction_fx": {
+      "trail_effect_id": null,
+      "sound_pack_id": "default_click"
+    }
+  },
+  {
+    "skin_id": "std_high_contrast_05",
+    "name": "Tương Phản Chuẩn",
+    "tier": "white",
+    "season_id": "standard",
+    "sources": [
+      "core_crate",
+      "maglev_crate",
+      "daily_shop",
+      "season_spin"
+    ],
+    "shop_price": {
+      "currency": "CB",
+      "amount": 300
+    },
+    "body": {
+      "color": "#09090B",
+      "roughness": 0.5,
+      "metalness": 0.02
+    },
+    "layers": {
+      "layer_1_base": {
+        "face_colors": {
+          "U": "#F4F4F5",
+          "D": "#F59E0B",
+          "F": "#16A34A",
+          "B": "#2563EB",
+          "L": "#EA580C",
+          "R": "#DC2626"
+        },
+        "texture_maps": null
+      },
+      "layer_2_surface": {
+        "material_type": "matte",
+        "roughness": 0.55,
+        "metalness": 0.02,
+        "opacity": 1.0,
+        "normal_map": null,
+        "normal_scale": 0.0
+      },
+      "layer_3_glow": {
+        "enabled": false
+      },
+      "layer_4_animated_shader": {
+        "enabled": false
+      }
+    },
+    "interaction_fx": {
+      "trail_effect_id": null,
+      "sound_pack_id": "default_click"
+    }
+  },
+  {
+    "skin_id": "std_primary_teal_07",
+    "name": "Ngọc Lam",
+    "tier": "white",
+    "season_id": "standard",
+    "sources": [
+      "core_crate",
+      "maglev_crate",
+      "daily_shop",
+      "season_spin"
+    ],
+    "shop_price": {
+      "currency": "CB",
+      "amount": 300
+    },
+    "body": {
+      "color": "#0F172A",
+      "roughness": 0.32,
+      "metalness": 0.05
+    },
+    "layers": {
+      "layer_1_base": {
+        "face_colors": {
+          "U": "#F1F5F9",
+          "D": "#EAB308",
+          "F": "#0D9488",
+          "B": "#3730A3",
+          "L": "#EA580C",
+          "R": "#BE123C"
+        },
+        "texture_maps": null
+      },
+      "layer_2_surface": {
+        "material_type": "glossy",
+        "roughness": 0.28,
+        "metalness": 0.05,
+        "opacity": 1.0,
+        "normal_map": null,
+        "normal_scale": 0.0
+      },
+      "layer_3_glow": {
+        "enabled": false
+      },
+      "layer_4_animated_shader": {
+        "enabled": false
+      }
+    },
+    "interaction_fx": {
+      "trail_effect_id": null,
+      "sound_pack_id": "default_click"
+    }
+  },
+  {
+    "skin_id": "std_slate_frame_08",
+    "name": "Xám Tro",
+    "tier": "white",
+    "season_id": "standard",
+    "sources": [
+      "core_crate",
+      "maglev_crate",
+      "daily_shop"
+    ],
+    "shop_price": {
+      "currency": "CB",
+      "amount": 300
+    },
+    "body": {
+      "color": "#334155",
+      "roughness": 0.7,
+      "metalness": 0.08
+    },
+    "layers": {
+      "layer_1_base": {
+        "face_colors": {
+          "U": "#F8FAFC",
+          "D": "#EAB308",
+          "F": "#22C55E",
+          "B": "#2563EB",
+          "L": "#EA580C",
+          "R": "#DC2626"
+        },
+        "texture_maps": null
+      },
+      "layer_2_surface": {
+        "material_type": "matte",
+        "roughness": 0.72,
+        "metalness": 0.0,
+        "opacity": 1.0,
+        "normal_map": null,
+        "normal_scale": 0.0
+      },
+      "layer_3_glow": {
+        "enabled": false
+      },
+      "layer_4_animated_shader": {
+        "enabled": false
+      }
+    },
+    "interaction_fx": {
+      "trail_effect_id": null,
+      "sound_pack_id": "default_click"
+    }
+  }
+]
