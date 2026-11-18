@@ -117,8 +117,8 @@ export function fakeDatabase({raceClock=Date.now}={}){
       if(url.searchParams.has('sync_version'))return response(rows.filter(s=>s.sync_version>Number(url.searchParams.get('sync_version').slice(3))).sort((a,b)=>a.sync_version-b.sync_version).slice(0,500));
       return response(rows.sort((a,b)=>a.id.localeCompare(b.id)).slice(Number(url.searchParams.get('offset')),Number(url.searchParams.get('offset'))+500));
     }
-    if(url.pathname.endsWith('/leaderboard')||url.pathname.endsWith('/leaderboard_with_nameplates')){
-      const rows=[...solves.values()].filter(row=>row.ranked&&!row.deleted&&row.solve.size===body.p_size&&row.solve.penalty!=='DNF'&&profiles.has(row.user_id)).map(row=>({id:row.user_id,name:profiles.get(row.user_id).name,timeMs:row.solve.timeMs+(row.solve.penalty==='+2'?2000:0),solveId:row.id})).sort((a,b)=>a.timeMs-b.timeMs||a.name.localeCompare(b.name)||a.id.localeCompare(b.id)).slice(0,10);
+    if(url.pathname.endsWith('/leaderboard')||url.pathname.endsWith('/leaderboard_with_nameplates')||url.pathname.endsWith('/leaderboard_top1000')){
+      const rows=[...solves.values()].filter(row=>row.ranked&&!row.deleted&&row.solve.size===body.p_size&&row.solve.penalty!=='DNF'&&profiles.has(row.user_id)).map(row=>({id:row.user_id,name:profiles.get(row.user_id).name,timeMs:row.solve.timeMs+(row.solve.penalty==='+2'?2000:0),solveId:row.id})).sort((a,b)=>a.timeMs-b.timeMs||a.name.localeCompare(b.name)||a.id.localeCompare(b.id)).slice(0,url.pathname.endsWith('/leaderboard_top1000')?1000:10);
       return response(rows);
 
     }
