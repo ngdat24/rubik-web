@@ -82,7 +82,7 @@ export function attachCloudHistory(account:CloudAccount|undefined,history:SolveH
     try{
       await ui.loaded;if(disposed||document.hidden)return;if(!account){await board();status.textContent=t("Chưa kết nối được hồ sơ tự động; kết quả vẫn lưu trên thiết bị.");return;}
       load();const profile=await api('player');if(disposed)return;
-      profileName=profile.name??'';label.textContent=profileName||t("Chưa đặt tên");if(!profileName&&!prompted&&!document.querySelector('dialog[open]')){prompted=true;showName();}
+      profileName=profile.name??'';label.textContent=profileName;if(!profileName&&!prompted&&!document.querySelector('dialog[open]')){prompted=true;showName();}
       for(const [id,item] of [...pending]){
         if(document.hidden)return;
         if(item.error)continue;
@@ -118,7 +118,7 @@ export function attachCloudHistory(account:CloudAccount|undefined,history:SolveH
   const importHistory=()=>{if(!account)return;for(const entry of history.entries())if(revision(entry.solve.id)===null)queue(entry,false,false);void sync();};
   const useServer=()=>{for(const [id,item] of pending)if(item.conflict){pending.delete(id);try{localStorage.removeItem(prefix+id);}catch{storageError=true;}}cursor=0;resolveButton.hidden=true;void sync();};
   const close=()=>dialog.close();
-  label.textContent=account?t("Đang tải tên…"):t("Khách");edit.textContent=account?t("Đổi tên"):t("Đặt tên");syncButton.hidden=importButton.hidden=!account;
+  edit.textContent=account?t("Đổi tên"):t("Đặt tên");syncButton.hidden=importButton.hidden=!account;
   edit.addEventListener('click',showName);form.addEventListener('submit',submitName);document.querySelector('#player-close')!.addEventListener('click',close);size.addEventListener('change',change);syncButton.addEventListener('click',change);importButton.addEventListener('click',importHistory);resolveButton.addEventListener('click',useServer);window.addEventListener('online',change);
   void sync();const interval=window.setInterval(change,30000);
   const visible=()=>{if(!document.hidden)change();};document.addEventListener('visibilitychange',visible);

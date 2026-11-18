@@ -22,7 +22,8 @@
           <button id="reset" type="button">Đặt lại</button>
         </div>
         <section id="viewport" aria-label="Cảnh Rubik 3D"></section>
-        <div class="timer-panel"><button id="scramble" type="button">Xáo trộn</button></div>
+        <p class="gesture-hint">Chuột trái xoay Rubik <span>·</span> Chuột phải xoay góc nhìn <span>·</span> Cuộn để thu phóng</p>
+        <div class="timer-panel"><button id="timer-start" type="button">Chuẩn bị scramble</button></div>
       </section>
       <aside class="leaderboard-panel">
         <h2>Bảng xếp hạng</h2>
@@ -51,7 +52,7 @@
       controller.reset();
       output.textContent = '';
     });
-    document.querySelector('#scramble').addEventListener('click', () => {
+    document.querySelector('#timer-start').addEventListener('click', () => {
       output.textContent = controller.scramble(String(Date.now())).join(' ');
     });
     window.addEventListener('pagehide', event => {

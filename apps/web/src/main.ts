@@ -53,7 +53,6 @@ const sizeSelect = document.querySelector<HTMLSelectElement>('#cube-size')!;
 
 const description = document.querySelector<HTMLElement>('#cube-description')!;
 const seed = document.querySelector<HTMLInputElement>('#seed')!;
-const scrambleButton = document.querySelector<HTMLButtonElement>('#scramble')!;
 const resetButton = document.querySelector<HTMLButtonElement>('#reset')!;
 const scrambleText = document.querySelector<HTMLElement>('#scramble-text')!;
 const moveControls = document.querySelector<HTMLFieldSetElement>('#move-controls')!;
@@ -87,7 +86,7 @@ const buildMoveButtons = (): void => {
 };
 seed.value = newId();
 const disableControls = (): void => {
-  sizeSelect.disabled = seed.disabled = scrambleButton.disabled = resetButton.disabled = true;
+  sizeSelect.disabled = seed.disabled = resetButton.disabled = true;
   moveControls.disabled = true;
 };
 try {
@@ -220,7 +219,12 @@ instant.addEventListener('change', onInstant);
 
 
 resetButton.addEventListener('click', onReset);
-scrambleButton.addEventListener('click', onScramble);
+const onSeedKeyDown = (event: KeyboardEvent): void => {
+  if (event.key !== 'Enter' || event.isComposing || event.repeat) return;
+  event.preventDefault();
+  if (!timerUI?.isRunning()) onScramble();
+};
+seed.addEventListener('keydown', onSeedKeyDown);
 const account=await accountReady;
 if(new URLSearchParams(location.search).get('panel')==='profile')document.querySelector<HTMLButtonElement>('#account-open')?.click();
 const wallet=mountWallet(account);
@@ -269,7 +273,7 @@ if (import.meta.hot) import.meta.hot.dispose(() => {
   window.removeEventListener('pagehide', onPageHide);
   sizeSelect.removeEventListener('change', onSizeChange);
   resetButton.removeEventListener('click', onReset);
-  scrambleButton.removeEventListener('click', onScramble);
+  seed.removeEventListener('keydown', onSeedKeyDown);
   moveButtons.removeEventListener('click', onMove);
   speed.removeEventListener('input', onSpeed);
   instant.removeEventListener('change', onInstant);

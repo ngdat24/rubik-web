@@ -81,7 +81,8 @@ export function attachLeaderboard(){
   const change=()=>{void sync();};
   const close=()=>dialog.close();
   form.addEventListener('submit',submit);button.addEventListener('click',open);size.addEventListener('change',change);document.querySelector('#player-close')!.addEventListener('click',close);window.addEventListener('online',change);
-  label.textContent=player?.name??t("Chưa đặt tên");
+  button.hidden=false;
+  label.textContent=player?.name??'';
   void sync().then(()=>{if(available&&!player&&!disposed)open();});
   const interval=window.setInterval(change,5000);
   return {

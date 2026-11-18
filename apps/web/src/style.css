@@ -88,3 +88,26 @@
     display: none;
   }
 }
+
+.practice-workspace .cube-toolbar {
+  border-bottom: 1px solid var(--line);
+}
+
+.practice-workspace .gesture-hint {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.practice-workspace .timer-panel {
+  padding-block: 12px;
+}
+
+.practice-workspace #player-label {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.practice-workspace #player-label:empty {
+  display: none;
+}

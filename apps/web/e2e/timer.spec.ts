@@ -4,13 +4,13 @@ import type {Page} from '@playwright/test';
 async function prepare(page:Page,size='3'){
  await page.goto('/?diagnostics=1');await expect(page.locator('canvas')).toBeVisible();await page.selectOption('#cube-size',size);
  await page.locator('#workspace-tools summary').click();await page.locator('#instant').check();
- await page.locator('#seed').fill('t4-'+size);await page.locator('#scramble').click();
+ await page.locator('#seed').fill('t4-'+size);await page.locator('#seed').press('Enter');
  return (await page.locator('#scramble-text').textContent())!.trim().split(/\s+/);
 }
 
 for(const size of ['2','3'])test(`completed ${size}x${size} run is saved once, auto-scrambles and rejects input until inspection`,async({page})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
- const moves=await prepare(page,size);await page.locator('#scramble').focus();await page.keyboard.press('Space');
+ const moves=await prepare(page,size);await page.locator('#timer-start').focus();await page.keyboard.press('Space');
  await expect(page.locator('#timer-phase')).toContainText('Inspection');
  await page.keyboard.press('x');await page.keyboard.press('Shift+x');await expect(page.locator('#solve-history li')).toHaveCount(0);
  for(const move of moves.reverse())await page.keyboard.press(move.endsWith('2')?'Alt+'+move[0]!.toLowerCase():move.endsWith("'")?move[0]!.toLowerCase():'Shift+'+move[0]!.toLowerCase());
@@ -45,6 +45,7 @@ test('+2 result is saved before auto-scramble and Space starts the next inspecti
  await expect(page.locator('#solve-history li')).toHaveCount(1);await expect(page.locator('#solve-history li')).toContainText('gốc +2');
  await expect(page.locator('#timer-phase')).toContainText('Sẵn sàng');await expect(page.locator('#seed')).not.toHaveValue('t4-2');
  await expect(page.locator('#timer-readout')).toContainText('(+2)');
+ await page.locator('#history-tools > summary').click();
  const exported=page.waitForEvent('download');await page.locator('#history-export').click();
  const fs=await import('node:fs/promises'),data=JSON.parse(await fs.readFile((await (await exported).path())!,'utf8'));
  expect(data.entries[0].solve.seed).toBe('t4-2');expect(data.entries[0].solve.penalty).toBe('+2');
@@ -66,7 +67,7 @@ test('fake browser clock advances DOM timestamps and late input cannot create a 
 
 test('touch layer starts solving and touch Cancel restores idle without a history entry',async({browser})=>{
  const context=await browser.newContext({hasTouch:true,viewport:{width:390,height:844}}),page=await context.newPage();
- await page.goto('/?diagnostics=1');await expect(page.locator('canvas')).toBeVisible();await page.locator('#scramble').tap();await page.locator('#timer-start').tap();await page.locator('canvas').scrollIntoViewIfNeeded();
+ await page.goto('/?diagnostics=1');await expect(page.locator('canvas')).toBeVisible();await page.locator('#timer-start').tap();await page.locator('#timer-start').tap();await page.locator('canvas').scrollIntoViewIfNeeded();
  const {x,y}=await page.evaluate(()=>(window as any).rubikDiagnostics(true).pickTargets.find((p:any)=>p.index===22));
  const cdp=await context.newCDPSession(page);
  await cdp.send('Input.synthesizeScrollGesture',{x,y,xDistance:190,yDistance:0,speed:500,gestureSourceType:'touch'});

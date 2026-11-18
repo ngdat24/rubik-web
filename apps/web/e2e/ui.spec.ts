@@ -4,7 +4,7 @@ test('cube workspace is responsive, uncluttered and keeps cube larger than clock
  await expect(page.locator('#workspace-tools')).not.toHaveAttribute('open','');
  await expect(page.getByLabel('Khóa xoay phím',{exact:true})).not.toBeChecked();
  await expect(page.locator('#speed')).toHaveValue('40');await expect(page.locator('#speed')).toHaveAttribute('min','30');await expect(page.locator('#speed')).toHaveAttribute('max','100');
- await expect(page.locator('#burst,#catch-up')).toHaveCount(0);await expect(page.locator('.timer-actions #scramble')).toHaveCount(1);
+ await expect(page.locator('#burst,#catch-up')).toHaveCount(0);await expect(page.locator('.timer-actions #scramble')).toHaveCount(0);
  await page.locator('#key-settings-open').click();
  const actions=(await page.locator('.key-file-actions').boundingBox())!,profiles=(await page.locator('#key-profile').boundingBox())!;
  expect(actions.y).toBeLessThan(profiles.y);await page.locator('#key-settings-close').click();

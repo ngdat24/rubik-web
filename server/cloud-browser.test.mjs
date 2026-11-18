@@ -54,14 +54,14 @@ test('name-only profile, uniqueness, persistent session, offline sync and privat
         return fulfill({json:{access_token:token,refresh_token:'refresh-'+id,expires_in:3600,expires_at:exp,token_type:'bearer',user}});
       });
       const page=await context.newPage();await page.goto(base);await expect(page.locator('canvas')).toBeVisible();
-      await expect(page.locator('#cloud-sync')).toBeVisible();await expect(page.locator('#account-open')).toHaveText('Hồ sơ');
+      await expect(page.locator('#cloud-sync')).not.toHaveAttribute('hidden');await expect(page.locator('#account-open')).toHaveText('Hồ sơ');
       await expect(page.locator('input[type=email],input[type=password],#account-signout,#account-mode')).toHaveCount(0);
       return {context,page};
     };
     const {context,page}=await create('a@example.test');const errors=[];page.on('pageerror',e=>errors.push(e.message));
     await expect(page.locator('#player-dialog')).toBeVisible();await page.locator('#player-name').fill('An online');await page.locator('#player-form button[type=submit]').click();await expect(page.locator('#player-dialog')).not.toBeVisible();
     await page.selectOption('#cube-size','2');await page.locator('#workspace-tools summary').click();await page.locator('#instant').check();await page.locator('#view-keys').check();
-    await page.locator('#scramble').click();const moves=(await page.locator('#scramble-text').textContent()).trim().split(/\s+/);await page.locator('#timer-start').click();await context.setOffline(true);
+    await page.locator('#timer-start').click();const moves=(await page.locator('#scramble-text').textContent()).trim().split(/\s+/);await page.locator('#timer-start').click();await context.setOffline(true);
     for(const move of moves.reverse())await page.keyboard.press(move.endsWith('2')?'Alt+'+move[0].toLowerCase():move.endsWith("'")?move[0].toLowerCase():'Shift+'+move[0].toLowerCase());
     await expect(page.locator('#solve-history li')).toHaveCount(1);await expect.poll(()=>page.evaluate(()=>Object.keys(localStorage).filter(k=>k.startsWith('rubik.cloud.pending.')).length)).toBe(1);
     await context.setOffline(false);await page.reload();await page.selectOption('#cube-size','2');await expect.poll(()=>db.solves.size).toBe(1);
@@ -69,6 +69,7 @@ test('name-only profile, uniqueness, persistent session, offline sync and privat
     const second=await create('a@example.test',await context.storageState());await expect(second.page.locator('#player-label')).toHaveText('An online');await second.page.selectOption('#cube-size','2');await expect(second.page.locator('#solve-history li')).toHaveCount(1);await expect(second.page.locator('#solve-history li')).toContainText('đã chỉnh');
     await second.page.selectOption('#leaderboard-size','2');await expect(second.page.locator('#leaderboard-rows')).toContainText('An online');
     await expect(second.page.locator('#cloud-sync')).toBeEnabled();
+    await second.page.locator('#history-tools > summary').click();
     const unchanged=second.page.waitForResponse(r=>r.url().includes('/api/solves?since=')&&r.request().method()==='GET');await second.page.locator('#cloud-sync').click();
     const delta=await (await unchanged).json();assert.equal(delta.rows.length,0);assert.ok(delta.cursor>0);
     await expect(second.page.locator('#cloud-sync')).toBeEnabled();
