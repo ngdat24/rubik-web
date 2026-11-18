@@ -60,6 +60,10 @@ test('cloud API verifies identities, scopes history, rejects conflicts and does 
     assert.equal(modern.headers.Authorization,undefined);
     for(let i=0;i<12;i++)db.solves.set('rank-'+i,{id:'rank-'+i,user_id:'11111111-1111-4111-8111-111111111111',solve:{...validSolve('rank-'+i),timeMs:100+i},ranked:true,deleted:false});
     const top=(await call('leaderboard?size=3',undefined,null)).data.rows;
+    assert.equal((await call('leaderboard?size=3&limit=999',undefined,null)).status,400);
+    const extended=await call('leaderboard?size=3&limit=1000',undefined,null);
+    assert.equal(extended.status,200);assert.ok(extended.data.rows.length>10);
+    assert.ok(db.calls.some(c=>c.url.pathname.endsWith('/leaderboard_top1000')));
     assert.equal(top.length,10);assert.ok(top.every(row=>row.name==='An'));
     assert.deepEqual(top.map(row=>row.timeMs),Array.from({length:10},(_,i)=>100+i));
     const fixture=validSolve('page');

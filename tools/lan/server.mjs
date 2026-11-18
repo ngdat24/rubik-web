@@ -64,7 +64,9 @@ export function createLanServer({dataDir=resolve('lan-data'), webDir=resolve('ap
         }
         if(url.pathname==='/api/leaderboard'&&req.method==='GET'){
           const size=Number(url.searchParams.get('size'));if(![2,3].includes(size))throw new Error('Kích thước không hợp lệ.');
-          const rows=db.solves.filter(({solve})=>solve.size===size&&solve.penalty!=='DNF').map(({playerId,solve})=>({id:solve.id,name:db.players.find(p=>p.id===playerId)?.name??'Người chơi',timeMs:solve.timeMs+(solve.penalty==='+2'?2000:0)})).sort((a,b)=>a.timeMs-b.timeMs||a.name.localeCompare(b.name)||a.id.localeCompare(b.id)).slice(0,10);
+          const limit=url.searchParams.get('limit')??'10';
+          if(!['10','1000'].includes(limit))throw new Error('Invalid limit.');
+          const rows=db.solves.filter(({solve})=>solve.size===size&&solve.penalty!=='DNF').map(({playerId,solve})=>({id:solve.id,name:db.players.find(p=>p.id===playerId)?.name??'Người chơi',timeMs:solve.timeMs+(solve.penalty==='+2'?2000:0)})).sort((a,b)=>a.timeMs-b.timeMs||a.name.localeCompare(b.name)||a.id.localeCompare(b.id)).slice(0,Number(limit));
           return json(res,200,{rows});
         }
         return json(res,404,{error:'Không có API này.'});
