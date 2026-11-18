@@ -21,4 +21,16 @@
 .site-navigation .site-links>*{border-right:1px solid var(--line)}
 
 .site-navigation::after{content:"";position:absolute;pointer-events:none;left:0;right:0;bottom:0;height:18px;border:1px solid #49503d;border-top:0;border-radius:0 0 18px 18px;box-sizing:border-box}.site-navigation .brand{box-sizing:border-box}.nav-season{z-index:1}
-.site-navigation::after{left:calc((100% - var(--nav-screen-width, 100vw))/2);right:calc((100% - var(--nav-screen-width, 100vw))/2)}
+:root{container-type:inline-size}
+.site-navigation::after{width:100cqw;left:calc((100% - 100cqw)/2);right:auto}
+
+@media(max-width:850px){
+ .site-navigation{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:stretch}
+ .site-navigation .brand{grid-column:1/-1;justify-self:start;font-size:28px;padding:14px 12px}
+ .site-navigation .nav-wallet{grid-column:1;grid-row:2;justify-content:center;margin:0;min-width:0;white-space:normal;padding:10px 6px;flex-wrap:wrap}
+ .site-navigation .language-menu{grid-column:2;grid-row:2;margin:0}
+ .site-navigation .site-links{grid-column:1/-1;grid-row:3;display:flex;flex-wrap:wrap;min-width:0}
+ .site-navigation .site-links .nav-item{padding:16px 18px;min-height:60px}
+ .site-navigation .nav-season{top:100%;left:0;transform:none}
+ .site-navigation .fashion-nav{margin-bottom:24px;min-width:130px}
+}
