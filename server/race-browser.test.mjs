@@ -26,6 +26,7 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
       return db.fetcher(url,options);
     }});
     server=createServer((req,res)=>{
+      if(req.url.startsWith('/api/champion')){res.setHeader('Content-Type','application/json');return res.end(JSON.stringify({awards:[{size:3,variant:'borderless',name:'Champion An'}]}));}
       if(req.url.startsWith('/api/'))return void handler(req,res);
       const file=resolve(dir,'.'+new URL(req.url,'http://localhost').pathname.replace(/^\/$/,'/index.html'));
       if(!file.startsWith(dir+sep)){res.writeHead(403);return res.end();}
@@ -47,7 +48,7 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
       const token=[{alg:'HS256',typ:'JWT'},{sub:id,aud:'authenticated',role:'authenticated',exp,iat:exp-3600},'c2lnbmF0dXJl'].map(x=>typeof x==='string'?x:Buffer.from(JSON.stringify(x)).toString('base64url')).join('.');
       tokens.set(token,['token-a','token-b'][i]);
       const context=await browser.newContext({viewport:{width:1280,height:900}});contexts.push(context);
-      await context.addInitScript(({token,id,exp})=>localStorage.setItem('sb-cloud-test-auth-token',JSON.stringify({access_token:token,refresh_token:'test',expires_at:exp,expires_in:3600,token_type:'bearer',user:{id,aud:'authenticated',role:'authenticated',email:'test@example.invalid'}})),{token,id,exp});
+      await context.addInitScript(({token,id,exp,size})=>{localStorage.setItem(`rubik.champion.equipped.${id}.${size}`,'1');localStorage.setItem('sb-cloud-test-auth-token',JSON.stringify({access_token:token,refresh_token:'test',expires_at:exp,expires_in:3600,token_type:'bearer',user:{id,aud:'authenticated',role:'authenticated',email:'test@example.invalid'}}));},{token,id,exp,size:i===0?3:2});
       const page=await context.newPage();pages.push(page);page.on('pageerror',e=>errors.push(e.message));
       await page.addInitScript(pollHook);
       await page.goto(base+'/race.html');
@@ -71,6 +72,8 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
       }
       await expect(page.locator('#viewport canvas')).toBeVisible();await expect(page.locator('#opponent-viewport canvas')).toBeVisible();
       await expect(page.locator('#race-message')).toContainText('Tạo phòng');
+      await expect(page.locator('#viewport .champion-frame')).toHaveCount(i===0?1:0);
+      await expect(page.locator('#opponent-viewport .champion-frame')).toHaveCount(0);
       await page.locator('#race-fixed-keys').check();
     }
     // Boot BOTH Auth sessions with native timers before virtualizing either page.
@@ -172,6 +175,7 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
     await contexts[0].setOffline(false);await a.reload();
     await expect.poll(()=>db.lobbies.get(id).players[0].runs.length).toBe(1);
     await expect(a.locator('#race-players')).toContainText('1 khối');
+    await expect(a.locator('#viewport .champion-frame__title')).toHaveText('Champion An');
     // Re-POST the same receipt through the HTTP/auth/verification stack.
     const receipt=db.lobbies.get(id).players[0].runs[0];
     const duplicate=await a.evaluate(async({id,run,client,round})=>{
@@ -202,6 +206,7 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
     await a.locator('#race-rematch').click();await b.locator('#race-rematch').click();await tick(1000);await tick(2500);await tick(15000);
     assert.equal(db.lobbies.get(id).mode,'f2lRush');assert.equal(db.lobbies.size,1);
     const f2lScramble=(await a.locator('#scramble-text').textContent()).trim().split(/\s+/),f2lCube=new Cube(3).applyMoves(f2lScramble),f2lMoves=[];
+    await expect(a.locator('#viewport .champion-frame__title')).toHaveText('Champion An');
     for(const m of invert(f2lScramble,3)){f2lCube.applyMove(m);f2lMoves.push(m);if(raceComplete(f2lCube.state,'f2lRush'))break;}
     await press(a,f2lMoves);await expect.poll(()=>db.lobbies.get(id).players[0].runs.length).toBe(1);
     await b.locator('#race-lobby-controls summary').click();
@@ -222,6 +227,7 @@ test('two browsers: invite, shared inspection, offline completion, reload/ack, f
     await a.close();db.advanceRace(90001);
     const closed=await db.fetcher('https://db.test/rest/v1/rpc/lobby_action',{body:JSON.stringify({p_user:ids[0],p_code:third,p_action:'get',p_payload:{client:lastClient}})});
     assert.equal((await closed.json()).gone,true);assert.equal(db.lobbies.has(third),false);
+    await expect(b.locator('#viewport .champion-frame')).toHaveCount(0);
     assert.equal(db.solves.size,0);assert.deepEqual(errors,[]);
   }finally{await browser?.close();if(server)await new Promise(r=>server.close(r));rmSync(dir,{recursive:true,force:true});}
 });

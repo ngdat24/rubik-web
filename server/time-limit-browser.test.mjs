@@ -25,6 +25,7 @@ test('Time Limit: three solo modes, offline resume, deadline, cancellation and c
       return db.fetcher(url,options);
     }});
     server=createServer((req,res)=>{
+      if(req.url.startsWith('/api/champion')){res.setHeader('Content-Type','application/json');return res.end(JSON.stringify({awards:[{size:3,variant:'classic',name:'Champion Solo'}]}));}
       if(req.url.startsWith('/api/'))return void handler(req,res);
       const file=resolve(dir,'.'+new URL(req.url,'http://localhost').pathname.replace(/^\/$/,'/index.html'));
       if(!file.startsWith(dir+sep)){res.writeHead(403);return res.end();}
@@ -33,7 +34,7 @@ test('Time Limit: three solo modes, offline resume, deadline, cancellation and c
     await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const base='http://127.0.0.1:'+server.address().port;
     browser=await chromium.launch({channel:'chrome',headless:true,args:['--enable-webgl','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
     const context=await browser.newContext({viewport:{width:1440,height:1000}});
-    await context.addInitScript(({id,token,exp})=>localStorage.setItem('sb-cloud-test-auth-token',JSON.stringify({access_token:token,refresh_token:'test',expires_at:exp,expires_in:3600,token_type:'bearer',user:{id,aud:'authenticated',role:'authenticated',is_anonymous:true}})),{id,token,exp});
+    await context.addInitScript(({id,token,exp})=>{localStorage.setItem(`rubik.champion.equipped.${id}.3`,'1');localStorage.setItem('sb-cloud-test-auth-token',JSON.stringify({access_token:token,refresh_token:'test',expires_at:exp,expires_in:3600,token_type:'bearer',user:{id,aud:'authenticated',role:'authenticated',is_anonymous:true}}));},{id,token,exp});
     const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));
     await page.clock.install();await page.addInitScript(()=>{const original=window.setTimeout;window.setTimeout=function(callback,delay,...args){if(delay===1000&&typeof callback==='function')window.timeLimitPoll=callback;return original.call(window,callback,delay,...args);};});
     await page.goto(base+'/time-limit.html');await expect(page.locator('#viewport canvas')).toBeVisible();await expect(page.locator('#race-message')).toContainText('Chọn danh mục');await expect(page.locator('#opponent-viewport')).toHaveCount(0);
@@ -55,6 +56,7 @@ test('Time Limit: three solo modes, offline resume, deadline, cancellation and c
         const held=new Promise(resolve=>{releaseCreate=resolve;});
         await page.route(url=>url.pathname==='/api/time-limit'&&!url.search,async route=>{await held;await route.continue();},{times:1});
       }
+      await expect(page.locator('#viewport .champion-frame__title')).toHaveText('Champion Solo');
       await page.selectOption('#race-mode',mode);
       await expect(page.locator(`[data-time-mode="${mode}"]`)).toHaveAttribute('aria-pressed','true');
       const label={oneFace:'1 mặt',f2lRush:'F2L',fullSolve:'full'}[mode];await expect(page.locator('#time-limit-target')).toHaveText('Sẽ chơi: '+label);
@@ -76,6 +78,7 @@ test('Time Limit: three solo modes, offline resume, deadline, cancellation and c
       if(mode==='oneFace'){
         await context.setOffline(true);await solve(mode);assert.equal(db.timeLimits.get(session).runs.length,1);
         await context.setOffline(false);await page.reload();await expect.poll(()=>db.timeLimits.get(session).runs.length).toBe(2);await page.locator('#race-fixed-keys').check();
+        await expect(page.locator('#viewport .champion-frame__title')).toHaveText('Champion Solo');
       }
       await tick(184000);await expect(page.locator('#race-result')).toContainText('Đã chốt');await expect(page.locator('#race-create')).toBeEnabled();
       await expect(page.locator('#time-limit-rows')).toContainText('An Time Limit');
@@ -87,6 +90,7 @@ test('Time Limit: three solo modes, offline resume, deadline, cancellation and c
     await page.route(url=>url.pathname==='/api/time-limit'&&url.searchParams.has('id'),async route=>{entered();await hold;await route.continue();},{times:1});
     await page.evaluate(()=>window.timeLimitPoll());await started;await page.locator('#race-forfeit').click();await page.locator('#race-confirm-forfeit').click();assert.equal(db.timeLimits.get(canceled).abandoned,false);release();
     await expect(page.locator('#race-result')).toContainText('Đã hủy');assert.equal(db.timeLimits.get(canceled).abandoned,true);
+    await expect(page.locator('#viewport .champion-frame__title')).toHaveText('Champion Solo');
     assert.equal(db.solves.size,0);assert.equal(db.rooms.size,0);assert.deepEqual(errors,[]);
     await page.goto(base+'/');await expect(page.locator('#account-open')).toHaveText('Hồ sơ');await expect(page.locator('#solve-history li')).toHaveCount(0);
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'Practice navigation must still fit mobile with the profile button');
