@@ -5,7 +5,7 @@ import {attachDrag} from './drag.js';
 import {attachKeyboard} from './keyboard.js';
 import {language, t} from './i18n.js';
 import {newId} from './id.js';
-import {bindSkinEffects,skinPalette,skinSurface} from './skin-effects.js';
+import {bindSkinEffects,skinLayout,skinPalette,skinSurface} from './skin-effects.js';
 import type {Appearance} from './skin-effects.js';
 import './shop.css';
 import {prometheusSeasonBanner} from './prometheus-season-banner.js';
@@ -157,7 +157,7 @@ export function mountShop(account:CloudAccount|undefined, equip:(appearance?:App
       const championDesign=championSize?await import('./champion-design.js'):undefined;
       const design=championDesign?await championDesign.loadChampionDesign(championSize):undefined;
       if(revision!==previewRevision||abort.signal.aborted)return;
-      renderer = new CubeRenderer(previewCube,design&&championDesign?championDesign.championRendererOptions(design,'borderless',championSize):{size:3,theme:skinPalette(skin.appearance),...(surface ? {surface} : {})});
+      renderer = new CubeRenderer(previewCube,design&&championDesign?championDesign.championRendererOptions(design,'borderless',championSize):{size:3,...skinLayout(skin.appearance),theme:skinPalette(skin.appearance),...(surface ? {surface} : {})});
       controller = new CubeController(renderer,championSize??3);
       const motion=design?await import('./champion-motion.js'):undefined;
       if(revision!==previewRevision||abort.signal.aborted){controller.dispose();return;}

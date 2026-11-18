@@ -13,7 +13,7 @@ export interface CubeSurface {
   pulse?: {speed:number; secondary:number};
 }
 
-const isSkinTexture = (path:string|undefined): path is string => Boolean(path && /^\/assets\/skins\/[a-z0-9_-]+\/[a-z0-9_-]+\.png$/i.test(path));
+const isSkinTexture = (path:string|undefined): path is string => Boolean(path && /^\/assets\/skins\/[a-z0-9_-]+\/[a-z0-9_-]+\.(?:png|svg)$/i.test(path));
 
 function makePattern(type:string, mask=false):CanvasTexture|undefined {
   const canvas = document.createElement('canvas');

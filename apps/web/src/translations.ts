@@ -1,4 +1,7 @@
 export const english: Record<string, string> = {
+ 'Phấn Nhám':'Matte Chalk', 'Sứ Bóng':'Glossy Porcelain', 'Viền Ngà':'Ivory Frame',
+ 'Gỗ Xưa':'Vintage Wood', 'Tương Phản Chuẩn':'Standard Contrast', 'Ngọc Lam':'Turquoise', 'Xám Tro':'Ash Gray', 'Kem Matcha':'Matcha Cream',
+
  'Làm mới':'Refresh',
  'Rubik Lab — Bảng xếp hạng':'Rubik Lab — Leaderboard',
  '1.000 lượt giải nhanh nhất từ trước đến nay; một người có thể xuất hiện nhiều lần. +2 được cộng vào thời gian; DNF không xếp hạng. Chỉnh phạt local không đổi kết quả trên bảng.':'The 1,000 fastest solves of all time; a player can appear multiple times. +2 is included; DNF is not ranked. Local penalty edits do not change leaderboard results.',

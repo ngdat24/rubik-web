@@ -12,6 +12,7 @@ export function readSkinLowFx():boolean {
 const faceOrder = ['U','R','F','D','L','B'] as const;
 type Faces = Partial<Record<typeof faceOrder[number],string>>;
 export interface Appearance {
+  geometry?:{borderless?:boolean;gap_ratio?:number;sticker_inset_ratio?:number;center_corner_ratio?:number};
   body?:{color:string;roughness:number;metalness:number;texture_map?:string};
   layers?:{
     layer_1_base?:{face_colors:Faces;texture_maps?:Faces|null;texture_replaces_color?:boolean;tile_atlases?:Faces;center_texture_map?:string};
@@ -21,6 +22,9 @@ export interface Appearance {
   };
   interaction_fx?:{sound_pack_id:string|null;trail_effect_id:string|null};
 }
+export const skinLayout=(appearance?:Appearance)=>!appearance?.geometry?{}:appearance.geometry.borderless
+  ? {gapRatio:.018,stickerInsetRatio:0,centerCornerRatio:.28}
+  : {gapRatio:.035,stickerInsetRatio:.075,centerCornerRatio:.22};
 const hex = (value:string|undefined) => value && /^#[0-9a-f]{6}$/i.test(value) ? Number.parseInt(value.slice(1),16) : undefined;
 const scalar = (value:number|undefined, fallback:number, max=1) =>
   typeof value === 'number' && Number.isFinite(value) ? Math.max(0,Math.min(max,value)) : fallback;
