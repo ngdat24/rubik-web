@@ -107,7 +107,6 @@ export function mountShop(account:CloudAccount|undefined, equip:(appearance?:App
   const preview = document.querySelector<HTMLElement>('#shop-preview')!;
   const previewCube = document.querySelector<HTMLElement>('#shop-preview-cube')!;
   const shopOpen = document.querySelector<HTMLButtonElement>('#shop-open')!;
-  const inventoryOpen = document.querySelector<HTMLButtonElement>('#inventory-open')!;
   const shopClose = document.querySelector<HTMLButtonElement>('#shop-close')!;
   const previewClose = document.querySelector<HTMLButtonElement>('#shop-preview-close')!;
   const abort = new AbortController();
@@ -508,7 +507,6 @@ export function mountShop(account:CloudAccount|undefined, equip:(appearance?:App
   };
   shopOpen.onclick = () => open('skins');
   if(new URLSearchParams(location.search).get('panel')==='shop')open('skins');
-  inventoryOpen.onclick = () => open('inventory');
   shopClose.onclick = () => dialog.close();
   previewClose.onclick = closePreview;
   dialog.onclose = () => {closePreview();closeConfirm();};
@@ -525,7 +523,7 @@ export function mountShop(account:CloudAccount|undefined, equip:(appearance?:App
     closePreview();
     closeConfirm();
     if (dialog.open) dialog.close();
-    for (const element of [shopOpen,inventoryOpen,shopClose,previewClose]) element.onclick = null;
+    for (const element of [shopOpen,shopClose,previewClose]) element.onclick = null;
     dialog.onclose = null;
   }};
 }

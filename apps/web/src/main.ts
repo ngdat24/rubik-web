@@ -14,7 +14,7 @@ import {mountChampionFrame} from './champion-frame.js';
 import {mountChampionMotion} from './champion-motion.js';
 import {mountPracticeChallenge} from './practice-challenge.js';
 import {mountWallet} from './wallet.js';
-import {mountQuestProgress} from './quest-progress.js';
+import {startQuestHeartbeat} from './quest-heartbeat.js';
 import {mountWeeklyBoard} from './weekly-board.js';
 import {mountShop} from './shop.js';
 import {bindSkinEffects,readSkinLowFx,skinFxKey,skinLayout,skinPalette,skinSurface} from './skin-effects.js';
@@ -160,7 +160,7 @@ const onSizeChange = (): void => {
     controller?.setSize(size);
     updateAppearance();
     description.textContent = `Rubik ${size}×${size}${t(" · Trạng thái đã giải")}`;
-    scrambleText.textContent = t("Chưa có scramble.");
+    scrambleText.textContent = '';
     buildMoveButtons(); updateMoveControls(); moveStatus.textContent = '';
   } catch (error) {
     description.textContent = t("Không dựng được khối. Hãy tải lại trang để thử lại.");
@@ -172,7 +172,7 @@ sizeSelect.addEventListener('change', onSizeChange);
 const onReset = (): void => {
   controller?.reset();
   description.textContent = `Rubik ${sizeSelect.value}×${sizeSelect.value}${t(" · Trạng thái đã giải")}`;
-  scrambleText.textContent = t("Chưa có scramble.");
+  scrambleText.textContent = '';
   updateMoveControls(); moveStatus.textContent = '';
 };
 const onScramble = (): boolean => {
@@ -224,7 +224,7 @@ scrambleButton.addEventListener('click', onScramble);
 const account=await accountReady;
 if(new URLSearchParams(location.search).get('panel')==='profile')document.querySelector<HTMLButtonElement>('#account-open')?.click();
 const wallet=mountWallet(account);
-const quests=mountQuestProgress(account);
+const stopQuestHeartbeat=startQuestHeartbeat(account);
 const weekly=mountWeeklyBoard();
 const shop=mountShop(account,appearance=>{equippedAppearance=appearance;updateAppearance();},
   ()=>!timerUI?.isRunning(),()=>lowFx.checked,async(size,award)=>{
@@ -245,17 +245,17 @@ if(controller) timerUI=attachTimer(controller,()=>{seed.value=newId();onScramble
       if(solve.size===championSize&&!lowFx.checked)championFrame?.celebrate();
       equippedEffects?.play(true);
     }
-    if(practice)void practice.completed(solve).then(()=>Promise.all([wallet.refresh(),quests.refresh()]));
+    if(practice)void practice.completed(solve).then(()=>wallet.refresh());
   });
 const onPageHide = (event: PageTransitionEvent): void => {
-  if (!event.persisted) { championMotion?.dispose(); championFrame?.dispose(); practice?.dispose(); wallet.dispose(); quests.dispose(); weekly.dispose(); shop.dispose(); equippedEffects?.dispose(); lowFx.removeEventListener('change',onLowFx); account?.dispose();clearInterval(viewLabelTimer); timerUI?.dispose(); detachDrag?.(); detachKeyboard?.(); keySettings.dispose(); controller?.dispose(); }
+  if (!event.persisted) { championMotion?.dispose(); championFrame?.dispose(); practice?.dispose(); wallet.dispose(); stopQuestHeartbeat(); weekly.dispose(); shop.dispose(); equippedEffects?.dispose(); lowFx.removeEventListener('change',onLowFx); account?.dispose();clearInterval(viewLabelTimer); timerUI?.dispose(); detachDrag?.(); detachKeyboard?.(); keySettings.dispose(); controller?.dispose(); }
 };
 window.addEventListener('pagehide', onPageHide);
 if (import.meta.hot) import.meta.hot.dispose(() => {
   championMotion?.dispose();championFrame?.dispose();
   practice?.dispose();
   wallet.dispose();
-  quests.dispose();
+  stopQuestHeartbeat();
   weekly.dispose();
   shop.dispose();
   equippedEffects?.dispose();

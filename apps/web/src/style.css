@@ -46,3 +46,45 @@
 .skin-trail{position:absolute;z-index:1;height:3px;border-radius:3px;opacity:0;pointer-events:none;transform-origin:left center}
 
 .leaderboard-link{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:10px;padding:10px 14px;text-decoration:none;font-size:12px;white-space:nowrap}.leaderboard-link:hover{border-color:#aab692}
+
+.practice-workspace #quest-panel h2,
+.practice-workspace .leaderboard-panel > h2 {
+  margin: 0;
+}
+
+.practice-workspace .cube-toolbar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.practice-workspace #scramble-text {
+  font-size: clamp(13px, 1.45vw, 20px);
+  line-height: 1.5;
+  letter-spacing: .025em;
+  max-height: 6em;
+}
+
+.practice-workspace #reset {
+  white-space: nowrap;
+  font-size: 11px;
+  padding: 7px 10px;
+}
+
+@media (max-width: 620px) {
+  .practice-workspace .cube-toolbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .practice-workspace #reset {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .practice-workspace #scramble-text {
+    grid-column: 1 / -1;
+  }
+
+  .practice-workspace #scramble-text:empty {
+    display: none;
+  }
+}

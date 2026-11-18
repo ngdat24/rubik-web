@@ -97,6 +97,7 @@ test('drag cannot start while idle; during inspection it starts the solve, conte
  const target=await page.evaluate(()=>(window as any).rubikDiagnostics(true).pickTargets.find((p:any)=>Math.floor(p.index/49)===2));
  const drag=async()=>{await page.locator('canvas').scrollIntoViewIfNeeded();const target=await page.evaluate(()=>(window as any).rubikDiagnostics(true).pickTargets.find((p:any)=>Math.floor(p.index/49)===2));await page.mouse.move(target.x,target.y);await page.mouse.down({button:'left'});await page.mouse.move(target.x+120,target.y,{steps:10});await page.mouse.up({button:'left'});};
  await drag();await expect(page.locator('#timer-phase')).toContainText('Sẵn sàng');
+ await page.locator('#workspace-tools').evaluate((node: HTMLDetailsElement) => { node.open = true; });
  await page.locator('#camera-reset').click();await page.locator('#timer-start').click();await drag();await expect(page.locator('#timer-phase')).toContainText('Đang giải');
  await page.evaluate(()=>{const ext=document.querySelector('canvas')!.getContext('webgl2')!.getExtension('WEBGL_lose_context')!;(window as any).loss=ext;ext.loseContext();});
  await expect(page.locator('#context-message')).toBeVisible();await page.evaluate(()=>(window as any).loss.restoreContext());await expect(page.locator('#context-message')).toBeHidden();
@@ -117,6 +118,7 @@ test('demo renders, runs moves, changes N/camera and frees old geometries', asyn
     resolve([...pixel]);
   })));
   expect((await visiblePixel())[3]).toBeGreaterThan(0);
+  await page.locator('#workspace-tools').evaluate((node: HTMLDetailsElement) => { node.open = true; });
   await page.locator('#camera-back').click();
   const camera = await page.evaluate(() => (window as any).rubikDiagnostics().camera as number[]);
   for (const [axis, value] of [-6,-5,-7].entries()) expect(camera[axis]).toBeCloseTo(value);
@@ -192,7 +194,8 @@ test('Space prepares then starts, Shift+Space regenerates; view keys default on 
  await page.locator('#viewport').click({position:{x:5,y:5}});await page.keyboard.press('Space');
  await expect(page.locator('#timer-phase')).toContainText('Sẵn sàng');const first=await page.locator('#seed').inputValue();
  await page.keyboard.press('Shift+Space');await expect(page.locator('#seed')).not.toHaveValue(first);await expect(page.locator('#timer-phase')).toContainText('Sẵn sàng');
- await expect(page.locator('#view-keys')).not.toBeChecked();await page.locator('#view-keys').check();await expect(page.locator('#view-key-map')).toContainText('hệ trục');await page.locator('#view-keys').uncheck();await page.locator('#camera-back').click();
+ await expect(page.locator('#view-keys')).not.toBeChecked();await page.locator('#view-keys').check();await expect(page.locator('#view-key-map')).toContainText('hệ trục');await page.locator('#view-keys').uncheck();await page.locator('#workspace-tools').evaluate((node: HTMLDetailsElement) => { node.open = true; });
+  await page.locator('#camera-back').click();
  await expect(page.locator('#view-key-map')).toContainText('F → B');await expect(page.locator('#view-key-map')).toContainText('R → L');
  await page.locator('#viewport').click({position:{x:5,y:5}});await page.keyboard.press('Space');await expect(page.locator('#timer-phase')).toContainText('Inspection');
  await page.keyboard.press('r');await expect(page.locator('#move-status')).toContainText('L');await expect(page.locator('#timer-phase')).toContainText('Đang giải');

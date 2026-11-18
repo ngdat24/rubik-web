@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rubik Lab · Preview giao diện</title>
+</head>
+<body>
+  <main>
+    <header class="site-navigation">
+      <a class="brand" href="/"><span class="brand-cube" aria-hidden="true">▦</span>rubik<span class="brand-light">lab</span><span class="brand-period">.</span></a>
+    </header>
+    <div class="workspace practice-workspace">
+      <aside>
+        <section id="quest-panel" class="history-panel"><h2>Nhiệm vụ ngày</h2></section>
+        <section class="history-panel"><span class="eyebrow">PHIÊN HIỆN TẠI</span><h2>Lịch sử giải</h2></section>
+      </aside>
+      <section class="solve-space" aria-label="Không gian giải Rubik">
+        <div class="cube-toolbar">
+          <div class="size-control"><label for="cube-size">Khối</label><select id="cube-size"><option value="2">2×2</option><option value="3" selected>3×3</option><option value="10">10×10</option></select></div>
+          <p id="scramble-text" aria-live="polite"></p>
+          <button id="reset" type="button">Đặt lại</button>
+        </div>
+        <section id="viewport" aria-label="Cảnh Rubik 3D"></section>
+        <div class="timer-panel"><button id="scramble" type="button">Xáo trộn</button></div>
+      </section>
+      <aside class="leaderboard-panel">
+        <h2>Bảng xếp hạng</h2>
+        <div class="leaderboard-profile">Người chơi demo</div>
+        <table class="leaderboard-table">
+          <thead><tr><th scope="col">Hạng</th><th scope="col">Tên</th><th scope="col">Thời gian</th></tr></thead>
+          <tbody><tr><td>1</td><td>Demo</td><td>25.39</td></tr></tbody>
+        </table>
+      </aside>
+    </div>
+  </main>
+  <script type="module">
+    import './src/style.css';
+    import './src/navigation.css';
+    import {CubeController} from '@rubik/controller';
+    import {CubeRenderer} from '@rubik/renderer';
+
+    const controller = new CubeController(new CubeRenderer(document.querySelector('#viewport')), 3);
+    const output = document.querySelector('#scramble-text');
+    const size = document.querySelector('#cube-size');
+    size.addEventListener('change', () => {
+      controller.setSize(Number(size.value));
+      output.textContent = '';
+    });
+    document.querySelector('#reset').addEventListener('click', () => {
+      controller.reset();
+      output.textContent = '';
+    });
+    document.querySelector('#scramble').addEventListener('click', () => {
+      output.textContent = controller.scramble(String(Date.now())).join(' ');
+    });
+    window.addEventListener('pagehide', event => {
+      if (!event.persisted) controller.dispose();
+    });
+  </script>
+</body>
+</html>
