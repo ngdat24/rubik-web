@@ -131,7 +131,7 @@ const updateAppearance=()=>{
   const detailed=controller?.size===3;
   champion=championStyles.get(controller!.size);
   container.classList.toggle('prometheus-gameplay',!champion&&detailed&&container.dataset.prometheusEquipped==='true');
-  const key=champion?`${champion.size}:${champion.name}`:`normal:${detailed?'detailed':'plain'}:${equippedAppearance?.geometry?.borderless?'borderless':'framed'}`;
+  const key=champion?`${champion.size}:${champion.name}`:`normal:${detailed?'detailed':'plain'}:${JSON.stringify(skinLayout(detailed?equippedAppearance:undefined))}`;
   if(appearanceKey!==key){
     appearanceKey=key;
     championMotion?.dispose();championFrame?.dispose();championMotion=undefined;championFrame=undefined;
