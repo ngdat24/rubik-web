@@ -2,7 +2,7 @@
 
 File dành cho người bạn cùng dự án và AI của bạn ấy. Không thay thế AGENTS.md ở gốc repo.
 Tên file này không bảo đảm mọi AI tự đọc. Khi mở chat, người dùng hãy yêu cầu:
-> Đọc AGENTS.md, COLLABORATOR_AGENT.md và issue được giao trước khi làm.
+> Đọc AGENTS.md, COLLABORATOR_AGENT.md, docs/workflow-sang-va-ai.md và issue được giao trước khi làm.
 
 ## 1. Vai trò và giao tiếp
 
@@ -11,6 +11,8 @@ Tên file này không bảo đảm mọi AI tự đọc. Khi mở chat, người
 - Chủ repo điều phối merge, secrets, Vercel/Supabase và database. Không tự merge; phải có yêu cầu rõ cho đúng PR.
 - Mỗi task một nhánh và PR. Không tự mở rộng sang engine/schema/dependency/refactor không liên quan.
 - Hai AI không có chung chat hoặc bộ nhớ. Issue/PR/commit đã push là thông tin bàn giao chung.
+
+Workflow hiện hành: [hướng dẫn Sang và AI](docs/workflow-sang-va-ai.md).
 
 ## 2. Trước khi code
 
@@ -41,7 +43,7 @@ Tên file này không bảo đảm mọi AI tự đọc. Khi mở chat, người
 - Giải xong hợp lệ/hủy lúc còn chạy tự chuẩn bị scramble mới; DNF giữ trạng thái, Space chuẩn bị mới.
 - Hộp hủy không dừng đồng hồ. Solve gốc bất biến; penaltyOverride là metadata riêng, không làm nhẹ điểm bảng gốc.
 - Cloud dùng hồ sơ name-only qua Supabase anonymous session. Tên không phải mật khẩu hay cách vào hồ sơ trên máy mới.
-- Bảng single: top 10 lượt all-time, 2×2/3×3, một người được nhiều dòng.
+- Bảng single: bảng nhỏ top 10 và trang BXH Toàn Cầu tối đa 1.000 lượt all-time, 2×2/3×3; một người được nhiều dòng.
 - 1v1 và Time Limit: 3×3, full/F2L/1 mặt; 3s countdown + 15s inspection + 180s chạy + 3s ân hạn.
 - 1 mặt phải đúng các viên/cạnh/góc bên hông theo tâm, không chỉ chín sticker đồng màu.
 - Điểm thi đấu: số khối DESC, lastEndT ASC, totalMoves ASC; không tính khối dở.

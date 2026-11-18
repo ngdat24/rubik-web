@@ -347,7 +347,7 @@ Chủ repo mời collaborator và chọn một issue UI nhỏ. Bạn clone, ch�
 
 - Quy ước áp dụng trong repo: [AGENTS.md](../AGENTS.md).
 - Spec: [docs/spec](spec/), đặc biệt timer/input/data contract; nhật ký [decisions.md](spec/decisions.md).
-- Hướng dẫn người mới: [collaborator-getting-started.md](collaborator-getting-started.md).
+- Hướng dẫn người mới: [Workflow cho Sang và AI](workflow-sang-va-ai.md).
 - PR quan trọng: [#26](https://github.com/ngdat24/rubik-web/pull/26), [#27](https://github.com/ngdat24/rubik-web/pull/27), [#28](https://github.com/ngdat24/rubik-web/pull/28), [#30](https://github.com/ngdat24/rubik-web/pull/30), [#31](https://github.com/ngdat24/rubik-web/pull/31), [#32](https://github.com/ngdat24/rubik-web/pull/32), [#33](https://github.com/ngdat24/rubik-web/pull/33), [#34](https://github.com/ngdat24/rubik-web/pull/34), [#35](https://github.com/ngdat24/rubik-web/pull/35), [#36](https://github.com/ngdat24/rubik-web/pull/36), [#38](https://github.com/ngdat24/rubik-web/pull/38).
 - GitHub giải thích conflict: [Merge conflicts](https://docs.github.com/en/pull-requests/reference/merge-conflicts).
 
