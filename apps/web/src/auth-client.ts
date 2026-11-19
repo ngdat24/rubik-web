@@ -38,10 +38,16 @@ export async function loginName(token: string, name?: string, signal?: AbortSign
   return (await response.json()).name;
 }
 
-export async function remindAccountUpgrade(session: Session, signal: AbortSignal): Promise<void> {
+export async function remindAccountUpgrade(client: SupabaseClient, session: Session, signal: AbortSignal): Promise<void> {
   if (!accountLoginEnabled) return;
-  if (!session.user.is_anonymous) {
-    if (googleOnlyAccountLogin ? hasGoogleIdentity(session.user) : await loginName(session.access_token, undefined, signal)) return;
+  if (googleOnlyAccountLogin) {
+    if (hasGoogleIdentity(session.user)) return;
+    const {data, error} = await client.auth.getUser(session.access_token);
+    if (error || data.user?.id !== session.user.id || hasGoogleIdentity(data.user)) return;
+    const {data: {session: current}} = await client.auth.getSession();
+    if (current?.user.id !== session.user.id || hasGoogleIdentity(current.user)) return;
+  } else if (!session.user.is_anonymous) {
+    if (await loginName(session.access_token, undefined, signal)) return;
   }
   if (signal.aborted) return;
   const dialog = document.createElement('dialog');
