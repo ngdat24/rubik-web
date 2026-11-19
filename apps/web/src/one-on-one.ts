@@ -200,6 +200,7 @@ async function boot(){
       controller.setSize(size);opponent!.setSize(size);opponent!.setState(solvedState(size));return;
     }
     renderer=new CubeRenderer(el('duel-cube'),{optimize:prefs.lowGraphics()});
+    renderer.setSpeed(40);
     opponent=new CubeRenderer(el('duel-opponent'),{optimize:prefs.lowGraphics()});
     opponent.setSize(size);opponent.setState(solvedState(size));
     controller=new CubeController(renderer,size);controller.lockInput('race');
