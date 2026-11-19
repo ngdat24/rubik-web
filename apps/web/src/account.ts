@@ -20,7 +20,7 @@ export async function browserAccount(create=true):Promise<CloudAccount|undefined
   if(!session)throw new Error(t("Không lưu được hồ sơ trên trình duyệt này."));
   const id=session.user.id;
   const upgrade=new AbortController();
-  void remindAccountUpgrade(session,upgrade.signal).catch(()=>{});
+  void remindAccountUpgrade(client,session,upgrade.signal).catch(()=>{});
   const changed=client.auth.onAuthStateChange((event,next)=>{
     if((event==='SIGNED_OUT'||event==='SIGNED_IN')&&next?.user.id!==id)window.setTimeout(()=>location.reload(),0);
   });

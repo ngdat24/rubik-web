@@ -120,7 +120,7 @@ async function boot():Promise<void>{
         });
       catalog.set(id,loadingAppearance);
     }
-    void Promise.resolve(loadingAppearance).then(appearance=>{
+    return Promise.resolve(loadingAppearance).then(appearance=>{
       if (skinAbort.signal.aborted||requestedSkins.get(viewer)!==key) return;
       const surface=skinSurface(appearance);
       if (surface&&readSkinLowFx()) delete surface.pulse;
@@ -134,6 +134,19 @@ async function boot():Promise<void>{
       if (requestedSkins.get(viewer)===key) requestedSkins.delete(viewer);
     });
   };
+  if(solo&&!champion){
+    try{
+      const response=await fetch('/api/skins',{
+        headers:{Authorization:'Bearer '+await account.token()},
+        signal:AbortSignal.any([skinAbort.signal,AbortSignal.timeout(10000)])
+      });
+      if(response.ok){
+        const {equipped}=await response.json() as {equipped?:string|null};
+        if(equipped&&!disposed)await applySkin(renderer,equipped);
+      }
+    }catch{/* Time Limit remains playable if cosmetics are unavailable. */}
+  }
+  if(disposed)return;
   renderer.onMoveAnimated=()=>effects?.play();
   renderer.onContextChange=available=>available?controller.unlockInput('context'):controller.lockInput('context');
   const settings=loadSettings(()=>localStorage).settings;
@@ -160,7 +173,7 @@ async function boot():Promise<void>{
   const resetRoom=()=>{
     room=undefined;roomId='';origin=undefined;loaded=-1;nextScrambleCheck=0;sentProgress='';queuedAction=undefined;scrambles.clear();
     if(stakeControls)stakeControls.hidden=true;
-    applySkin(renderer);
+    if(!solo)applySkin(renderer);
     if(opponentRenderer)applySkin(opponentRenderer);
     draft={k:0,preEvents:[],events:[],pending:[]};controller.setMoveGate(undefined);controller.reset();controller.lockInput('race');
     opponentDisplay=solvedState(3);opponentRenderer?.setState(opponentDisplay);opponentState='';
