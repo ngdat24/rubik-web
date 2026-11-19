@@ -31,10 +31,10 @@ main.insertAdjacentHTML('beforeend',`<div class="duel-layout">
   <div class="duel-main">
     <section class="duel-panel" id="duel-lobby">
       <div class="duel-toolbar">
-        <button id="duel-create" type="button" aria-controls="duel-settings" aria-expanded="false">Tạo phòng</button>
+        <button id="duel-create" type="button" aria-controls="duel-settings" aria-expanded="false" disabled>Tạo phòng</button>
         <form id="duel-join"><label for="duel-code">Nhập mã:</label>
           <input id="duel-code" maxlength="8" pattern="[A-Za-z0-9]{8}" autocomplete="off" autocapitalize="characters" required>
-          <button>Vào</button>
+          <button disabled>Vào</button>
         </form>
       </div>
       <div class="duel-prefs">${toggle('opponent-skin','Hiển thị skin đối phương',true)}${toggle('low-graphics','Giảm đồ họa',false)}</div>
@@ -388,6 +388,8 @@ async function boot(){
   const exit=el<HTMLDialogElement>('duel-exit-dialog');
   button('duel-leave').onclick=()=>{exit.returnValue='';exit.showModal();};
   exit.onclose=()=>{if(exit.returnValue==='leave')void poll('leave');};
+  create.disabled=false;
+  form('duel-join').querySelector('button')!.disabled=false;
   function draw(){
     if(disposed)return;
     const time=elapsed(),s=room;
