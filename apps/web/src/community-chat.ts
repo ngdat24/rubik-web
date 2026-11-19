@@ -34,6 +34,23 @@ function renderMessage(message: ChatMessage): HTMLParagraphElement {
 }
 
 export function mountCommunityChat(accountReady: Promise<CloudAccount | undefined>): () => void {
+  const host = document.querySelector<HTMLElement>('[data-community-chat]');
+  if (host) {
+    host.innerHTML = `<section class="community-chat" aria-labelledby="chat-title">
+      <h2 id="chat-title">Kênh chat</h2>
+      <button class="chat-mobile-toggle" type="button" aria-expanded="false">Kênh chat</button>
+      <div class="chat-content">
+        <div id="chat-messages" tabindex="0" aria-label="Tin nhắn"></div>
+        <p id="chat-status" role="status" hidden></p>
+        <form id="chat-form">
+          <input id="chat-input" aria-label="Tin nhắn" placeholder="Ấn để trò chuyện" maxlength="300" autocomplete="off" required />
+          <button type="submit">Gửi</button>
+        </form>
+      </div>
+    </section>`;
+    const toggle = host.querySelector<HTMLButtonElement>('.chat-mobile-toggle')!;
+    toggle.onclick = () => toggle.setAttribute('aria-expanded', String(toggle.getAttribute('aria-expanded') !== 'true'));
+  }
   const list = document.querySelector<HTMLElement>('#chat-messages')!;
   const form = document.querySelector<HTMLFormElement>('#chat-form')!;
   const input = document.querySelector<HTMLInputElement>('#chat-input')!;
@@ -43,6 +60,11 @@ export function mountCommunityChat(accountReady: Promise<CloudAccount | undefine
   let loading = false;
   let initialized = false;
   let hasOlder = true;
+  const draftKey = 'rubik.community-chat.draft';
+  try { input.value = sessionStorage.getItem(draftKey) ?? ''; } catch {/* Chat still works. */}
+  const saveDraft = () => {
+    try { sessionStorage.setItem(draftKey, input.value); } catch {/* Storage is optional. */}
+  };
 
   function announce(message: string) {
     status.textContent = t(message);
@@ -117,6 +139,7 @@ export function mountCommunityChat(accountReady: Promise<CloudAccount | undefine
         throw new Error(error.error ?? 'Chưa gửi được tin nhắn.');
       }
       if (input.value.trim() === message) input.value = '';
+      saveDraft();
       announce('');
       void load();
     } catch (error) {
@@ -127,6 +150,7 @@ export function mountCommunityChat(accountReady: Promise<CloudAccount | undefine
   }
 
   form.addEventListener('submit', send);
+  input.addEventListener('input', saveDraft);
   list.addEventListener('scroll', loadOlder);
   void load();
   const timer = window.setInterval(() => {
@@ -136,6 +160,7 @@ export function mountCommunityChat(accountReady: Promise<CloudAccount | undefine
     abort.abort();
     clearInterval(timer);
     form.removeEventListener('submit', send);
+    input.removeEventListener('input', saveDraft);
     list.removeEventListener('scroll', loadOlder);
   };
 }

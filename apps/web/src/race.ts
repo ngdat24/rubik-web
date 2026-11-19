@@ -17,6 +17,7 @@ import './style.css';
 import {loadEquippedChampion} from './champion-equipped.js';
 import {mountChampionFrame} from './champion-frame.js';
 import {mountChampionMotion} from './champion-motion.js';
+import {mountCommunityChat} from './community-chat.js';
 
 interface Run {k:number;endT:number;preEvents:MoveEvent[];events:MoveEvent[]}
 interface Snapshot {
@@ -54,7 +55,9 @@ const cleanup:(()=>void)[]=[];
 
 async function boot():Promise<void>{
   const board=solo?mountTimeLimitBoard():undefined;if(board)cleanup.push(board.dispose);
-  const account=await browserAccount();
+  const accountReady=browserAccount();
+  if(solo)cleanup.push(mountCommunityChat(accountReady.catch(()=>undefined)));
+  const account=await accountReady;
   if(!account&&accountLoginEnabled){
     const link=document.createElement('a');
     link.href=accessUrl();

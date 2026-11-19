@@ -14,10 +14,12 @@ export function oneFaceSolved(state){return [0,1,2,3,4,5].some(face=>faceSolved(
 export function raceComplete(state,mode){
   if(mode==='oneFace')return oneFaceSolved(state);
   if(mode==='fullSolve')return isSolved(state,3);
+  if(mode==='twoByTwo')return isSolved(state,2);
   if(mode==='f2lRush')return f2lSolvedAny(state);
   throw new Error('Unsupported race mode');
 }
 export function raceScramble(seed,k,mode){
+  if(mode==='twoByTwo')return matchScrambleAt(seed,2,k,1);
   if(mode!=='oneFace')return matchScrambleAt(seed,3,k,1);
   let moves=[];
   for(let j=0;j<1000;j++){

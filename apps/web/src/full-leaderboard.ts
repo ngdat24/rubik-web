@@ -1,4 +1,5 @@
 import {browserAccount} from './account.js';
+import {mountCommunityChat} from './community-chat.js';
 import {mountWallet} from './wallet.js';
 import {t} from './i18n.js';
 import {formatTime} from '@rubik/engine';
@@ -46,4 +47,9 @@ window.addEventListener('pageshow',event=>{if(event.persisted){startRefresh();vo
 startRefresh();
 void load();
 
-void browserAccount(false).then(account=>{const wallet=mountWallet(account);window.addEventListener('pagehide',()=>{wallet.dispose();account?.dispose();},{once:true});}).catch(()=>{});
+const accountReady=browserAccount(false).catch(()=>undefined);
+const disposeChat=mountCommunityChat(accountReady);
+void accountReady.then(account=>{
+  const wallet=mountWallet(account);
+  window.addEventListener('pagehide',event=>{if(!event.persisted){disposeChat();wallet.dispose();account?.dispose();}});
+});

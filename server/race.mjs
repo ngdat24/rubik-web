@@ -14,13 +14,14 @@ export function verifyRaceProgress(room,player,value,now){
   if(value.k<player.runs.length)return null; // An acknowledgement overtook this request.
   if(value.k!==player.runs.length||!room.start_ms||room.forfeit||now<room.start_ms+3000||now>=room.start_ms+18000+room.duration_ms)throw new Error('Chưa đến giờ hoặc khối không còn hoạt động.');
   if(!Array.isArray(value.preEvents)||value.preEvents.length>200||!Array.isArray(value.events)||value.events.length>4000)throw new Error('Tiến độ quá lớn.');
-  const cube=new Cube(3).applyMoves(raceScramble(room.seed,value.k,room.mode));
+  const size=room.mode==='twoByTwo'?2:3;
+  const cube=new Cube(size).applyMoves(raceScramble(room.seed,value.k,room.mode));
   for(const [events,pre] of [[value.preEvents,true],[value.events,false]]){
     let last=pre?0:player.runs.at(-1)?.endT??0;
     for(const event of events){
       const limit=pre?Math.min(15000,now-room.start_ms-3000+250):Math.min(room.duration_ms,now-room.start_ms-18000+250);
       if(!event||!Number.isSafeInteger(event.t)||event.t<last||event.t>limit||typeof event.m!=='string'||event.m.length>12)throw new Error('Timestamp tiến độ không hợp lệ.');
-      const move=parseMove(event.m,3);if(pre&&(value.k!==0||move.type!=='rotation'))throw new Error('Inspection chỉ cho phép x/y/z.');
+      const move=parseMove(event.m,size);if(pre&&(value.k!==0||move.type!=='rotation'))throw new Error('Inspection chỉ cho phép x/y/z.');
       last=event.t;cube.applyMove(move);
       if(!pre&&raceComplete(cube.state,room.mode))throw new Error('Khối hoàn thành phải đi qua xác nhận kết quả.');
     }
@@ -31,12 +32,13 @@ export function verifyRaceCube(room, player, value, now){
   if(!value||!Number.isSafeInteger(value.k)||value.k<0||value.k>999)throw new Error('Chỉ số khối không hợp lệ.');
   const k=value.k,previous=player.runs[k-1],startT=k===0?0:previous?.endT;
   if(startT===undefined||!Array.isArray(value.events)||!value.events.length||value.events.length>4000||!Array.isArray(value.preEvents)||value.preEvents.length>200)throw new Error('Chuỗi nước không hợp lệ hoặc sai thứ tự khối.');
-  const cube=new Cube(3).applyMoves(raceScramble(room.seed,k,room.mode));
+  const size=room.mode==='twoByTwo'?2:3;
+  const cube=new Cube(size).applyMoves(raceScramble(room.seed,k,room.mode));
   const read=(events,pre)=>{
     let last=pre?0:startT;
     return events.map((event,i)=>{
       if(!event||!Number.isSafeInteger(event.t)||event.t<last||event.t>(pre?15000:room.duration_ms)||typeof event.m!=='string'||event.m.length>12)throw new Error('Timestamp không hợp lệ.');
-      const move=parseMove(event.m,3);
+      const move=parseMove(event.m,size);
       if(pre&&(k!==0||move.type!=='rotation'))throw new Error('Inspection chỉ cho phép x/y/z trên khối đầu.');
       last=event.t;cube.applyMove(move);
       if(!pre&&raceComplete(cube.state,room.mode)&&i!==events.length-1)throw new Error('Có nước sau khi đã hoàn thành khối.');
@@ -44,7 +46,7 @@ export function verifyRaceCube(room, player, value, now){
     });
   };
   const preEvents=read(value.preEvents,true),events=read(value.events,false),endT=events.at(-1).t;
-  const run={k,startT,endT,preEvents,events,result:room.mode==='oneFace'?'face':room.mode==='fullSolve'?'solved':'f2l'};
+  const run={k,startT,endT,preEvents,events,result:room.mode==='oneFace'?'face':room.mode==='f2lRush'?'f2l':'solved'};
   if(k<player.runs.length){
     if(endT!==value.endT||!isDeepStrictEqual(player.runs[k],run))throw new Error('Kết quả gửi lại khác bản đã xác nhận.');
     return run;
