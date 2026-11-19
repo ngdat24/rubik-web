@@ -2,7 +2,7 @@
 .duel-layout [hidden] { display:none; }
 .duel-main,.duel-side { min-width:0; }
 .duel-side { display:flex;flex-direction:column;align-self:stretch;gap:14px; }
-.duel-side .shared-community-chat { position:sticky;top:80px;align-self:stretch;z-index:2; }
+.duel-side .shared-community-chat { position:static;align-self:stretch; }
 .duel-panel { border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:14px;margin-bottom:12px; }
 .duel-toolbar,.duel-toolbar form,.duel-prefs,.duel-info { display:flex;align-items:center;flex-wrap:wrap;gap:9px; }
 .duel-toolbar > button,.duel-toolbar form button,.duel-toolbar form label { white-space:nowrap; }
@@ -27,7 +27,7 @@
 .duel-opponent { height:clamp(155px,25vh,254px);position:relative; }
 .duel-cube canvas,.duel-opponent canvas { display:block;touch-action:none; }
 .duel-info { justify-content:space-between; }
-.duel-score { border:1px solid var(--line);border-radius:10px;background:#1b1d18;padding:6px 12px;font-size:1.15rem;color:var(--accent); }
+.duel-score { min-width:180px;text-align:center;border:1px solid var(--line);border-radius:10px;background:#1b1d18;padding:9px 16px;font-size:1.2rem;color:var(--accent); }
 .duel-cube-header { display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px; }
 .duel-clock { grid-column:3;font-variant-numeric:tabular-nums;font-size:1.7rem; }
 .duel-rounds { margin:8px 0;padding-left:20px;line-height:1.6;font-size:.85rem; }
@@ -35,13 +35,7 @@
 #duel-status:empty { display:none; }
 @media (max-width:740px) {
   .duel-layout { grid-template-columns:minmax(0,1fr); }
-  .duel-side .shared-community-chat { position:static; }
   .duel-toolbar input { font-size:16px; }
   .duel-toolbar #duel-join { grid-template-columns:auto minmax(4.5rem,1fr) auto; }
   .duel-clock { font-size:1.1rem; }
-}
-@media (max-width:620px) {
-  .duel-layout { padding-bottom:54px; }
-  .duel-side .shared-community-chat { position:fixed;top:auto;right:12px;bottom:max(12px,env(safe-area-inset-bottom));width:max-content; }
-  .duel-side .shared-community-chat:has(.chat-mobile-toggle[aria-expanded=true]) { width:min(350px,calc(100vw - 24px)); }
 }

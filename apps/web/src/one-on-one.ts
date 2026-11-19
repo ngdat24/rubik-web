@@ -7,6 +7,7 @@ import {mountWallet} from './wallet.js';
 import {mountCommunityChat} from './community-chat.js';
 import {CubeController,loadSettings} from '@rubik/controller';
 import {CubeRenderer,viewMove} from '@rubik/renderer';
+import type {RendererOptions} from '@rubik/renderer';
 import {formatTime,solvedState} from '@rubik/engine';
 import type {MoveEvent} from '@rubik/engine';
 import {attachKeyboard} from './keyboard.js';
@@ -93,6 +94,21 @@ const form=(id:string)=>el<HTMLFormElement>(id);
 const status=el('duel-status');
 const invite=new URLSearchParams(location.search).get('match');
 const format=(milliseconds:number|null)=>milliseconds===null?'X':formatTime(milliseconds);
+
+function reduceGraphics(options:RendererOptions):RendererOptions {
+  const reduced={...options,optimize:true};
+  const surface=options.surface;
+  if(surface){
+    const {pulse:_pulse,glow:_glow,...staticSurface}=surface;
+    if(staticSurface.stickers){
+      const {normalMap:_normal,normalAtlases:_normalTiles,aoMap:_ao,roughnessMap:_roughness,
+        centerBumpMap:_bump,centerMetalnessMap:_metalness,centerRoughnessMap:_centerRoughness,...stickers}=staticSurface.stickers;
+      staticSurface.stickers=stickers;
+    }
+    reduced.surface=staticSurface;
+  }
+  return reduced;
+}
 
 interface Run {k:0;endT:number;preEvents:MoveEvent[];events:MoveEvent[]}
 interface Draft {preEvents:MoveEvent[];events:MoveEvent[];pending?:Run}
@@ -209,20 +225,26 @@ async function boot(){
     if(graphicsKey===key)return;
     graphicsKey=key;
     try{
-      const [mine,theirs,champion]=await Promise.all([getAppearance(own),getAppearance(other),loadEquippedChampion(account,s.size).catch(()=>undefined)]);
+      const [mine,theirs,champion]=await Promise.allSettled([getAppearance(own),getAppearance(other),loadEquippedChampion(account,s.size)]);
       if(disposed||graphicsKey!==key||!renderer||!controller||!opponent)return;
       const reduced=prefs.lowGraphics();
       const look=(appearance:Appearance|undefined)=>{
-        const surface=reduced?undefined:skinSurface(appearance);
+        const surface=skinSurface(appearance);
         return {...skinLayout(appearance),theme:skinPalette(appearance),...(surface?{surface}:{})};
       };
-      const ownAppearance=champion?{...champion.options}:look(mine);
-      if(reduced)delete ownAppearance.surface;
-      renderer.setAppearance(ownAppearance,controller.cube.state);
-      const state=room?.opponent?.state;
-      opponent.setAppearance(look(theirs),state?.length===6*s.size*s.size?Uint8Array.from(state):solvedState(s.size));
-      effects?.dispose();
-      effects=mine&&!reduced&&!champion?bindSkinEffects(renderer,mine):undefined;
+      const ownChampion=champion.status==='fulfilled'?champion.value:undefined;
+      const quality=(options:RendererOptions)=>reduced?reduceGraphics(options):options;
+      if(ownChampion||mine.status==='fulfilled'){
+        const appearance=mine.status==='fulfilled'?mine.value:undefined;
+        renderer.setAppearance(quality(ownChampion?.options??look(appearance)),controller.cube.state);
+        effects?.dispose();
+        effects=appearance&&!reduced&&!ownChampion?bindSkinEffects(renderer,appearance):undefined;
+      }
+      if(theirs.status==='fulfilled'){
+        const state=room?.opponent?.state;
+        opponent.setAppearance(quality(look(theirs.value)),state?.length===6*s.size*s.size?Uint8Array.from(state):solvedState(s.size));
+      }
+      if((!ownChampion&&mine.status==='rejected')||theirs.status==='rejected')graphicsKey='';
     }catch{if(graphicsKey===key)graphicsKey='';}
   };
   function paint(s:Snapshot){
