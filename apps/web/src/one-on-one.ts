@@ -62,8 +62,11 @@ main.insertAdjacentHTML('beforeend',`<div class="duel-layout">
         <p id="duel-match-info"></p><ol id="duel-round-results" class="duel-rounds"></ol>
       </div>
       <div class="duel-panel">
-        <div class="duel-info"><strong id="duel-own-name">Bạn</strong><output id="duel-clock" class="duel-clock">—</output></div>
-        <p id="duel-scramble" aria-label="Scramble"></p>
+        <div class="duel-cube-header">
+          <strong id="duel-own-name">Bạn</strong>
+          <span id="duel-scramble" aria-label="Scramble" hidden></span>
+          <output id="duel-clock" class="duel-clock">—</output>
+        </div>
         <div class="duel-cube" id="duel-cube" aria-label="Rubik của bạn"></div>
         <button id="duel-forfeit" type="button" hidden>Bỏ cuộc</button>
       </div>
@@ -263,7 +266,9 @@ async function boot(){
     el('duel-score').textContent=`Bạn ${own?.score.score??0} : ${other?.score.score??0} Đối thủ`;
     el('duel-own-name').textContent=own?.name??'Bạn';
     el('duel-opponent-name').textContent=other?.name??'Đang chờ đối thủ';
-    el('duel-scramble').textContent=scramble?.join(' ')??'Scramble mở khi bắt đầu inspection.';
+    const scrambleLabel=el('duel-scramble');
+    scrambleLabel.textContent=scramble?.join(' ')??'';
+    scrambleLabel.hidden=!scramble?.length||rendered!==s.round;
     const round=Math.min(s.roundLimit,s.rounds.length+(s.final||s.matchFinal?0:1));
     el('duel-match-info').textContent=`Ván ${Math.max(1,round)}/${s.roundLimit} · ${s.durationMs/60000} phút/ván · ${s.currency?s.stake+' '+s.currency+' mỗi người':'Không cược'}`;
     const first=s.players[0]?.id===account.id;
@@ -274,7 +279,6 @@ async function boot(){
       return line;
     }));
     select('duel-next-mode').value=s.nextMode;
-    select('duel-next-mode').disabled=s.owner!==account.id||s.startMs!==null&&!s.final;
     button('duel-ready').hidden=s.matchFinal||s.startMs!==null&&!s.final;
     button('duel-ready').disabled=!!own?.ready||!other;
     button('duel-rematch').hidden=!s.matchFinal;
@@ -387,7 +391,10 @@ async function boot(){
   function draw(){
     if(disposed)return;
     const time=elapsed(),s=room;
-    if(s)button('duel-forfeit').hidden=s.startMs===null||s.final||!!s.ownOutcome||!!draft.pending||time>=s.durationMs;
+    if(s){
+      button('duel-forfeit').hidden=s.startMs===null||s.final||!!s.ownOutcome||!!draft.pending||time>=s.durationMs;
+      select('duel-next-mode').disabled=s.owner!==account.id||(s.startMs!==null&&!s.final&&time>=0);
+    }
     if(s&&rendered===s.round&&canMove(s,time))controller?.unlockInput('race');
     else controller?.lockInput('race');
     el('duel-clock').textContent=!s||origin===undefined?'—':s.final?'Kết thúc':time< -15000?`Bắt đầu sau ${Math.ceil((-15000-time)/1000)}`:time<0?`Inspection ${Math.ceil(-time/1000)}`:formatTime(Math.max(0,s.durationMs-time));

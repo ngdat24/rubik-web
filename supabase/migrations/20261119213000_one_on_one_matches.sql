@@ -120,11 +120,24 @@ begin
     end if;
     r.players:=jsonb_set(r.players,array[i::text],me||'{"departed":true}'::jsonb);
   elsif p_action='mode' then
-    if r.owner_id<>p_user or (r.start_ms is not null and not r.round_final) then raise exception 'Chưa thể đổi chế độ.'; end if;
+    if r.owner_id<>p_user or (r.start_ms is not null and not r.round_final and n>=r.start_ms+18000) then
+      raise exception 'Chưa thể đổi chế độ.';
+    end if;
     if r.next_mode is distinct from p_payload->>'mode' then
       r.next_mode:=p_payload->>'mode';
-      if r.start_ms is null then r.mode:=r.next_mode; end if;
-      select jsonb_agg(e||'{"ready":false}'::jsonb order by ord) into r.players
+      if not r.round_final then
+        if exists (select 1 from jsonb_array_elements(r.players) e where e ? 'outcome') then
+          raise exception 'Chưa thể đổi chế độ sau khi có người bỏ cuộc.';
+        end if;
+        r.mode:=r.next_mode;
+        r.seed:=p_payload->>'seed';
+        r.round_id:=replace(gen_random_uuid()::text,'-','');
+        if r.start_ms is not null then
+          r.start_ms:=n;
+          deadline:=n+18000+r.duration_ms;
+        end if;
+      end if;
+      select jsonb_agg((e-'live')||'{"ready":false}'::jsonb order by ord) into r.players
         from jsonb_array_elements(r.players) with ordinality x(e,ord);
     end if;
   elsif p_action='ready' then

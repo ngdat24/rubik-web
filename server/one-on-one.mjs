@@ -37,7 +37,7 @@ export async function handleOneOnOne({request,user,method,body,url}){
     }
   }else snapshot=await rpc(action,{
     mode:body.mode,roundLimit:body.roundLimit,durationMs:body.durationMs,currency:body.currency,stake:body.stake,
-    ...(['create','ready'].includes(action)?{seed:randomBytes(32).toString('hex')}:{}),
+    ...(['create','ready','mode'].includes(action)?{seed:randomBytes(32).toString('hex')}:{}),
   });
   if(snapshot.gone)return snapshot;
   const {room,now_ms:now,skins}=snapshot;
