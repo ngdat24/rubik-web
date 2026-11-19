@@ -2,7 +2,7 @@
 .duel-layout [hidden] { display:none; }
 .duel-main,.duel-side { min-width:0; }
 .duel-side { display:flex;flex-direction:column;align-self:stretch;gap:14px; }
-.duel-side .shared-community-chat { position:static;align-self:stretch; }
+.duel-side .shared-community-chat { align-self:stretch; }
 .duel-panel { border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:14px;margin-bottom:12px; }
 .duel-toolbar,.duel-toolbar form,.duel-prefs,.duel-info { display:flex;align-items:center;flex-wrap:wrap;gap:9px; }
 .duel-toolbar > button,.duel-toolbar form button,.duel-toolbar form label { white-space:nowrap; }
