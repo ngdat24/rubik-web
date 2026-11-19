@@ -1,7 +1,7 @@
 import './style.css';
 import './account-access.css';
 import {language, t} from './i18n.js';
-import {accessUrl, accountLoginEnabled, createAuthClient, loginName} from './auth-client.js';
+import {accessUrl, accountLoginEnabled, createAuthClient, googleOnlyAccountLogin, hasGoogleIdentity, loginName} from './auth-client.js';
 
 const status = document.querySelector<HTMLElement>('#access-status')!;
 const home = document.querySelector<HTMLAnchorElement>('#access-home')!;
@@ -22,6 +22,7 @@ for (const link of document.querySelectorAll<HTMLAnchorElement>('[data-mode]')) 
 function bind(name:Exclude<Mode,'linked'>, submit:(fields:FormData)=>Promise<void>) {
   form(name).addEventListener('submit',async event=>{
     event.preventDefault();
+    if(googleOnlyAccountLogin)return;
     const button=form(name).querySelector<HTMLButtonElement>('button[type=submit]')!;
     if(button.disabled)return;
     button.disabled=true;
@@ -42,6 +43,9 @@ function confirmedPassword(data:FormData): string {
 
 async function boot(): Promise<void> {
   if(!accountLoginEnabled){announce('Đăng nhập bằng mật khẩu chưa được bật.');return;}
+  if(googleOnlyAccountLogin){
+    for(const element of document.querySelectorAll<HTMLElement>('[data-password-flow]'))element.hidden=true;
+  }
   const mode=new URLSearchParams(location.search).get('mode')??'login';
   const emailCallback = new URLSearchParams(location.hash.slice(1));
   let callbackError = emailCallback.has('error') || new URLSearchParams(location.search).has('error');
@@ -64,7 +68,7 @@ async function boot(): Promise<void> {
       (expectedEmailType&&emailCallback.get('type')===expectedEmailType))){
       const {data:{user:verified}}=await client.auth.getUser(accessToken);
       const sameAccount=verified&&(!session||verified.id===session.user.id);
-      const validGoogleIdentity=verified?.identities?.some(identity=>identity.provider==='google');
+      const validGoogleIdentity=verified&&hasGoogleIdentity(verified);
       const expectedGoogleAccount=mode==='google-link'
         ? googleAttempt===googleNonce+':'+verified?.id&&session?.user.id===verified?.id
         : googleAttempt===googleNonce+':sign-in'&&!session;
@@ -180,6 +184,16 @@ async function boot(): Promise<void> {
 
   announce('');
   if(googleCallback&&callbackError)announce('Không thể hoàn tất xác thực Google. Hãy thử lại.');
+  if(googleOnlyAccountLogin){
+    if(user?.is_anonymous){show('link');return;}
+    if(user){
+      if(googleCallback&&!callbackError&&hasGoogleIdentity(user)){returnHome();return;}
+      show('linked');
+      return;
+    }
+    show('login');
+    return;
+  }
   if(mode==='recovery'){
     if(recoveryUser&&user?.id===recoveryUser){show('recovery');return;}
     announce('Liên kết đặt lại đã hết hạn hoặc không hợp lệ. Hãy yêu cầu liên kết mới.');
