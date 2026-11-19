@@ -115,6 +115,7 @@ export class CubeRenderer {
   private surface: CubeSurface | undefined;
   private surfaceMaterials: SurfaceMaterials | undefined;
   private layoutOptions: RendererOptions;
+  private readonly ambientLight = new AmbientLight(0xffffff, 2);
   private fillLight:DirectionalLight|undefined;
   private readonly observer: ResizeObserver;
   private frame = 0;
@@ -148,7 +149,7 @@ export class CubeRenderer {
     this.controls.target.set(0, 0, 0);
     this.rebuild(layout);
     this.scene.add(this.cubeGroup);
-    this.scene.add(new AmbientLight(0xffffff, 2));
+    this.scene.add(this.ambientLight);
     const light = new DirectionalLight(0xffffff, 3);
     light.position.set(4, 6, 8);
     this.scene.add(light);
@@ -488,6 +489,7 @@ export class CubeRenderer {
   }
 
   private applySurface(): void {
+    this.ambientLight.intensity = this.surface?.ambientLightIntensity ?? 2;
     this.surfaceMaterials?.dispose();
     this.surfaceMaterials = new SurfaceMaterials(this.surface ?? {},this.plasticMaterial!,
       this.materials,this.instances?.stickers.material,this.theme,this.size<=3?this.size:0,true,this.requestDraw);
@@ -642,6 +644,7 @@ export class CubeRenderer {
     this.requestDraw();
     this.webgl.domElement.setAttribute('aria-label', `Rubik ${layout.size}×${layout.size}; kéo để xoay camera, cuộn để thu phóng`);
     if (this.surface) this.applySurface();
+    else this.ambientLight.intensity = 2;
   }
 
   private readonly resize = (): void => {

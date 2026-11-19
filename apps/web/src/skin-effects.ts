@@ -10,6 +10,10 @@ export function readSkinLowFx():boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 const faceOrder = ['U','R','F','D','L','B'] as const;
+const brighterSkinAtlases = new Set([
+  '/assets/skins/epic_dragon_scale_01/map_u.png',
+  '/assets/skins/epic_clockwork_gear_02/map_u.png',
+]);
 type Faces = Partial<Record<typeof faceOrder[number],string>>;
 export interface Appearance {
   geometry?:{borderless?:boolean;sticker_shape?:'hexagon'|'stone';sticker_corner_ratio?:number;gap_ratio?:number;sticker_inset_ratio?:number;center_corner_ratio?:number};
@@ -40,6 +44,9 @@ export function skinSurface(appearance?:Appearance):CubeSurface|undefined {
   const body = appearance.body, layers = appearance.layers;
   const layer = layers?.layer_2_surface, glow = layers?.layer_3_glow, pulse = layers?.layer_4_animated_shader;
   const base = layers?.layer_1_base;
+  if (base?.tile_atlases?.U && brighterSkinAtlases.has(base.tile_atlases.U)) {
+    surface.ambientLightIntensity = 2.3;
+  }
   const maps = base?.texture_maps;
   if (body) surface.body = {color:hex(body.color) ?? 0x171b19,roughness:scalar(body.roughness,0.7),metalness:scalar(body.metalness,0),...(body.texture_map ? {map:body.texture_map} : {})};
   if (layer) surface.stickers = {
