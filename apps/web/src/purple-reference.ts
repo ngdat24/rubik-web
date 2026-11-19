@@ -11,16 +11,37 @@ const rects:number[][][]=[
  [[0,4,256,254],[260,263,254,254],[0,263,256,254],[260,524,254,254],[260,4,254,254],[0,524,256,254]],
  [[297,21,183,179],[481,204,183,179],[297,204,183,179],[297,386,183,179],[111,204,183,179],[675,204,184,179]]
 ];
-const images=await Promise.all(rects.map(async(_,i)=>{const image=new Image();image.src='/assets/purple-reference/scan-'+i+'.png';await image.decode();return image;}));
-const fuji=new Image();fuji.src='/assets/purple-reference/fuji.png';await fuji.decode();
-const fujiCanvas=document.createElement('canvas');fujiCanvas.width=fuji.width;fujiCanvas.height=fuji.height;
-const fujiContext=fujiCanvas.getContext('2d')!;fujiContext.drawImage(fuji,0,0);
-const fujiPixels=fujiContext.getImageData(0,0,fuji.width,fuji.height);
-for(let i=0;i<fujiPixels.data.length;i+=4){const r=fujiPixels.data[i]!,g=fujiPixels.data[i+1]!,b=fujiPixels.data[i+2]!;if(Math.min(r,g,b)>220&&Math.max(r,g,b)-Math.min(r,g,b)<12)fujiPixels.data[i+3]=0;}
-fujiContext.putImageData(fujiPixels,0,0);
-export function referenceTile(kind:number,face:number,tile:number){
- const image=images[kind]!,[x,y,w,h]=rects[kind]![face] as [number,number,number,number];
- const canvas=document.createElement('canvas');canvas.width=canvas.height=384;const c=canvas.getContext('2d')!;
+async function loadImage(file: string): Promise<HTMLImageElement> {
+ const image=new Image();
+ image.src='/assets/purple-reference/'+file;
+ await image.decode();
+ return image;
+}
+
+let fujiReference: HTMLCanvasElement | undefined;
+async function loadFuji(): Promise<HTMLCanvasElement> {
+ if(fujiReference)return fujiReference;
+ const fuji=await loadImage('fuji.png');
+ const fujiCanvas=document.createElement('canvas');fujiCanvas.width=fuji.width;fujiCanvas.height=fuji.height;
+ const fujiContext=fujiCanvas.getContext('2d')!;fujiContext.drawImage(fuji,0,0);
+ const fujiPixels=fujiContext.getImageData(0,0,fuji.width,fuji.height);
+ for(let i=0;i<fujiPixels.data.length;i+=4){const r=fujiPixels.data[i]!,g=fujiPixels.data[i+1]!,b=fujiPixels.data[i+2]!;if(Math.min(r,g,b)>220&&Math.max(r,g,b)-Math.min(r,g,b)<12)fujiPixels.data[i+3]=0;}
+ fujiContext.putImageData(fujiPixels,0,0);
+ fujiReference=fujiCanvas;
+ return fujiCanvas;
+}
+
+export async function loadReference(kind: number) {
+ const [image,fujiCanvas]=await Promise.all([
+  loadImage('scan-'+kind+'.png'),
+  kind===5 ? loadFuji() : undefined,
+ ]);
+ return (face: number, tile: number) => referenceTile(kind,image,fujiCanvas,face,tile);
+}
+
+function referenceTile(kind:number,image:HTMLImageElement,fujiCanvas:HTMLCanvasElement|undefined,face:number,tile:number){
+ const [x,y,w,h]=rects[kind]![face] as [number,number,number,number];
+ const canvas=document.createElement('canvas');canvas.width=canvas.height=384;const c=canvas.getContext('2d',{willReadFrequently:true})!;
  // Crop within the actual colored tile, excluding scan background and frame.
  const inset=kind===8?.17:kind>=7?.12:.14,tw=w/3,th=h/3;
  const sourceTile=tile===8?2:tile;
@@ -67,10 +88,10 @@ export function referenceTile(kind:number,face:number,tile:number){
   for(let i=0;i<data.data.length;i+=4){const r=data.data[i]!,g=data.data[i+1]!,b=data.data[i+2]!;if(b>r*1.12&&b>g*1.12){data.data[i]=Math.min(255,r*1.22+9);data.data[i+1]=Math.min(255,g*1.2+12);data.data[i+2]=Math.min(255,b*1.16+16);}}
   c.putImageData(data,0,0);
  }
- if(kind===5&&face===0){
+ if(fujiCanvas&&face===0){
   c.fillStyle='#e9eaf0';c.fillRect(0,0,384,384);
   c.save();c.globalAlpha=.37;
-  c.drawImage(fujiCanvas,tile%3*fuji.width/3,Math.floor(tile/3)*fuji.height/3,fuji.width/3,fuji.height/3,0,0,384,384);
+  c.drawImage(fujiCanvas,tile%3*fujiCanvas.width/3,Math.floor(tile/3)*fujiCanvas.height/3,fujiCanvas.width/3,fujiCanvas.height/3,0,0,384,384);
   c.restore();
  }
   // A mild local contrast pass improves scan legibility without changing its palette.
@@ -83,11 +104,3 @@ export function referenceTile(kind:number,face:number,tile:number){
  const height=document.createElement('canvas');height.width=height.height=384;height.getContext('2d')!.putImageData(pixels,0,0);const bump=new CanvasTexture(height);bump.anisotropy=16;
  return {map,bump};
 }
-
-
-
-
-
-
-
-
