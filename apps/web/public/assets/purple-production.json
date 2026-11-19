@@ -1,0 +1,524 @@
+[
+  {
+    "id": "epic_brushed_titanium_03",
+    "name": "Vảy Giáp Rồng",
+    "appearance": {
+      "geometry": {
+        "borderless": false,
+        "sticker_corner_ratio": 0.12
+      },
+      "body": {
+        "material_name": "forged_dark_wyrm_alloy",
+        "color": "#12151C",
+        "roughness": 0.32,
+        "metalness": 0.88
+      },
+      "layers": {
+        "layer_1_base": {
+          "face_colors": {
+            "U": "#DCE3EC",
+            "D": "#CC8E08",
+            "F": "#118254",
+            "B": "#1D52AD",
+            "L": "#CC4F12",
+            "R": "#B52126"
+          },
+          "texture_replaces_color": true,
+          "tile_atlases": {
+            "U": "/assets/skins/epic_dragon_scale_01/map_u.png",
+            "R": "/assets/skins/epic_dragon_scale_01/map_r.png",
+            "F": "/assets/skins/epic_dragon_scale_01/map_f.png",
+            "D": "/assets/skins/epic_dragon_scale_01/map_d.png",
+            "L": "/assets/skins/epic_dragon_scale_01/map_l.png",
+            "B": "/assets/skins/epic_dragon_scale_01/map_b.png"
+          },
+          "normal_atlases": {
+            "U": "/assets/skins/epic_dragon_scale_01/normal_u.png",
+            "R": "/assets/skins/epic_dragon_scale_01/normal_r.png",
+            "F": "/assets/skins/epic_dragon_scale_01/normal_f.png",
+            "D": "/assets/skins/epic_dragon_scale_01/normal_d.png",
+            "L": "/assets/skins/epic_dragon_scale_01/normal_l.png",
+            "B": "/assets/skins/epic_dragon_scale_01/normal_b.png"
+          }
+        },
+        "layer_2_surface": {
+          "material_type": "metallic",
+          "roughness": 0.26,
+          "metalness": 0.55,
+          "opacity": 1,
+          "normal_scale": 0.45
+        },
+        "layer_3_glow": {
+          "enabled": false
+        },
+        "layer_4_animated_shader": {
+          "enabled": false
+        }
+      }
+    }
+  },
+  {
+    "id": "epic_obsidian_chrome_05",
+    "name": "Bánh Răng Cơ Khí",
+    "appearance": {
+      "geometry": {
+        "borderless": false,
+        "sticker_corner_ratio": 0.12
+      },
+      "body": {
+        "material_name": "brushed_gunmetal_housing",
+        "color": "#1A1E26",
+        "roughness": 0.34,
+        "metalness": 0.86
+      },
+      "layers": {
+        "layer_1_base": {
+          "face_colors": {
+            "U": "#D9E1EB",
+            "D": "#C98A08",
+            "F": "#127D54",
+            "B": "#1F50A6",
+            "L": "#C74E12",
+            "R": "#AD2124"
+          },
+          "texture_replaces_color": true,
+          "tile_atlases": {
+            "U": "/assets/skins/epic_clockwork_gear_02/map_u.png",
+            "R": "/assets/skins/epic_clockwork_gear_02/map_r.png",
+            "F": "/assets/skins/epic_clockwork_gear_02/map_f.png",
+            "D": "/assets/skins/epic_clockwork_gear_02/map_d.png",
+            "L": "/assets/skins/epic_clockwork_gear_02/map_l.png",
+            "B": "/assets/skins/epic_clockwork_gear_02/map_b.png"
+          },
+          "normal_atlases": {
+            "U": "/assets/skins/epic_clockwork_gear_02/normal_u.png",
+            "R": "/assets/skins/epic_clockwork_gear_02/normal_r.png",
+            "F": "/assets/skins/epic_clockwork_gear_02/normal_f.png",
+            "D": "/assets/skins/epic_clockwork_gear_02/normal_d.png",
+            "L": "/assets/skins/epic_clockwork_gear_02/normal_l.png",
+            "B": "/assets/skins/epic_clockwork_gear_02/normal_b.png"
+          }
+        },
+        "layer_2_surface": {
+          "material_type": "metallic",
+          "roughness": 0.28,
+          "metalness": 0.55,
+          "opacity": 1,
+          "normal_scale": 0.45
+        },
+        "layer_3_glow": {
+          "enabled": false
+        },
+        "layer_4_animated_shader": {
+          "enabled": false
+        }
+      }
+    }
+  },
+  {
+    "id": "epic_frosted_ice_02",
+    "name": "Bông Tuyết Pha Lê",
+    "appearance": {
+      "geometry": {
+        "borderless": false,
+        "sticker_corner_ratio": 0.12
+      },
+      "body": {
+        "material_name": "frosted_glacier_polymer",
+        "color": "#a9bdcf",
+        "roughness": 0.36,
+        "metalness": 0.18
+      },
+      "layers": {
+        "layer_1_base": {
+          "face_colors": {
+            "U": "#E0E8F2",
+            "D": "#D99B06",
+            "F": "#0E9470",
+            "B": "#1E5BB8",
+            "L": "#D45B12",
+            "R": "#BA2336"
+          },
+          "texture_replaces_color": true,
+          "tile_atlases": {
+            "U": "/assets/skins/epic_crystal_snowflake_03/map_u.png",
+            "R": "/assets/skins/epic_crystal_snowflake_03/map_r.png",
+            "F": "/assets/skins/epic_crystal_snowflake_03/map_f.png",
+            "D": "/assets/skins/epic_crystal_snowflake_03/map_d.png",
+            "L": "/assets/skins/epic_crystal_snowflake_03/map_l.png",
+            "B": "/assets/skins/epic_crystal_snowflake_03/map_b.png"
+          },
+          "normal_atlases": {
+            "U": "/assets/skins/epic_crystal_snowflake_03/normal_u.png",
+            "R": "/assets/skins/epic_crystal_snowflake_03/normal_r.png",
+            "F": "/assets/skins/epic_crystal_snowflake_03/normal_f.png",
+            "D": "/assets/skins/epic_crystal_snowflake_03/normal_d.png",
+            "L": "/assets/skins/epic_crystal_snowflake_03/normal_l.png",
+            "B": "/assets/skins/epic_crystal_snowflake_03/normal_b.png"
+          }
+        },
+        "layer_2_surface": {
+          "material_type": "translucent",
+          "roughness": 0.26,
+          "metalness": 0.05,
+          "opacity": 1,
+          "normal_scale": 0.45
+        },
+        "layer_3_glow": {
+          "enabled": false
+        },
+        "layer_4_animated_shader": {
+          "enabled": false
+        }
+      }
+    }
+  },
+  {
+    "id": "epic_stained_glass_04",
+    "name": "Kính Hoa Văn",
+    "appearance": {
+      "geometry": {
+        "borderless": false,
+        "sticker_corner_ratio": 0.12
+      },
+      "body": {
+        "material_name": "antique_lead_came",
+        "color": "#111622",
+        "roughness": 0.34,
+        "metalness": 0.74
+      },
+      "layers": {
+        "layer_1_base": {
+          "face_colors": {
+            "U": "#E3E8F0",
+            "D": "#D99B06",
+            "F": "#13854E",
+            "B": "#1D4ED8",
+            "L": "#D45512",
+            "R": "#BD2028"
+          },
+          "texture_replaces_color": true,
+          "tile_atlases": {
+            "U": "/assets/skins/epic_rose_window_glass_04/map_u.png",
+            "R": "/assets/skins/epic_rose_window_glass_04/map_r.png",
+            "F": "/assets/skins/epic_rose_window_glass_04/map_f.png",
+            "D": "/assets/skins/epic_rose_window_glass_04/map_d.png",
+            "L": "/assets/skins/epic_rose_window_glass_04/map_l.png",
+            "B": "/assets/skins/epic_rose_window_glass_04/map_b.png"
+          },
+          "normal_atlases": {
+            "U": "/assets/skins/epic_rose_window_glass_04/normal_u.png",
+            "R": "/assets/skins/epic_rose_window_glass_04/normal_r.png",
+            "F": "/assets/skins/epic_rose_window_glass_04/normal_f.png",
+            "D": "/assets/skins/epic_rose_window_glass_04/normal_d.png",
+            "L": "/assets/skins/epic_rose_window_glass_04/normal_l.png",
+            "B": "/assets/skins/epic_rose_window_glass_04/normal_b.png"
+          }
+        },
+        "layer_2_surface": {
+          "material_type": "translucent",
+          "roughness": 0.21,
+          "metalness": 0.14,
+          "opacity": 1,
+          "normal_scale": 0.45
+        },
+        "layer_3_glow": {
+          "enabled": false
+        },
+        "layer_4_animated_shader": {
+          "enabled": false
+        }
+      }
+    }
+  },
+  {
+    "id": "epic_amber_resin_06",
+    "name": "Dương Xỉ Hổ Phách",
+    "appearance": {
+      "geometry": {
+        "borderless": false,
+        "sticker_corner_ratio": 0.12
+      },
+      "body": {
+        "material_name": "dark_fossil_resin_core",
+        "color": "#261406",
+        "roughness": 0.28,
+        "metalness": 0.12
+      },
+      "layers": {
+        "layer_1_base": {
+          "face_colors": {
+            "U": "#EAE3D5",
+            "D": "#D48806",
+            "F": "#0E8A78",
+            "B": "#1C4DB3",
+            "L": "#D95614",
+            "R": "#AD1F26"
+          },
+          "texture_replaces_color": true,
+          "tile_atlases": {
+            "U": "/assets/skins/epic_amber_fern_05/map_u.png",
+            "R": "/assets/skins/epic_amber_fern_05/map_r.png",
+            "F": "/assets/skins/epic_amber_fern_05/map_f.png",
+            "D": "/assets/skins/epic_amber_fern_05/map_d.png",
+            "L": "/assets/skins/epic_amber_fern_05/map_l.png",
+            "B": "/assets/skins/epic_amber_fern_05/map_b.png"
+          },
+          "normal_atlases": {
+            "U": "/assets/skins/epic_amber_fern_05/normal_u.png",
+            "R": "/assets/skins/epic_amber_fern_05/normal_r.png",
+            "F": "/assets/skins/epic_amber_fern_05/normal_f.png",
+            "D": "/assets/skins/epic_amber_fern_05/normal_d.png",
+            "L": "/assets/skins/epic_amber_fern_05/normal_l.png",
+            "B": "/assets/skins/epic_amber_fern_05/normal_b.png"
+          }
+        },
+        "layer_2_surface": {
+          "material_type": "translucent",
+          "roughness": 0.22,
+          "metalness": 0.05,
+          "opacity": 1,
+          "normal_scale": 0.45
+        },
+        "layer_3_glow": {
+          "enabled": false
+        },
+        "layer_4_animated_shader": {
+          "enabled": false
+        }
+      }
+    }
+  },
+  {
+    "id": "s1_epic_maglev_coil_01",
+    "name": "Phú Sĩ Anh Đào",
+    "appearance": {
+      "geometry": {
+        "borderless": false,
+        "sticker_corner_ratio": 0.12
+      },
+      "body": {
+        "material_name": "urushi_obsidian_lacquer",
+        "color": "#141118",
+        "roughness": 0.3,
+        "metalness": 0.25
+      },
+      "layers": {
+        "layer_1_base": {
+          "face_colors": {
+            "U": "#E6EBF2",
+            "D": "#D49B1A",
+            "F": "#16855E",
+            "B": "#1E52A8",
+            "L": "#D4551A",
+            "R": "#CF4268"
+          },
+          "texture_replaces_color": true,
+          "tile_atlases": {
+            "U": "/assets/skins/s1_epic_japan_sakura_01/map_u.png",
+            "R": "/assets/skins/s1_epic_japan_sakura_01/map_r.png",
+            "F": "/assets/skins/s1_epic_japan_sakura_01/map_f.png",
+            "D": "/assets/skins/s1_epic_japan_sakura_01/map_d.png",
+            "L": "/assets/skins/s1_epic_japan_sakura_01/map_l.png",
+            "B": "/assets/skins/s1_epic_japan_sakura_01/map_b.png"
+          },
+          "normal_atlases": {
+            "U": "/assets/skins/s1_epic_japan_sakura_01/normal_u.png",
+            "R": "/assets/skins/s1_epic_japan_sakura_01/normal_r.png",
+            "F": "/assets/skins/s1_epic_japan_sakura_01/normal_f.png",
+            "D": "/assets/skins/s1_epic_japan_sakura_01/normal_d.png",
+            "L": "/assets/skins/s1_epic_japan_sakura_01/normal_l.png",
+            "B": "/assets/skins/s1_epic_japan_sakura_01/normal_b.png"
+          }
+        },
+        "layer_2_surface": {
+          "material_type": "translucent",
+          "roughness": 0.22,
+          "metalness": 0.08,
+          "opacity": 1,
+          "normal_scale": 0.45
+        },
+        "layer_3_glow": {
+          "enabled": false
+        },
+        "layer_4_animated_shader": {
+          "enabled": false
+        }
+      }
+    }
+  },
+  {
+    "id": "s1_epic_cryo_chamber_02",
+    "name": "Trúc Ảnh Cố Cung",
+    "appearance": {
+      "geometry": {
+        "borderless": false,
+        "sticker_corner_ratio": 0.12
+      },
+      "body": {
+        "material_name": "imperial_ebony_jade_frame",
+        "color": "#141210",
+        "roughness": 0.32,
+        "metalness": 0.22
+      },
+      "layers": {
+        "layer_1_base": {
+          "face_colors": {
+            "U": "#E8ECEF",
+            "D": "#D4960E",
+            "F": "#148058",
+            "B": "#1D4FA3",
+            "L": "#D15615",
+            "R": "#B8222A"
+          },
+          "texture_replaces_color": true,
+          "tile_atlases": {
+            "U": "/assets/skins/s1_epic_china_imperial_02/map_u.png",
+            "R": "/assets/skins/s1_epic_china_imperial_02/map_r.png",
+            "F": "/assets/skins/s1_epic_china_imperial_02/map_f.png",
+            "D": "/assets/skins/s1_epic_china_imperial_02/map_d.png",
+            "L": "/assets/skins/s1_epic_china_imperial_02/map_l.png",
+            "B": "/assets/skins/s1_epic_china_imperial_02/map_b.png"
+          },
+          "normal_atlases": {
+            "U": "/assets/skins/s1_epic_china_imperial_02/normal_u.png",
+            "R": "/assets/skins/s1_epic_china_imperial_02/normal_r.png",
+            "F": "/assets/skins/s1_epic_china_imperial_02/normal_f.png",
+            "D": "/assets/skins/s1_epic_china_imperial_02/normal_d.png",
+            "L": "/assets/skins/s1_epic_china_imperial_02/normal_l.png",
+            "B": "/assets/skins/s1_epic_china_imperial_02/normal_b.png"
+          }
+        },
+        "layer_2_surface": {
+          "material_type": "translucent",
+          "roughness": 0.21,
+          "metalness": 0.08,
+          "opacity": 1,
+          "normal_scale": 0.45
+        },
+        "layer_3_glow": {
+          "enabled": false
+        },
+        "layer_4_animated_shader": {
+          "enabled": false
+        }
+      }
+    }
+  },
+  {
+    "id": "s1_epic_gravity_alloy_03",
+    "name": "Hoàng Gia Tây Ban Nha",
+    "appearance": {
+      "geometry": {
+        "borderless": true,
+        "sticker_corner_ratio": 0.12
+      },
+      "body": {
+        "material_name": "toledo_forged_steel",
+        "color": "#141216",
+        "roughness": 0.3,
+        "metalness": 0.9
+      },
+      "layers": {
+        "layer_1_base": {
+          "face_colors": {
+            "U": "#E2E7EE",
+            "D": "#D6980A",
+            "F": "#127D54",
+            "B": "#1B4D9E",
+            "L": "#CF5314",
+            "R": "#B51F29"
+          },
+          "texture_replaces_color": true,
+          "tile_atlases": {
+            "U": "/assets/skins/s1_epic_spain_royal_03/map_u.png",
+            "R": "/assets/skins/s1_epic_spain_royal_03/map_r.png",
+            "F": "/assets/skins/s1_epic_spain_royal_03/map_f.png",
+            "D": "/assets/skins/s1_epic_spain_royal_03/map_d.png",
+            "L": "/assets/skins/s1_epic_spain_royal_03/map_l.png",
+            "B": "/assets/skins/s1_epic_spain_royal_03/map_b.png"
+          },
+          "normal_atlases": {
+            "U": "/assets/skins/s1_epic_spain_royal_03/normal_u.png",
+            "R": "/assets/skins/s1_epic_spain_royal_03/normal_r.png",
+            "F": "/assets/skins/s1_epic_spain_royal_03/normal_f.png",
+            "D": "/assets/skins/s1_epic_spain_royal_03/normal_d.png",
+            "L": "/assets/skins/s1_epic_spain_royal_03/normal_l.png",
+            "B": "/assets/skins/s1_epic_spain_royal_03/normal_b.png"
+          }
+        },
+        "layer_2_surface": {
+          "material_type": "metallic",
+          "roughness": 0.25,
+          "metalness": 0.55,
+          "opacity": 1,
+          "normal_scale": 0.45
+        },
+        "layer_3_glow": {
+          "enabled": false
+        },
+        "layer_4_animated_shader": {
+          "enabled": false
+        }
+      }
+    }
+  },
+  {
+    "id": "s1_epic_prism_lens_04",
+    "name": "Hoàng Gia Anh Quốc",
+    "appearance": {
+      "geometry": {
+        "borderless": true,
+        "sticker_corner_ratio": 0.12
+      },
+      "body": {
+        "material_name": "westminster_dark_alloy",
+        "color": "#11151E",
+        "roughness": 0.28,
+        "metalness": 0.92
+      },
+      "layers": {
+        "layer_1_base": {
+          "face_colors": {
+            "U": "#E4E9F0",
+            "D": "#D4960C",
+            "F": "#137A50",
+            "B": "#1A4596",
+            "L": "#CC5214",
+            "R": "#B31E2C"
+          },
+          "texture_replaces_color": true,
+          "tile_atlases": {
+            "U": "/assets/skins/s1_epic_uk_royal_04/map_u.png",
+            "R": "/assets/skins/s1_epic_uk_royal_04/map_r.png",
+            "F": "/assets/skins/s1_epic_uk_royal_04/map_f.png",
+            "D": "/assets/skins/s1_epic_uk_royal_04/map_d.png",
+            "L": "/assets/skins/s1_epic_uk_royal_04/map_l.png",
+            "B": "/assets/skins/s1_epic_uk_royal_04/map_b.png"
+          },
+          "normal_atlases": {
+            "U": "/assets/skins/s1_epic_uk_royal_04/normal_u.png",
+            "R": "/assets/skins/s1_epic_uk_royal_04/normal_r.png",
+            "F": "/assets/skins/s1_epic_uk_royal_04/normal_f.png",
+            "D": "/assets/skins/s1_epic_uk_royal_04/normal_d.png",
+            "L": "/assets/skins/s1_epic_uk_royal_04/normal_l.png",
+            "B": "/assets/skins/s1_epic_uk_royal_04/normal_b.png"
+          }
+        },
+        "layer_2_surface": {
+          "material_type": "metallic",
+          "roughness": 0.24,
+          "metalness": 0.55,
+          "opacity": 1,
+          "normal_scale": 0.45
+        },
+        "layer_3_glow": {
+          "enabled": false
+        },
+        "layer_4_animated_shader": {
+          "enabled": false
+        }
+      }
+    }
+  }
+]
