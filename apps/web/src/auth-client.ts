@@ -1,7 +1,12 @@
 import type {Session, SupabaseClient} from '@supabase/supabase-js';
 import {language, t} from './i18n.js';
 
-export const accountLoginEnabled = import.meta.env.VITE_ACCOUNT_LOGIN_ENABLED === '1';
+export const googleOnlyAccountLogin = import.meta.env.VITE_ACCOUNT_LOGIN_ENABLED === 'google-only';
+export const accountLoginEnabled = import.meta.env.VITE_ACCOUNT_LOGIN_ENABLED === '1' || googleOnlyAccountLogin;
+
+export function hasGoogleIdentity(user: Session['user']): boolean {
+  return user.identities?.some(identity => identity.provider === 'google') ?? false;
+}
 
 export async function createAuthClient(): Promise<SupabaseClient | undefined> {
   const url = import.meta.env.VITE_SUPABASE_URL;
@@ -35,7 +40,9 @@ export async function loginName(token: string, name?: string, signal?: AbortSign
 
 export async function remindAccountUpgrade(session: Session, signal: AbortSignal): Promise<void> {
   if (!accountLoginEnabled) return;
-  if (!session.user.is_anonymous && await loginName(session.access_token, undefined, signal)) return;
+  if (!session.user.is_anonymous) {
+    if (googleOnlyAccountLogin ? hasGoogleIdentity(session.user) : await loginName(session.access_token, undefined, signal)) return;
+  }
   if (signal.aborted) return;
   const dialog = document.createElement('dialog');
   dialog.setAttribute('aria-labelledby','upgrade-title');
@@ -43,7 +50,9 @@ export async function remindAccountUpgrade(session: Session, signal: AbortSignal
   title.id = 'upgrade-title';
   title.textContent = t('Liên kết tài khoản Rubik Lab');
   const detail = document.createElement('p');
-  detail.textContent = t('Thêm email, mật khẩu và tên đăng nhập để giữ quyền truy cập vào hồ sơ khi đổi thiết bị.');
+  detail.textContent = t(googleOnlyAccountLogin
+    ? 'Liên kết Google để giữ quyền truy cập vào hồ sơ khi đổi thiết bị.'
+    : 'Thêm email, mật khẩu và tên đăng nhập để giữ quyền truy cập vào hồ sơ khi đổi thiết bị.');
   const link = document.createElement('a');
   link.href = accessUrl('link');
   link.textContent = t('Liên kết ngay');
