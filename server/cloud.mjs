@@ -5,6 +5,7 @@ import {parseChampionClaim,championErrors} from './champion.mjs';
 import {handleRace} from './race.mjs';
 import {handleTimeLimit,TIME_LIMIT_MODES} from './time-limit.mjs';
 import {preparePracticeAction,practiceErrorMessages} from './practice.mjs';
+import {normalizeLoginName,signInByLoginName} from './account-login.mjs';
 
 class HttpError extends Error {constructor(status,message){super(message);this.status=status;}}
 export function createCloudHandler({env=process.env,fetcher=fetch}={}){
@@ -27,7 +28,9 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
             return request(path,{method,body,auth,afterRollover:true});
           }
           if(response.status===401||response.status===403)throw new HttpError(auth===secret?503:401,auth===secret?'Khóa server Supabase chưa được cấu hình đúng.':'Phiên hồ sơ hết hạn; hãy tải lại trang.');
-          if(value?.code==='23505')throw new HttpError(409,path.startsWith('/rest/v1/profiles?')?'Tên này đã có người dùng. Hãy chọn tên khác.':'ID đã được sử dụng.');
+          if(value?.code==='23505')throw new HttpError(409,path.startsWith('/rest/v1/profiles?')||path==='/rest/v1/rpc/claim_account_login_name'?'Tên này đã có người dùng. Hãy chọn tên khác.':'ID đã được sử dụng.');
+          if(value?.code==='P0001'&&path==='/rest/v1/rpc/claim_account_login_name'&&value.message==='confirmed_password_required')
+            throw new HttpError(403,'Hãy xác minh email và đặt mật khẩu trước.');
           if(value?.code==='40001')throw new HttpError(409,'Dữ liệu đã thay đổi trên thiết bị khác. Hãy tải bản server trước khi sửa tiếp.');
           if(value?.code==='54000')throw new HttpError(413,'Đã đạt giới hạn 10.000 bản ghi mỗi tài khoản.');
           if(value?.code==='P0001'&&path.startsWith('/rest/v1/rpc/champion_')&&Object.hasOwn(championErrors,value.message))
@@ -81,6 +84,11 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
         return value;
       };
       const url=new URL(req.url,'https://'+req.headers.host),route=url.pathname.split('/').at(-1);
+      if(route==='session-login'||route==='login-name'){
+        if(env.ACCOUNT_LOGIN_ENABLED!=='1')throw new HttpError(404,'Không có API này.');
+        if(route==='session-login')return await signInByLoginName(req,{env,request,fetcher,send});
+        if(!['GET','POST'].includes(req.method))throw new HttpError(405,'Phương thức không hợp lệ.');
+      }
       if(route==='economy-maintenance'){
         if(req.method!=='GET')throw new HttpError(405,'Phương thức không hợp lệ.');
         const cron=env.CRON_SECRET,token=/^Bearer (\S+)$/.exec(req.headers.authorization??'')?.[1];
@@ -124,7 +132,7 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
         const rows=await request('/rest/v1/rpc/'+rpc,{method:'POST',body:{p_size:size}});
         res.setHeader('Cache-Control','public, s-maxage=15, stale-while-revalidate=15');return send(200,{rows});
       }
-      if(!['player','solves','account','race','time-limit','practice','wallet','quests','skins','shop','champion'].includes(route)||!['GET','POST','DELETE'].includes(req.method))throw new HttpError(404,'Không có API này.');
+      if(!['player','solves','account','race','time-limit','practice','wallet','quests','skins','shop','champion','login-name'].includes(route)||!['GET','POST','DELETE'].includes(req.method))throw new HttpError(404,'Không có API này.');
       const token=/^Bearer (\S+)$/.exec(req.headers.authorization??'')?.[1];if(!token||token.length>8192)throw new HttpError(401,'Cần phiên hồ sơ hợp lệ.');
       const user=await request('/auth/v1/user',{auth:token});if(!user?.id||(!user.email_confirmed_at&&user.is_anonymous!==true))throw new HttpError(401,'Phiên hồ sơ không hợp lệ. Hãy tải lại trang.');
       const allowed=await request('/rest/v1/rpc/consume_quota',{method:'POST',body:{p_user:user.id,p_kind:req.method==='GET'?'read':'write'}});
@@ -143,6 +151,15 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
         return send(200,await request('/rest/v1/rpc/champion_'+(choice?body.action:'snapshot'),{
           method:'POST',body:{...choice,p_user:user.id}
         }));
+      }
+      if(route==='login-name'){
+        if(req.method==='GET'){
+          const rows=await request('/rest/v1/account_login_names?select=login_name&user_id=eq.'+encodeURIComponent(user.id));
+          return send(200,{name:rows[0]?.login_name??null});
+        }
+        const name=normalizeLoginName(body.name);
+        if(!name)throw new HttpError(400,'Tên đăng nhập cần 3–30 ký tự a–z, 0–9 hoặc dấu gạch dưới.');
+        return send(200,{name:await request('/rest/v1/rpc/claim_account_login_name',{method:'POST',body:{p_user:user.id,p_name:name}})});
       }
       if(route==='shop'){
         if(!['GET','POST'].includes(req.method))throw new HttpError(405,'Phương thức không hợp lệ.');

@@ -1,0 +1,18 @@
+.account-card {
+  width: min(100%, 440px);
+  margin: 28px auto;
+  padding: 22px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+.account-card h1 { margin: 0 0 14px; font-size: 24px; }
+.account-card h2 { margin: 0 0 14px; }
+.account-card form:not([hidden]), .account-card fieldset:not([hidden]) { display: grid; gap: 12px; }
+.account-card fieldset { border: 1px solid var(--line); border-radius: 8px; margin: 0; }
+.account-card label { display: grid; gap: 5px; }
+.account-card input { min-width: 0; width: 100%; }
+.account-card button[type=submit] { background: var(--accent); color: #20261a; font-weight: 650; }
+.account-card > a { display: inline-block; margin-top: 16px; }
+.account-card p { line-height: 1.5; overflow-wrap: anywhere; }
+.account-card #access-status:empty { display: none; }

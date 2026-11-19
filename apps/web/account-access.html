@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tài khoản Rubik Lab</title>
+</head>
+<body>
+  <main class="account-access">
+    <header></header>
+    <section class="account-card" aria-labelledby="access-title">
+      <h1 id="access-title">Tài khoản Rubik Lab</h1>
+      <p id="access-status" role="status">Đang kiểm tra phiên…</p>
+      <form method="post" id="login" hidden>
+        <h2>Đăng nhập</h2>
+        <label>Tên đăng nhập<input name="name" autocomplete="username" required maxlength="30" /></label>
+        <label>Mật khẩu<input name="password" type="password" autocomplete="current-password" required maxlength="72" /></label>
+        <button type="submit">Đăng nhập</button>
+        <a data-mode="forgot" href="?mode=forgot">Quên mật khẩu?</a>
+        <a data-mode="signup" href="?mode=signup">Chưa có tài khoản? Đăng ký</a>
+      </form>
+      <form method="post" id="signup" hidden>
+        <h2>Đăng ký</h2>
+        <label>Tên đăng nhập<input name="name" autocomplete="username" autocapitalize="none" pattern="[A-Za-z0-9_]{3,30}" title="3–30 ký tự a–z, 0–9 hoặc dấu gạch dưới" required maxlength="30" /></label>
+        <label>Email<input name="email" type="email" autocomplete="email" required maxlength="254" /></label>
+        <label>Mật khẩu<input name="password" type="password" autocomplete="new-password" minlength="10" maxlength="72" required /></label>
+        <label>Nhập lại mật khẩu<input name="confirmation" type="password" autocomplete="new-password" minlength="10" maxlength="72" required /></label>
+        <button type="submit">Gửi email xác minh</button>
+        <a data-mode="login" href="?mode=login">Đã có tài khoản? Đăng nhập</a>
+      </form>
+      <form method="post" id="forgot" hidden>
+        <h2>Quên mật khẩu</h2>
+        <label>Email đã liên kết<input name="email" type="email" autocomplete="email" required maxlength="254" /></label>
+        <button type="submit">Gửi liên kết đặt lại</button>
+        <a data-mode="login" href="?mode=login">Quay lại đăng nhập</a>
+      </form>
+      <form method="post" id="link" hidden>
+        <h2>Liên kết tài khoản cũ</h2>
+        <p>Xác minh email trước. Sau đó bạn sẽ đặt mật khẩu và tên đăng nhập riêng.</p>
+        <label>Email<input name="email" type="email" autocomplete="email" required maxlength="254" /></label>
+        <button type="submit">Gửi email xác minh</button>
+      </form>
+      <form method="post" id="finish" hidden>
+        <h2>Hoàn tất tài khoản</h2>
+        <label>Tên đăng nhập<input name="name" autocomplete="username" autocapitalize="none" pattern="[A-Za-z0-9_]{3,30}" title="3–30 ký tự a–z, 0–9 hoặc dấu gạch dưới" required maxlength="30" /></label>
+        <fieldset id="finish-password">
+          <legend>Đặt mật khẩu</legend>
+          <label>Mật khẩu<input name="password" type="password" autocomplete="new-password" minlength="10" maxlength="72" required /></label>
+          <label>Nhập lại mật khẩu<input name="confirmation" type="password" autocomplete="new-password" minlength="10" maxlength="72" required /></label>
+        </fieldset>
+        <button type="submit">Hoàn tất</button>
+      </form>
+      <form method="post" id="recovery" hidden>
+        <h2>Đặt lại mật khẩu</h2>
+        <label>Mật khẩu mới<input name="password" type="password" autocomplete="new-password" minlength="10" maxlength="72" required /></label>
+        <label>Nhập lại mật khẩu<input name="confirmation" type="password" autocomplete="new-password" minlength="10" maxlength="72" required /></label>
+        <button type="submit">Lưu mật khẩu mới</button>
+      </form>
+      <section id="linked" hidden>
+        <h2>Tài khoản đã liên kết</h2>
+        <p id="linked-name"></p>
+        <a data-mode="forgot" href="?mode=forgot">Đặt lại mật khẩu</a>
+        <button id="sign-out" type="button">Đăng xuất</button>
+      </section>
+      <a id="access-home" href="/">Về Trang chủ</a>
+    </section>
+  </main>
+  <script type="module" src="/src/account-access.ts"></script>
+</body>
+</html>
