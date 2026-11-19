@@ -69,6 +69,7 @@ declare
   result jsonb;
   skins jsonb;
   deadline bigint;
+  wallet public.user_wallets;
 begin
   n:=floor(extract(epoch from clock_timestamp())*1000)::bigint;
   if p_action='create' then
@@ -100,6 +101,13 @@ begin
     i:=1;
   end if;
   if i is null then raise exception 'Bạn không thuộc phòng này hoặc phòng đã đủ người.'; end if;
+  if p_action in ('create','join') and r.stake>0 and not r.locked and not r.match_final then
+    wallet:=public.economy_lock_wallet(p_user);
+    if (case when r.currency='CB' then wallet.cubit_balance else wallet.zenith_balance end)<r.stake then
+      raise exception 'Bạn cần ít nhất % % để % phòng này.',
+        r.stake,r.currency,case when p_action='create' then 'tạo' else 'vào' end;
+    end if;
+  end if;
   j:=1-i;
   me:=r.players->i;
   if p_action='join' and me ? 'departed' then
