@@ -10,6 +10,7 @@ import { attachKeyboard } from './keyboard.js';
 import { attachTimer } from './timer-controls.js';
 import { mountKeySettings } from './key-settings.js';
 import {mountAccount} from './account.js';
+import {mountCommunityChat} from './community-chat.js';
 import {mountChampionFrame} from './champion-frame.js';
 import {mountChampionMotion} from './champion-motion.js';
 import {mountWallet} from './wallet.js';
@@ -35,6 +36,7 @@ const loading = document.querySelector<HTMLElement>('#loading')!;
 let controller: CubeController | undefined;
 let renderer: CubeRenderer | undefined;
 const accountReady=mountAccount().catch(()=>{document.querySelector('#cloud-message')!.textContent=t("Chưa tạo được hồ sơ tự động; kiểm tra mạng hoặc bật Anonymous Sign-Ins trong Supabase. Kết quả vẫn lưu trên thiết bị.");return undefined;});
+const disposeCommunityChat=mountCommunityChat(accountReady);
 type ChampionStyle={options:import('@rubik/renderer').RendererOptions;name:string;sound:string;size:2|3};
 const championStyles=new Map<number,ChampionStyle>();
 let champion:ChampionStyle|undefined;
@@ -176,10 +178,12 @@ if(controller) timerUI=attachTimer(controller,()=>onScramble(newId()),account,
     }
   });
 const onPageHide = (event: PageTransitionEvent): void => {
+  if (!event.persisted) disposeCommunityChat();
   if (!event.persisted) { championMotion?.dispose(); championFrame?.dispose(); wallet.dispose(); disposeDailyQuests(); weekly.dispose(); shop.dispose(); equippedEffects?.dispose(); lowFx.removeEventListener('change',onLowFx); account?.dispose();clearInterval(viewLabelTimer); timerUI?.dispose(); detachDrag?.(); detachKeyboard?.(); keySettings.dispose(); controller?.dispose(); }
 };
 window.addEventListener('pagehide', onPageHide);
 if (import.meta.hot) import.meta.hot.dispose(() => {
+  disposeCommunityChat();
   championMotion?.dispose();championFrame?.dispose();
   wallet.dispose();
   disposeDailyQuests();

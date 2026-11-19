@@ -60,7 +60,17 @@
 <p class="gesture-hint">Chuột trái xoay Rubik <span>·</span> Chuột phải xoay góc nhìn <span>·</span> Cuộn để thu phóng</p><p id="context-message" role="status" hidden></p>
 <section class="timer-panel" aria-label="Đồng hồ giải"><div class="time-display"><span class="eyebrow">THỜI GIAN</span><output id="timer-readout" aria-label="Thời gian">0.00</output></div><div class="timer-actions"><p id="timer-phase" role="status" aria-live="polite">Chờ scramble</p><div><button id="timer-start" type="button">Chuẩn bị scramble</button><button id="timer-cancel" type="button" disabled>Hủy lượt</button></div><p id="timer-message" role="status"></p></div></section>
 <div class="shortcut-strip"><span><kbd>Space</kbd> chuẩn bị / bắt đầu</span><span><kbd>Esc</kbd> hủy lượt</span></div>
-</section><aside class="leaderboard-panel" aria-label="Bảng xếp hạng LAN"><h2>Bảng xếp hạng</h2><p id="player-label"></p><label for="leaderboard-size">Khối</label> <select id="leaderboard-size"><option value="2">2×2</option><option value="3" selected>3×3×3</option></select><table class="leaderboard-table"><thead><tr><th scope="col">Hạng</th><th scope="col">Tên</th><th scope="col">Thời gian</th></tr></thead><tbody id="leaderboard-rows"></tbody></table>
+</section><div class="practice-community">
+<section class="community-chat" aria-labelledby="chat-title">
+  <h2 id="chat-title">Kênh chat</h2>
+  <div id="chat-messages" tabindex="0" aria-label="Tin nhắn"></div>
+  <p id="chat-status" role="status" hidden></p>
+  <form id="chat-form">
+    <input id="chat-input" aria-label="Tin nhắn" placeholder="Ấn để trò chuyện" maxlength="300" autocomplete="off" required />
+    <button type="submit">Gửi</button>
+  </form>
+</section>
+<aside class="leaderboard-panel" aria-label="Bảng xếp hạng"><h2>Bảng xếp hạng</h2><p id="player-label"></p><label for="leaderboard-size">Khối</label> <select id="leaderboard-size"><option value="2">2×2</option><option value="3" selected>3×3×3</option></select><table class="leaderboard-table"><thead><tr><th scope="col">Hạng</th><th scope="col">Tên</th><th scope="col">Thời gian</th></tr></thead><tbody id="leaderboard-rows"></tbody></table>
 <details id="weekly-board"><summary>Bảng xếp hạng tuần</summary>
   <div class="toolbar">
     <label for="weekly-size">Khối</label><select id="weekly-size"></select>
@@ -68,7 +78,7 @@
   </div>
   <table class="leaderboard-table"><thead><tr><th scope="col">Hạng</th><th scope="col">Tên</th><th scope="col">Thời gian</th><th scope="col">Thưởng</th></tr></thead><tbody id="weekly-rows"></tbody></table>
   <p id="weekly-status" class="hint" role="status"></p>
-</details><p id="leaderboard-message" role="status">Đang kết nối phòng…</p><p class="hint">10 lượt giải nhanh nhất từ trước đến nay; một người có thể xuất hiện nhiều lần. +2 được cộng vào thời gian; DNF không xếp hạng. Chỉnh phạt local không đổi kết quả trên bảng.</p></aside></div>
+</details><p id="leaderboard-message" role="status">Đang kết nối phòng…</p><p class="hint">10 lượt giải nhanh nhất từ trước đến nay; một người có thể xuất hiện nhiều lần. +2 được cộng vào thời gian; DNF không xếp hạng. Chỉnh phạt local không đổi kết quả trên bảng.</p></aside></div></div>
 <footer><span id="cube-description" aria-live="polite">Rubik 3×3 · Trạng thái đã giải</span><span id="engine-version"></span></footer>
     </main>
     <dialog id="shop-dialog" aria-labelledby="shop-title">
