@@ -37,14 +37,14 @@ export function mountCommunityChat(accountReady: Promise<CloudAccount | undefine
   const host = document.querySelector<HTMLElement>('[data-community-chat]');
   if (host) {
     host.innerHTML = `<section class="community-chat" aria-labelledby="chat-title">
-      <h2 id="chat-title">Kênh chat</h2>
-      <button class="chat-mobile-toggle" type="button" aria-expanded="false">Kênh chat</button>
+      <h2 id="chat-title">${t('Kênh chat')}</h2>
+      <button class="chat-mobile-toggle" type="button" aria-expanded="false">${t('Kênh chat')}</button>
       <div class="chat-content">
-        <div id="chat-messages" tabindex="0" aria-label="Tin nhắn"></div>
+        <div id="chat-messages" tabindex="0" aria-label="${t('Tin nhắn')}"></div>
         <p id="chat-status" role="status" hidden></p>
         <form id="chat-form">
-          <input id="chat-input" aria-label="Tin nhắn" placeholder="Ấn để trò chuyện" maxlength="300" autocomplete="off" required />
-          <button type="submit">Gửi</button>
+          <input id="chat-input" aria-label="${t('Tin nhắn')}" placeholder="${t('Ấn để trò chuyện')}" maxlength="300" autocomplete="off" required />
+          <button type="submit">${t('Gửi')}</button>
         </form>
       </div>
     </section>`;

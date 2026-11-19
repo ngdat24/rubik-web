@@ -17,16 +17,16 @@ import type {Appearance} from './skin-effects.js';
 import {loadEquippedChampion} from './champion-equipped.js';
 import {raceComplete} from '../../../shared/race-rules.mjs';
 
-const modes={twoByTwo:'2×2',fullSolve:'3×3',f2lRush:'F2L',oneFace:'1 mặt'};
+const modes={twoByTwo:'2×2',fullSolve:'3×3',f2lRush:'F2L',oneFace:t('1 mặt')};
 type Mode=keyof typeof modes;
 const modeOptions=Object.entries(modes).map(([key,label])=>`<option value="${key}">${label}</option>`).join('');
 const numbers=[1,2,3,4,5].map(n=>`<option value="${n}">${n}</option>`).join('');
-const toggle=(name:string,title:string,enabled:boolean)=>`<fieldset><legend>${title}</legend>
-  <label><input type="radio" name="${name}" value="yes" ${enabled?'checked':''}><span>Có</span></label>
-  <label><input type="radio" name="${name}" value="no" ${enabled?'':'checked'}><span>Không</span></label></fieldset>`;
+const toggle=(name:string,title:string,enabled:boolean)=>`<fieldset><legend>${t(title)}</legend>
+  <label><input type="radio" name="${name}" value="yes" ${enabled?'checked':''}><span>${t('Có')}</span></label>
+  <label><input type="radio" name="${name}" value="no" ${enabled?'':'checked'}><span>${t('Không')}</span></label></fieldset>`;
 
 const main=document.querySelector('main')!;
-document.title='Rubik Lab — Đấu 1v1';
+document.title='Rubik Lab — '+t('Đấu 1v1');
 main.querySelectorAll(':scope > :not(header)').forEach(element=>element.remove());
 main.insertAdjacentHTML('beforeend',`<div class="duel-layout">
   <div class="duel-main">
@@ -86,6 +86,15 @@ main.insertAdjacentHTML('beforeend',`<div class="duel-layout">
 <dialog id="duel-exit-dialog"><form method="dialog"><h2>Thoát phòng?</h2>
   <p>Thoát giữa trận sẽ tính thua cả trận.</p><button value="cancel">Ở lại</button><button value="leave">Thoát phòng</button>
 </form></dialog>`);
+const copyWalker=document.createTreeWalker(main,NodeFilter.SHOW_TEXT);
+while(copyWalker.nextNode()){
+  const node=copyWalker.currentNode;
+  const raw=node.textContent??'', copy=raw.trim();
+  if(copy&&!node.parentElement?.closest('header'))node.textContent=raw.replace(copy,t(copy));
+}
+for(const label of main.querySelectorAll<HTMLElement>('.duel-layout [aria-label]')){
+  label.setAttribute('aria-label',t(label.getAttribute('aria-label')??''));
+}
 
 const el=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
 const button=(id:string)=>el<HTMLButtonElement>(id);
@@ -285,19 +294,19 @@ async function boot(){
     }
     void refreshGraphics(s);
     const own=s.players.find(p=>p.id===account.id),other=s.players.find(p=>p.id!==account.id);
-    el('duel-room-code').textContent='Mã: '+s.id;
-    el('duel-score').textContent=`Bạn ${own?.score.score??0} : ${other?.score.score??0} Đối thủ`;
-    el('duel-own-name').textContent=own?.name??'Bạn';
-    el('duel-opponent-name').textContent=other?.name??'Đang chờ đối thủ';
+    el('duel-room-code').textContent=t('Mã: ')+s.id;
+    el('duel-score').textContent=`${t('Bạn')} ${own?.score.score??0} : ${other?.score.score??0} ${t('Đối thủ')}`;
+    el('duel-own-name').textContent=own?.name??t('Bạn');
+    el('duel-opponent-name').textContent=other?.name??t('Đang chờ đối thủ');
     const scrambleLabel=el('duel-scramble');
     scrambleLabel.textContent=scramble?.join(' ')??'';
     scrambleLabel.hidden=!scramble?.length||rendered!==s.round;
     const round=Math.min(s.roundLimit,s.rounds.length+(s.final||s.matchFinal?0:1));
-    el('duel-match-info').textContent=`Ván ${Math.max(1,round)}/${s.roundLimit} · ${s.durationMs/60000} phút/ván · ${s.currency?s.stake+' '+s.currency+' mỗi người':'Không cược'}`;
+    el('duel-match-info').textContent=`${t('Ván')} ${Math.max(1,round)}/${s.roundLimit} · ${s.durationMs/60000} ${t('phút/ván')} · ${s.currency?s.stake+' '+s.currency+' '+t('mỗi người'):t('Không cược')}`;
     const first=s.players[0]?.id===account.id;
     el('duel-round-results').replaceChildren(...s.rounds.map(result=>{
       const line=document.createElement('li');
-      const winner=result.winner===null?'Hòa':result.winner===account.id?'Thắng':'Thua';
+      const winner=t(result.winner===null?'Hòa':result.winner===account.id?'Thắng':'Thua');
       line.textContent=`${modes[result.mode]} · ${format(first?result.a:result.b)} : ${format(first?result.b:result.a)} · ${winner}`;
       return line;
     }));
@@ -307,10 +316,10 @@ async function boot(){
     button('duel-rematch').hidden=!s.matchFinal;
     button('duel-rematch').disabled=!!own?.rematch||!other||!!other.departed;
     button('duel-forfeit').hidden=s.startMs===null||s.final||!!s.ownOutcome||!!draft.pending;
-    if(s.matchFinal)status.textContent=s.matchWinner===null?'Trận hòa':s.matchWinner===account.id?'Bạn thắng trận':'Bạn thua trận';
-    else if(s.final)status.textContent='Ván đã kết thúc. Hai người bấm Sẵn sàng để chơi tiếp.';
-    else if(s.startMs===null)status.textContent=other?'Hai người bấm Sẵn sàng để bắt đầu.':'Gửi mã phòng cho đối thủ.';
-    else status.textContent=s.ownOutcome==='solved'?'Đã giải xong. Đang chờ đối thủ.':s.ownOutcome==='forfeit'?'Bạn đã bỏ cuộc ở ván này.':'';
+    if(s.matchFinal)status.textContent=t(s.matchWinner===null?'Trận hòa':s.matchWinner===account.id?'Bạn thắng trận':'Bạn thua trận');
+    else if(s.final)status.textContent=t('Ván đã kết thúc. Hai người bấm Sẵn sàng để chơi tiếp.');
+    else if(s.startMs===null)status.textContent=t(other?'Hai người bấm Sẵn sàng để bắt đầu.':'Gửi mã phòng cho đối thủ.');
+    else status.textContent=t(s.ownOutcome==='solved'?'Đã giải xong. Đang chờ đối thủ.':s.ownOutcome==='forfeit'?'Bạn đã bỏ cuộc ở ván này.':'');
     save();
   }
   async function call(action:string,extra:Record<string,unknown>={}){
@@ -328,7 +337,7 @@ async function boot(){
       room=undefined;code='';origin=undefined;
       el('duel-lobby').hidden=false;el('duel-room').hidden=true;el('duel-opponent-panel').hidden=true;
       history.replaceState(null,'',location.pathname);
-      status.textContent=next.left?'Đã rời phòng.':'Phòng đã đóng.';
+      status.textContent=t(next.left?'Đã rời phòng.':'Phòng đã đóng.');
       return;
     }
     if(next.round!==room?.round||origin===undefined)origin=next.startMs===null?undefined:started+(performance.now()-started)/2+next.startMs+18000-next.serverNow;
@@ -404,7 +413,7 @@ async function boot(){
       durationMs:Number(select('duel-duration').value)*60000,currency,stake:currency?Number(select('duel-stake').value):0});
   };
   button('duel-copy').onclick=()=>{if(code)void navigator.clipboard.writeText(code).then(
-    ()=>{status.textContent='Đã sao chép mã phòng.';},()=>{status.textContent='Mã phòng: '+code;});};
+    ()=>{status.textContent=t('Đã sao chép mã phòng.');},()=>{status.textContent=t('Mã phòng: ')+code;});};
   button('duel-ready').onclick=()=>{void poll('ready');};
   button('duel-rematch').onclick=()=>{void poll('rematch');};
   button('duel-forfeit').onclick=()=>{void poll('forfeit');};
@@ -423,7 +432,7 @@ async function boot(){
     }
     if(s&&rendered===s.round&&canMove(s,time))controller?.unlockInput('race');
     else controller?.lockInput('race');
-    el('duel-clock').textContent=!s||origin===undefined?'—':s.final?'Kết thúc':time< -15000?`Bắt đầu sau ${Math.ceil((-15000-time)/1000)}`:time<0?`Inspection ${Math.ceil(-time/1000)}`:formatTime(Math.max(0,s.durationMs-time));
+    el('duel-clock').textContent=!s||origin===undefined?'—':s.final?t('Kết thúc'):time< -15000?`${t('Bắt đầu sau')} ${Math.ceil((-15000-time)/1000)}`:time<0?`Inspection ${Math.ceil(-time/1000)}`:formatTime(Math.max(0,s.durationMs-time));
     frame=requestAnimationFrame(draw);
   }
   if(invite)void enter('join',invite.toUpperCase());
