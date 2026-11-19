@@ -74,6 +74,11 @@ begin
   if p_action='create' then
     perform pg_advisory_xact_lock(hashtextextended(p_user::text,91));
     select name into strict player_name from public.profiles where id=p_user;
+    -- Closing a tab cannot guarantee delivery of its leave request. A new
+    -- room replaces the host's waiting rooms that nobody else has joined.
+    delete from public.one_on_one_matches
+      where owner_id=p_user and jsonb_array_length(players)=1
+        and start_ms is null and not locked;
     if (select count(*) from public.one_on_one_matches where owner_id=p_user and expires_ms>n)>=3 then
       raise exception 'Bạn đã mở quá nhiều phòng.';
     end if;
