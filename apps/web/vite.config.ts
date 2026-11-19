@@ -9,6 +9,7 @@ export default defineConfig({
         timeLimit: 'time-limit.html',
         champion: 'champion.html',
         account: 'account-access.html',
+        privacy: 'privacy.html',
         ...(process.env.VERCEL_ENV === 'preview' ? {skinLighting: 'skin-lighting-preview.html'} : {}),
       },
     },
