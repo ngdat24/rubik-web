@@ -6,6 +6,7 @@ import {accessUrl, accountLoginEnabled, createAuthClient, loginName} from './aut
 const status = document.querySelector<HTMLElement>('#access-status')!;
 const home = document.querySelector<HTMLAnchorElement>('#access-home')!;
 const finishPassword = document.querySelector<HTMLFieldSetElement>('#finish-password')!;
+const googleAttemptKey = 'rubik-google-auth-attempt';
 const modes = ['login','signup','forgot','link','finish','recovery','linked'] as const;
 type Mode = typeof modes[number];
 const panel = (name:Mode) => document.getElementById(name)!;
@@ -49,15 +50,25 @@ async function boot(): Promise<void> {
   if(!client){announce('Đăng nhập bằng mật khẩu chưa được bật.');return;}
   let {data:{session}}=await client.auth.getSession();
   let recoveryUser:string|undefined;
+  const googleCallback=mode==='google-sign-in'||mode==='google-link';
+  const googleNonce=new URLSearchParams(location.search).get('attempt');
+  const googleAttempt=googleCallback&&googleNonce?sessionStorage.getItem(googleAttemptKey):null;
+  if(googleCallback)sessionStorage.removeItem(googleAttemptKey);
   const callbackTypes:Record<string,string>={link:'email_change','signup-confirmed':'signup',recovery:'recovery'};
   const accessToken=emailCallback.get('access_token');
   const refreshToken=emailCallback.get('refresh_token');
   if(accessToken||refreshToken){
     callbackError=true;
-    if(accessToken&&refreshToken&&emailCallback.get('type')===callbackTypes[mode]){
+    const expectedEmailType=callbackTypes[mode];
+    if(accessToken&&refreshToken&&(googleCallback||
+      (expectedEmailType&&emailCallback.get('type')===expectedEmailType))){
       const {data:{user:verified}}=await client.auth.getUser(accessToken);
-      // Never replace a different account already open on this browser.
-      if(verified&&(!session||verified.id===session.user.id)){
+      const sameAccount=verified&&(!session||verified.id===session.user.id);
+      const validGoogleIdentity=verified?.identities?.some(identity=>identity.provider==='google');
+      const expectedGoogleAccount=mode==='google-link'
+        ? googleAttempt===googleNonce+':'+verified?.id&&session?.user.id===verified?.id
+        : googleAttempt===googleNonce+':sign-in'&&!session;
+      if(sameAccount&&(!googleCallback||(validGoogleIdentity&&expectedGoogleAccount))){
         const {data,error}=await client.auth.setSession({access_token:accessToken,refresh_token:refreshToken});
         if(!error&&data.session){
           session=data.session;
@@ -75,6 +86,31 @@ async function boot(): Promise<void> {
     if(error||!current||current.user.id!==user?.id)throw new Error(t('Phiên hồ sơ đã đổi hoặc hết hạn. Hãy tải lại trang.'));
     return current;
   };
+  for(const linking of [false,true]){
+    const button=document.querySelector<HTMLButtonElement>(linking?'#google-link':'#google-sign-in')!;
+    button.onclick=async()=>{
+      button.disabled=true;
+      announce('');
+      try{
+        const current=linking?await checkedSession():null;
+        if(linking&&!current?.user.is_anonymous)throw new Error();
+        const nonce=crypto.randomUUID();
+        const redirect=new URL(accessUrl(linking?'google-link':'google-sign-in'));
+        redirect.searchParams.set('attempt',nonce);
+        const options={redirectTo:redirect.href,skipBrowserRedirect:true};
+        sessionStorage.setItem(googleAttemptKey,nonce+':'+(current?.user.id??'sign-in'));
+        const {data,error}=linking
+          ? await client.auth.linkIdentity({provider:'google',options})
+          : await client.auth.signInWithOAuth({provider:'google',options});
+        if(error||!data.url)throw new Error();
+        location.assign(data.url);
+      }catch{
+        sessionStorage.removeItem(googleAttemptKey);
+        announce('Không thể tiếp tục với Google. Hãy thử lại.');
+        button.disabled=false;
+      }
+    };
+  }
 
   bind('login',async fields=>{
     const response=await fetch('/api/session-login',{method:'POST',headers:{'Content-Type':'application/json'},
@@ -143,6 +179,7 @@ async function boot(): Promise<void> {
   };
 
   announce('');
+  if(googleCallback&&callbackError)announce('Không thể hoàn tất xác thực Google. Hãy thử lại.');
   if(mode==='recovery'){
     if(recoveryUser&&user?.id===recoveryUser){show('recovery');return;}
     announce('Liên kết đặt lại đã hết hạn hoặc không hợp lệ. Hãy yêu cầu liên kết mới.');
@@ -151,13 +188,13 @@ async function boot(): Promise<void> {
   }
   if(mode==='forgot'){show('forgot');return;}
   if(!session||!user){
-    if(callbackError||mode==='signup-confirmed'||mode==='link')announce('Liên kết không tải được phiên. Hãy thử mở lại email hoặc đăng nhập.');
+    if(!googleCallback&&(callbackError||mode==='signup-confirmed'||mode==='link'))announce('Liên kết không tải được phiên. Hãy thử mở lại email hoặc đăng nhập.');
     else if(new URLSearchParams(location.search).get('password')==='changed')announce('Đã đổi mật khẩu. Hãy đăng nhập lại.');
     show(mode==='signup'?'signup':'login');
     return;
   }
   if(user.is_anonymous||!confirmed){
-    if(callbackError)announce('Liên kết không còn hợp lệ. Bạn có thể gửi lại email xác minh.');
+    if(callbackError&&!googleCallback)announce('Liên kết không còn hợp lệ. Bạn có thể gửi lại email xác minh.');
     show('link');
     return;
   }

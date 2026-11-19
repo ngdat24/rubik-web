@@ -16,6 +16,7 @@
         <label>Tên đăng nhập<input name="name" autocomplete="username" required maxlength="30" /></label>
         <label>Mật khẩu<input name="password" type="password" autocomplete="current-password" required maxlength="72" /></label>
         <button type="submit">Đăng nhập</button>
+        <button id="google-sign-in" type="button">Đăng nhập với Google</button>
         <a data-mode="forgot" href="?mode=forgot">Quên mật khẩu?</a>
         <a data-mode="signup" href="?mode=signup">Chưa có tài khoản? Đăng ký</a>
       </form>
@@ -37,6 +38,7 @@
       <form method="post" id="link" hidden>
         <h2>Liên kết tài khoản cũ</h2>
         <p>Xác minh email trước. Sau đó bạn sẽ đặt mật khẩu và tên đăng nhập riêng.</p>
+        <button id="google-link" type="button">Liên kết với Google</button>
         <label>Email<input name="email" type="email" autocomplete="email" required maxlength="254" /></label>
         <button type="submit">Gửi email xác minh</button>
       </form>
