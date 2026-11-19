@@ -8,6 +8,7 @@ export default defineConfig({
         race: 'race.html',
         timeLimit: 'time-limit.html',
         champion: 'champion.html',
+        account: 'account-access.html',
         ...(process.env.VERCEL_ENV === 'preview' ? {skinLighting: 'skin-lighting-preview.html'} : {}),
       },
     },
