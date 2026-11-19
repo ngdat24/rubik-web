@@ -31,6 +31,10 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
           if(value?.code==='23505')throw new HttpError(409,path.startsWith('/rest/v1/profiles?')||path==='/rest/v1/rpc/claim_account_login_name'?'Tên này đã có người dùng. Hãy chọn tên khác.':'ID đã được sử dụng.');
           if(value?.code==='P0001'&&path==='/rest/v1/rpc/claim_account_login_name'&&value.message==='confirmed_password_required')
             throw new HttpError(403,'Hãy xác minh email và đặt mật khẩu trước.');
+          if(value?.code==='P0001'&&path==='/rest/v1/rpc/send_community_chat'){
+            if(value.message==='chat_profile_required')throw new HttpError(403,'Hãy liên kết Google và đặt tên hiển thị để gửi tin.');
+            if(value.message==='chat_rate_limit')throw new HttpError(429,'Chờ 3 giây giữa hai tin nhắn.');
+          }
           if(value?.code==='40001')throw new HttpError(409,'Dữ liệu đã thay đổi trên thiết bị khác. Hãy tải bản server trước khi sửa tiếp.');
           if(value?.code==='54000')throw new HttpError(413,'Đã đạt giới hạn 10.000 bản ghi mỗi tài khoản.');
           if(value?.code==='P0001'&&path.startsWith('/rest/v1/rpc/champion_')&&Object.hasOwn(championErrors,value.message))
@@ -132,7 +136,17 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
         const rows=await request('/rest/v1/rpc/'+rpc,{method:'POST',body:{p_size:size}});
         res.setHeader('Cache-Control','public, s-maxage=15, stale-while-revalidate=15');return send(200,{rows});
       }
-      if(!['player','solves','account','race','time-limit','practice','wallet','quests','skins','shop','champion','login-name'].includes(route)||!['GET','POST','DELETE'].includes(req.method))throw new HttpError(404,'Không có API này.');
+      if(route==='chat'&&req.method==='GET'){
+        const before=url.searchParams.get('before'),after=url.searchParams.get('after');
+        if((before&&after)||[before,after].some(v=>v!==null&&!/^[1-9]\d{0,14}$/.test(v)))throw new HttpError(400,'Vị trí tin nhắn không hợp lệ.');
+        const query=new URLSearchParams({select:'id,display_name,message,created_at',limit:'15',
+          order:after?'id.asc':'id.desc',created_at:'gt.'+new Date(Date.now()-172800000).toISOString()});
+        if(before||after)query.set('id',before?'lt.'+before:'gt.'+after);
+        const rows=await request('/rest/v1/community_chat?'+query);
+        return send(200,{rows:after?rows:rows.reverse()});
+      }
+      if(route==='chat'&&req.method!=='POST')throw new HttpError(405,'Phương thức không hợp lệ.');
+      if(!['player','solves','account','race','time-limit','practice','wallet','quests','skins','shop','champion','login-name','chat'].includes(route)||!['GET','POST','DELETE'].includes(req.method))throw new HttpError(404,'Không có API này.');
       const token=/^Bearer (\S+)$/.exec(req.headers.authorization??'')?.[1];if(!token||token.length>8192)throw new HttpError(401,'Cần phiên hồ sơ hợp lệ.');
       const user=await request('/auth/v1/user',{auth:token});if(!user?.id||(!user.email_confirmed_at&&user.is_anonymous!==true))throw new HttpError(401,'Phiên hồ sơ không hợp lệ. Hãy tải lại trang.');
       const allowed=await request('/rest/v1/rpc/consume_quota',{method:'POST',body:{p_user:user.id,p_kind:req.method==='GET'?'read':'write'}});
@@ -143,6 +157,11 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
         else{let length=0;const chunks=[];for await(const chunk of req){length+=chunk.length;if(length>300000)throw new HttpError(413,'Dữ liệu quá lớn.');chunks.push(chunk);}body=JSON.parse(Buffer.concat(chunks).toString('utf8'));}
         if(!body||typeof body!=='object'||Array.isArray(body))throw new HttpError(400,'Dữ liệu không hợp lệ.');
         if(Buffer.byteLength(JSON.stringify(body))>300000)throw new HttpError(413,'Dữ liệu quá lớn.');
+      }
+      if(route==='chat'){
+        const message=typeof body.message==='string'?body.message.trim():'';
+        if(!message||Array.from(message).length>300||message.includes('\u0000'))throw new HttpError(400,'Tin nhắn cần từ 1 đến 300 ký tự.');
+        return send(201,await request('/rest/v1/rpc/send_community_chat',{method:'POST',body:{p_user:user.id,p_message:message}}));
       }
       if(route==='champion'){
         if(!['GET','POST'].includes(req.method))throw new HttpError(405,'Phương thức không hợp lệ.');
