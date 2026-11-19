@@ -61,15 +61,7 @@
 <section class="timer-panel" aria-label="Đồng hồ giải"><div class="time-display"><span class="eyebrow">THỜI GIAN</span><output id="timer-readout" aria-label="Thời gian">0.00</output></div><div class="timer-actions"><p id="timer-phase" role="status" aria-live="polite">Chờ scramble</p><div><button id="timer-start" type="button">Chuẩn bị scramble</button><button id="timer-cancel" type="button" disabled>Hủy lượt</button></div><p id="timer-message" role="status"></p></div></section>
 <div class="shortcut-strip"><span><kbd>Space</kbd> chuẩn bị / bắt đầu</span><span><kbd>Esc</kbd> hủy lượt</span></div>
 </section><div class="practice-community">
-<section class="community-chat" aria-labelledby="chat-title">
-  <h2 id="chat-title">Kênh chat</h2>
-  <div id="chat-messages" tabindex="0" aria-label="Tin nhắn"></div>
-  <p id="chat-status" role="status" hidden></p>
-  <form id="chat-form">
-    <input id="chat-input" aria-label="Tin nhắn" placeholder="Ấn để trò chuyện" maxlength="300" autocomplete="off" required />
-    <button type="submit">Gửi</button>
-  </form>
-</section>
+<div class="shared-community-chat" data-community-chat></div>
 <aside class="leaderboard-panel" aria-label="Bảng xếp hạng"><h2>Bảng xếp hạng</h2><p id="player-label"></p><label for="leaderboard-size">Khối</label> <select id="leaderboard-size"><option value="2">2×2</option><option value="3" selected>3×3×3</option></select><table class="leaderboard-table"><thead><tr><th scope="col">Hạng</th><th scope="col">Tên</th><th scope="col">Thời gian</th></tr></thead><tbody id="leaderboard-rows"></tbody></table>
 <details id="weekly-board"><summary>Bảng xếp hạng tuần</summary>
   <div class="toolbar">

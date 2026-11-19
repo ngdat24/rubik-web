@@ -58,6 +58,8 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
             if(value.message==='profile_required')throw new HttpError(403,'Đặt tên hồ sơ để sử dụng kho skin.');
             if(value.message==='skin_not_owned')throw new HttpError(409,'Bạn chưa sở hữu skin này.');
           }
+          if(value?.code==='P0001'&&path==='/rest/v1/rpc/one_on_one_action')
+            throw new HttpError(409,value.message==='insufficient_balance'?'Một người chơi không đủ tiền đặt cược.':value.message);
           if(value?.code==='PGRST202'&&path==='/rest/v1/rpc/lobby_action_with_nameplates')
             return request('/rest/v1/rpc/lobby_action_with_escrow',{method,body,auth});
           if(value?.code==='PGRST202'&&path==='/rest/v1/rpc/lobby_action_with_escrow'&&
@@ -146,7 +148,7 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
         return send(200,{rows:after?rows:rows.reverse()});
       }
       if(route==='chat'&&req.method!=='POST')throw new HttpError(405,'Phương thức không hợp lệ.');
-      if(!['player','solves','account','race','time-limit','practice','wallet','quests','skins','shop','champion','login-name','chat'].includes(route)||!['GET','POST','DELETE'].includes(req.method))throw new HttpError(404,'Không có API này.');
+      if(!['player','solves','account','race','race-match','time-limit','practice','wallet','quests','skins','shop','champion','login-name','chat'].includes(route)||!['GET','POST','DELETE'].includes(req.method))throw new HttpError(404,'Không có API này.');
       const token=/^Bearer (\S+)$/.exec(req.headers.authorization??'')?.[1];if(!token||token.length>8192)throw new HttpError(401,'Cần phiên hồ sơ hợp lệ.');
       const user=await request('/auth/v1/user',{auth:token});if(!user?.id||(!user.email_confirmed_at&&user.is_anonymous!==true))throw new HttpError(401,'Phiên hồ sơ không hợp lệ. Hãy tải lại trang.');
       const allowed=await request('/rest/v1/rpc/consume_quota',{method:'POST',body:{p_user:user.id,p_kind:req.method==='GET'?'read':'write'}});
@@ -214,8 +216,14 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
           p_user:user.id,p_equip:equip,p_skin:skin
         }}));
       }
-      if(route==='race'||route==='time-limit'){
+      if(route==='race-match'||route==='race'||route==='time-limit'){
         if(!['GET','POST'].includes(req.method))throw new HttpError(405,'Phương thức không hợp lệ.');
+        if(route==='race-match'){
+          if(env.ONE_ON_ONE_MATCHES_ENABLED!=='1')throw new HttpError(404,'Chế độ này chưa mở.');
+          const {handleOneOnOne}=await import('./one-on-one.mjs');
+          try{return send(200,await handleOneOnOne({request,user,method:req.method,body,url}));}
+          catch(error){if(error instanceof HttpError)throw error;throw new HttpError(400,error.message??'Không xử lý được trận đấu.');}
+        }
         try{return send(200,await (route==='race'?handleRace:handleTimeLimit)({request,user,method:req.method,body,url}));}
         catch(error){if(error instanceof HttpError)throw error;throw new HttpError(400,error.message??'Không xử lý được trận đấu.');}
       }
@@ -224,6 +232,8 @@ export function createCloudHandler({env=process.env,fetcher=fetch}={}){
         // shared rooms containing this account as part of data deletion too.
         await request('/rest/v1/race_rooms?players=cs.'+encodeURIComponent(JSON.stringify([{id:user.id}])) ,{method:'DELETE'});
         await request('/rest/v1/race_lobbies?players=cs.'+encodeURIComponent(JSON.stringify([{id:user.id}])) ,{method:'DELETE'});
+        if(env.ONE_ON_ONE_MATCHES_ENABLED==='1')
+          await request('/rest/v1/rpc/one_on_one_forget',{method:'POST',body:{p_user:user.id}});
         await request('/auth/v1/admin/users/'+encodeURIComponent(user.id),{method:'DELETE'});return send(200,{ok:true});
       }
       if(route==='player'){

@@ -9,14 +9,23 @@
 #chat-form { display: flex; align-items: center; gap: 6px; padding: 8px; border-top: 1px solid var(--line); }
 #chat-input { flex: 1; min-width: 0; width: 100%; }
 #chat-form button { flex: none; }
+.shared-community-chat { min-width: 0; align-self: start; }
+.chat-mobile-toggle { display: none; }
+.leaderboard-with-chat { display: grid; grid-template-columns: minmax(0,1fr) 302px; gap: 18px; }
 @media (min-width: 1101px) {
   .practice-workspace { grid-template-columns: 236px minmax(0, 1fr) 302px; }
 }
 @media (min-width: 621px) and (max-width: 1100px) {
   .practice-community { grid-column: 2; }
   .practice-community .leaderboard-panel { grid-column: auto; }
+  .time-limit-community { grid-column: 1 / -1; }
 }
 @media (max-width: 620px) {
   .practice-community { order: 1; width: 100%; }
   #chat-input { font-size: 16px; }
+  .leaderboard-with-chat { display: flex; flex-direction: column; }
+  .shared-community-chat { width: 100%; }
+  .shared-community-chat h2 { display: none; }
+  .chat-mobile-toggle { display: block; width: 100%; text-align: left; border: 0; }
+  .chat-mobile-toggle[aria-expanded=false] + .chat-content { display: none; }
 }
