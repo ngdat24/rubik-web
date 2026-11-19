@@ -165,6 +165,7 @@ async function boot(){
   };
 
   let room:Snapshot|undefined, code='', origin:number|undefined, rendered='', busy=false, draft:Draft={preEvents:[],events:[]};
+  let accessToken='';
   let renderer:CubeRenderer|undefined, opponent:CubeRenderer|undefined, controller:CubeController|undefined;
   let effects:ReturnType<typeof bindSkinEffects>|undefined, disposed=false, frame=0, lastProgress='', opponentState='';
   let graphicsKey='', loading=false, pendingAction:()=>void=()=>{};
@@ -314,8 +315,9 @@ async function boot(){
   }
   async function call(action:string,extra:Record<string,unknown>={}){
     const started=performance.now();
+    accessToken=await account.token();
     const response=await fetch(action==='get'?`/api/race-match?id=${code}`:'/api/race-match',{
-      method:action==='get'?'GET':'POST',headers:{Authorization:'Bearer '+await account.token(),'Content-Type':'application/json'},
+      method:action==='get'?'GET':'POST',headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
       ...(action==='get'?{}:{body:JSON.stringify({id:code,action,round:room?.round,mode:room?.nextMode,...extra})}),
       signal:AbortSignal.timeout(9000)
     });
@@ -428,6 +430,12 @@ async function boot(){
   const timer=setInterval(()=>{if(!entering)void poll();},1000);
   draw();
   window.addEventListener('pagehide',event=>{
+    if(room?.owner===account.id&&code&&accessToken){
+      void fetch('/api/race-match',{
+        method:'POST',headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
+        body:JSON.stringify({id:code,action:'leave'}),keepalive:true
+      }).catch(()=>{/* An unreachable server still expires inactive rooms. */});
+    }
     if(event.persisted)return;
     disposed=true;clearInterval(timer);cancelAnimationFrame(frame);
     for(const detach of detachers)detach();

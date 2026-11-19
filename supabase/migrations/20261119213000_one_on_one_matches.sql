@@ -118,6 +118,10 @@ begin
       r.locked:=false;
       r.round_final:=true;
     end if;
+    if p_user=r.owner_id then
+      delete from public.one_on_one_matches where id=p_code;
+      return jsonb_build_object('gone',true);
+    end if;
     r.players:=jsonb_set(r.players,array[i::text],me||'{"departed":true}'::jsonb);
   elsif p_action='mode' then
     if r.owner_id<>p_user or (r.start_ms is not null and not r.round_final and n>=r.start_ms+18000) then
