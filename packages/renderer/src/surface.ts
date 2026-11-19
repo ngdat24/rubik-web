@@ -2,6 +2,7 @@ import {CanvasTexture, Color, MeshStandardMaterial, SRGBColorSpace, TextureLoade
 import type {Texture} from 'three';
 
 export interface CubeSurface {
+  ambientLightIntensity?: number;
   body?: {color:number; roughness:number; metalness:number; map?:string};
   stickers?: {
     roughness:number; metalness:number; opacity:number; pattern?:string;
