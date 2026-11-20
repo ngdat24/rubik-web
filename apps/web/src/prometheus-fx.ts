@@ -1,12 +1,12 @@
 import {AdditiveBlending,BufferAttribute,BufferGeometry,Color,DoubleSide,DynamicDrawUsage,Group,Mesh,MeshBasicMaterial,Points,ShaderMaterial,TorusGeometry,Vector3} from 'three';
-import type {Camera,Scene,WebGLRenderer} from 'three';
+import type {Camera,Object3D,WebGLRenderer} from 'three';
 import {parseMove} from '@rubik/engine';
 import {rotationFor} from '@rubik/renderer';
 import {prometheus as config} from './prometheus-config.js';
 import {bloomAmount} from './prometheus-bloom.js';
 
 interface Spark {p:Vector3;v:Vector3;birth:number;life:number;size:number}
-export function prometheusFx(scene:Scene,reduced=matchMedia('(prefers-reduced-motion: reduce)').matches){
+export function prometheusFx(scene:Object3D,reduced=matchMedia('(prefers-reduced-motion: reduce)').matches){
   let enabled=!reduced;
   const root=new Group();scene.add(root);
   const ribbons:{mesh:Mesh<BufferGeometry,ShaderMaterial>;born:number;axis:Vector3;center:Vector3;angle:number}[]=[];
@@ -27,10 +27,13 @@ export function prometheusFx(scene:Scene,reduced=matchMedia('(prefers-reduced-mo
   const waveGeometry=new TorusGeometry(1,.055,6,64),waveMaterial=new MeshBasicMaterial({color:0xffb703,transparent:true,opacity:0,depthWrite:false,blending:AdditiveBlending});
   const wave=new Mesh(waveGeometry,waveMaterial);wave.rotation.x=Math.PI/2;wave.visible=false;root.add(wave);
   const removeRibbon=()=>{const item=ribbons.shift();if(item){root.remove(item.mesh);item.mesh.geometry.dispose();item.mesh.material.dispose();}};
-  function turn(move:string,now:number,camera:Vector3){
+  function turn(move:string,now:number,camera:Vector3,size=3,turnAngle?:number){
     if(!enabled)return;
-    const parsed=parseMove(move,3),{axis,angle}=rotationFor(parsed),normal=new Vector3(...axis);
-    const coordinate=2-(parsed.layerStart+parsed.layerEnd)/2,center=normal.clone().multiplyScalar(coordinate);
+    const parsed=parseMove(move,size),rotation=rotationFor(parsed),normal=new Vector3(...rotation.axis);
+    const angle=turnAngle??rotation.angle;
+    const cell=3/size;
+    const coordinate=((size+1)/2-(parsed.layerStart+parsed.layerEnd)/2)*cell;
+    const center=normal.clone().multiplyScalar(coordinate);
     const u=new Vector3(...(parsed.axis==='x'?[0,1,0] as const:[1,0,0] as const));
     const v=new Vector3().crossVectors(normal,u),facing=camera.clone().sub(center);
     const startAngle=Math.atan2(facing.dot(v),facing.dot(u)),sign=Math.sign(angle);
@@ -58,7 +61,7 @@ export function prometheusFx(scene:Scene,reduced=matchMedia('(prefers-reduced-mo
       tangent.y+=config.turn.buoyancy;
       sparks.push({p,v:tangent,birth:now,life:config.turn.life[0]+Math.random()*(config.turn.life[1]-config.turn.life[0]),size:2+Math.random()*3.5});
     }
-    const cut=center.clone().addScaledVector(normal,coordinate===0?0:-Math.sign(coordinate)*.5),verts:number[]=[];
+    const cut=center.clone().addScaledVector(normal,-Math.sign(coordinate)*cell/2),verts:number[]=[];
     for(const [a,b] of [[[-1.5,-1.5],[1.5,-1.5]],[[1.5,-1.5],[1.5,1.5]],[[1.5,1.5],[-1.5,1.5]],[[-1.5,1.5],[-1.5,-1.5]]] as const){
       const pa=cut.clone().addScaledVector(u,a[0]).addScaledVector(v,a[1]),pb=cut.clone().addScaledVector(u,b[0]).addScaledVector(v,b[1]);
       const n=new Vector3().subVectors(pb,pa).cross(normal).normalize().multiplyScalar(.009);
@@ -103,8 +106,9 @@ export function prometheusFx(scene:Scene,reduced=matchMedia('(prefers-reduced-mo
     const fade=Math.min(1,(config.solve.duration-elapsed)/500);
     return (elapsed<250?2.8*(1-elapsed/250):.9+1.9*bloomAmount(elapsed))*fade;
   }
-  const clear=()=>{while(ribbons.length)removeRibbon();for(const f of flashes){root.remove(f.mesh);f.mesh.geometry.dispose();f.mesh.material.dispose();}flashes.length=0;sparks=[];solveStart=-Infinity;wave.visible=false;};
+  const clear=()=>{while(ribbons.length)removeRibbon();for(const f of flashes){root.remove(f.mesh);f.mesh.geometry.dispose();f.mesh.material.dispose();}flashes.length=0;sparks=[];particleGeometry.setDrawRange(0,0);solveStart=-Infinity;wave.visible=false;};
   return {turn,solve,update,clear,
+    get turnActive(){return ribbons.length>0||flashes.length>0||sparks.length>0;},
     prewarm(renderer:WebGLRenderer,camera:Camera){const visible=wave.visible;wave.visible=true;renderer.compile(scene,camera);wave.visible=visible;},
     setEnabled(value:boolean){enabled=value&&!reduced;if(!enabled)clear();},dispose(){clear();particleGeometry.dispose();particleMaterial.dispose();waveGeometry.dispose();waveMaterial.dispose();scene.remove(root);}};
 }
