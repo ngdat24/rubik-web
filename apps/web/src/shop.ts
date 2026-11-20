@@ -151,6 +151,7 @@ export function mountShop(account:CloudAccount|undefined, equip:(appearance?:App
     let renderer:CubeRenderer|undefined;
     let controller:CubeController|undefined;
     try {
+      const prometheus=skin.id==='s1_red_crimson_core'?await import('./prometheus-live.js'):undefined;
       const surface = skinSurface(skin.appearance);
       if (surface && lowFx()) delete surface.pulse;
       const championDesign=championSize?await import('./champion-design.js'):undefined;
@@ -161,11 +162,19 @@ export function mountShop(account:CloudAccount|undefined, equip:(appearance?:App
       const motion=design?await import('./champion-motion.js'):undefined;
       if(revision!==previewRevision||abort.signal.aborted){controller.dispose();return;}
       const championMotion=motion&&design?motion.mountChampionMotion(previewCube,renderer,controller,design.interaction_fx.sound_file,()=>!lowFx(),championSize):undefined;
+      const livePrometheus=prometheus?.mountPrometheus(previewCube,renderer,controller,lowFx);
+      previewCube.classList.toggle('prometheus-gameplay',Boolean(livePrometheus));
+      const core=livePrometheus?button(t('Mở lớp xem lõi'),()=>{
+        const open=livePrometheus.toggleCore();
+        core!.textContent=t(open?'Đóng lớp trên':'Mở lớp xem lõi');
+        core!.setAttribute('aria-pressed',String(open));
+      }):undefined;
+      if(core){core.setAttribute('aria-pressed','false');previewClose.before(core);}
       const detach = attachDrag(renderer,controller,()=>{},championMotion?.commit);
       const detachKeys = attachKeyboard(controller,()=>{},undefined,undefined,previewCube);
-      const effects = bindSkinEffects(renderer,lowFx()?undefined:skin.appearance);
-      renderer.onMoveAnimated = () => effects.play();
-      releasePreview = () => {championMotion?.dispose();effects.dispose();detachKeys();detach();controller?.dispose();};
+      const effects = livePrometheus?undefined:bindSkinEffects(renderer,lowFx()?undefined:skin.appearance);
+      renderer.onMoveAnimated = () => effects?.play();
+      releasePreview = () => {core?.remove();livePrometheus?.dispose();previewCube.classList.remove('prometheus-gameplay');championMotion?.dispose();effects?.dispose();detachKeys();detach();controller?.dispose();};
       previewCube.focus();
     } catch {
       if (controller) controller.dispose(); else renderer?.dispose();
