@@ -49,18 +49,23 @@ export function prometheusFx(scene:Object3D,reduced=matchMedia('(prefers-reduced
     for(let i=0;i<=segments;i++){
       const t=i/segments,theta=startAngle-sign*(1-t)*span;
       const width=(ice ? .41 : .13)*scale*config.turn.widthScale*Math.sin(Math.PI*t)*(.65+.35*t);
-      for(const side of [-1,1])vertex(point(theta,1.88+width*side,ice?width*side*.55:0),1-t,side,0);
+      const flameExtent=ice ? 2.35 : 1;
+      for(const side of [-1,1]){
+        const offset=width*side*flameExtent;
+        vertex(point(theta,1.88+offset,ice?offset*.55:0),1-t,side*flameExtent,0);
+      }
       if(i<segments){const k=i*2;indices.push(k,k+1,k+2,k+1,k+3,k+2);}
     }
     if(ice)for(const [along,height,length,width,white] of [
       [.09,.13,.14,.085,0],[.19,-.18,.19,.09,1],[.28,.22,.17,.12,0],
       [.39,.14,.20,.105,1],[.47,-.19,.16,.105,0],[.56,.25,.13,.075,1],
       [.65,-.13,.12,.07,1],[.74,.15,.17,.08,0],[.83,-.15,.16,.09,1],
-      [.87,.22,.22,.12,1],[.94,-.04,.19,.10,0],[.98,.15,.10,.064,1],
+      [.87,.25,.22,.12,1],[.94,-.12,.19,.10,0],[.98,.22,.10,.064,1],
+      [.925,.065,.29,.145,1],
     ] as const){
       const theta=startAngle-sign*(1-along)*span;
       const corner=[[-length, -width*.16],[-length*.15,width],[length,width*.24],[length*.13,-width]] as const;
-      const shardPoint=(angle:number,y:number)=>point(theta+sign*angle*1.25*scale,1.97+y*.55*scale,(height*1.2+y*1.25)*scale);
+      const shardPoint=(angle:number,y:number)=>point(theta+sign*angle*1.25*scale,2.15+y*.55*scale,(height*1.2+y*1.25)*scale);
       const mid=shardPoint(0,0);
       for(let i=0;i<4;i++){
         const [x,y]=corner[i]!,[nx,ny]=corner[(i+1)%4]!;
@@ -72,6 +77,12 @@ export function prometheusFx(scene:Object3D,reduced=matchMedia('(prefers-reduced
           for(const p of [a,b,c])vertex(p,1-along,0,palette);
           indices.push(k,k+1,k+2);
         }
+        const flame=ages.length;
+        vertex(outer,i/4,0,5);
+        vertex(next,(i+1)/4,0,5);
+        vertex(shardPoint(1.85*x,1.85*y),i/4,1,5);
+        vertex(shardPoint(1.85*nx,1.85*ny),(i+1)/4,1,5);
+        indices.push(flame,flame+1,flame+2,flame+1,flame+3,flame+2);
       }
     }
     const geometry=new BufferGeometry();geometry.setAttribute('position',new BufferAttribute(new Float32Array(positions),3));geometry.setAttribute('age',new BufferAttribute(new Float32Array(ages),1));geometry.setIndex(indices);
@@ -83,15 +94,31 @@ export function prometheusFx(scene:Object3D,reduced=matchMedia('(prefers-reduced
       vertexShader:ice?
         'attribute float age,across,facet;varying float t,w,f;void main(){t=age;w=across;f=facet;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}':
         'attribute float age;varying float t;void main(){t=age;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-      fragmentShader:ice?`uniform float fade;varying float t,w,f;void main(){
-        vec3 navy=vec3(.02,.10,.32),blue=vec3(.05,.41,1.),cyan=vec3(.10,.88,1.),white=vec3(.95,1.,1.);
+      fragmentShader:ice?`uniform float fade;varying float t,w,f;
+      float flameCoverage(float distance,float phase,float side){
+        float motion=(1.-fade)*6.;
+        float curl=phase*56.548668+side*5.-motion;
+        float tongues=pow(.5+.5*sin(curl),2.2);
+        float wisps=pow(.5+.5*sin(phase*94.24778-side*8.-motion*1.6),3.);
+        float crest=.24+.49*tongues+.20*wisps;
+        return (1.-smoothstep(crest*.62,crest,distance))*(.88-.34*distance);
+      }
+      void main(){
+        vec3 navy=vec3(.025,.13,.39),blue=vec3(.07,.49,1.),cyan=vec3(.16,.94,1.),white=vec3(.98,1.,1.);
         float edge=abs(w);
         vec3 c=f>3.5?white:f>2.5?cyan:f>1.5?blue:navy;
         float alpha=fade;
-        if(f<.5){
+        if(f>4.5){
+          c=mix(mix(white,cyan,smoothstep(0.,.36,w)),blue,smoothstep(.26,.88,w));
+          alpha*=max(.61*(1.-smoothstep(0.,.43,w)),flameCoverage(w,t,w));
+        }else if(f<.5){
           c=edge>.72?blue:edge>.64?navy:edge>.43?blue:edge>.14?cyan:white;
           alpha*=1.-.28*smoothstep(.65,1.,t);
-          if(edge>.72)alpha*=.48*(1.-smoothstep(.72,1.,edge));
+          if(edge>.72){
+            float distance=(edge-.72)/1.63;
+            c=mix(mix(white,cyan,smoothstep(0.,.32,distance)),blue,smoothstep(.24,.88,distance));
+            alpha*=flameCoverage(distance,t,w);
+          }
         }
         gl_FragColor=vec4(c,alpha);
       }`:`uniform float fade;varying float t;void main(){vec3 c;float alpha;
@@ -114,7 +141,7 @@ export function prometheusFx(scene:Object3D,reduced=matchMedia('(prefers-reduced
       for(const p of [pa.clone().add(n),pa.clone().sub(n),pb.clone().add(n),pa.clone().sub(n),pb.clone().sub(n),pb.clone().add(n)])verts.push(...p.toArray());
     }
     const flashGeo=new BufferGeometry();flashGeo.setAttribute('position',new BufferAttribute(new Float32Array(verts),3));
-    const flash=new Mesh(flashGeo,new MeshBasicMaterial({color:ice?0x71e5ff:0xffb703,transparent:true,opacity:1,side:DoubleSide,depthWrite:false,blending:AdditiveBlending}));
+    const flash=new Mesh(flashGeo,new MeshBasicMaterial({color:ice?0x8ef0ff:0xffb703,transparent:true,opacity:1,side:DoubleSide,depthWrite:false,blending:AdditiveBlending}));
     root.add(flash);flashes.push({mesh:flash,born:now});
     sparks=sparks.slice(-256);
   }

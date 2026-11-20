@@ -14,6 +14,7 @@ interface ChampionConfig extends Appearance {
 
 export const championAssets='/assets/skins/rank_gold_apex_chrono_01/';
 const champion2Assets='/assets/skins/rank_gold_apex_chrono_2x2_01/';
+export const championIceSound=champion2Assets+'champion-ice-turn.wav';
 export const championSizeAssets=(size:ChampionSize)=>size===2?champion2Assets:championAssets;
 export const championClaimKey=(size:ChampionSize)=>size===2?'rubik.champion.local-claim.2x2.v1':'rubik.champion.local-claim.v1';
 export const championFaces=['U','R','F','D','L','B'] as const;
@@ -35,7 +36,7 @@ export async function loadChampionDesign(size:ChampionSize=3):Promise<ChampionCo
   if(size===2){
     return {...design,name:design.name+' 2×2',interaction_fx:{
       ...design.interaction_fx,trail_effect_id:null,sound_pack_id:null,
-      sound_file:'' // Champion 2×2 synthesizes its turn sound.
+      sound_file:championIceSound
     }};
   }
   return design;
