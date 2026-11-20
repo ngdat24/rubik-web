@@ -4,6 +4,7 @@ import {
   AmbientLight, Box3, BoxGeometry, CylinderGeometry, DirectionalLight, EdgesGeometry, Group, LineBasicMaterial, LineSegments, Mesh, MeshPhysicalMaterial, MeshStandardMaterial, OctahedronGeometry,
   Raycaster, Vector2, Plane, PerspectiveCamera, Scene, Shape, ShapeGeometry, SRGBColorSpace, TorusGeometry, Vector3, WebGLRenderer,
 } from 'three';
+import type {Object3D} from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { parseMove } from '@rubik/engine';
 import type { Move } from '@rubik/engine';
@@ -21,6 +22,15 @@ import {mouseOrbit} from './mouse-orbit.js';
 
 export interface RendererOptions extends LayoutOptions { size?: number; stickerShape?: 'hexagon'|'stone'; stickerCornerRatio?:number; theme?: ColorTheme; surface?: CubeSurface; measurePerformance?: boolean; instancing?: boolean; centerCornerRatio?: number; coreMagnetColor?: number; fillLightIntensity?: number; resinCoreColor?: number; coreGemColor?: number; detailSize?: 2|3; optimize?: boolean }
 export interface MoveSnapshot { move: Move; stateAfter: Uint8Array }
+export interface TurnFrame {
+  turn: MoveSnapshot;
+  axis: ReturnType<typeof rotationFor>['axis'];
+  angle: number;
+  targetAngle: number;
+  progress: number;
+  halfEdge: number;
+}
+type TurnEffect = (frame: TurnFrame | undefined, camera: PerspectiveCamera) => void;
 interface PreparedMove extends MoveSnapshot {
   rotation: ReturnType<typeof rotationFor>;
   selection: ReturnType<typeof layerSlots>;
@@ -94,6 +104,7 @@ export class CubeRenderer {
   private readonly rotationAxis = new Vector3();
   private queue: PreparedMove[] = [];
   private active: { item: PreparedMove; progress: number; lastFrameTime: number | undefined; startAngle?: number } | undefined;
+  private turnEffect: TurnEffect | undefined;
   private dragAngle: number | undefined;
   private msPerQuarterTurn = 150;
   private instant = false;
@@ -274,6 +285,17 @@ export class CubeRenderer {
   copyCameraTo(camera: PerspectiveCamera): void {
     this.camera.updateMatrixWorld();
     camera.copy(this.camera);
+  }
+
+  attachTurnEffect(object: Object3D, update: TurnEffect): () => void {
+    this.scene.add(object);
+    this.turnEffect = update;
+    this.requestDraw();
+    return () => {
+      this.scene.remove(object);
+      if (this.turnEffect === update) this.turnEffect = undefined;
+      this.requestDraw();
+    };
   }
 
   getViewFaces() {
@@ -695,6 +717,16 @@ export class CubeRenderer {
     this.notifyIdle();
     if (this.disposed) return;
     if(!this.mouseCamera.active())this.controls.update();
+    if (this.turnEffect) {
+      const active = this.active;
+      const start = active?.startAngle ?? 0;
+      this.turnEffect(active && {
+        turn: active.item, axis: active.item.rotation.axis,
+        angle: start + (active.item.rotation.angle - start) * animationProgress(active.progress, 1),
+        targetAngle: active.item.rotation.angle, progress: active.progress,
+        halfEdge: (this.layoutOptions.edgeLength ?? 3) / 2,
+      }, this.camera);
+    }
     this.surfaceMaterials?.animate(time);
     const renderStart = this.measurePerformance ? performance.now() : 0;
     this.webgl.render(this.scene, this.camera);this.renderedFrames++;

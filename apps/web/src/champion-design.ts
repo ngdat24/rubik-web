@@ -34,8 +34,8 @@ export async function loadChampionDesign(size:ChampionSize=3):Promise<ChampionCo
   const design:ChampionConfig=await response.json();
   if(size===2){
     return {...design,name:design.name+' 2×2',interaction_fx:{
-      ...design.interaction_fx,trail_effect_id:'trail_champion_dragon',sound_pack_id:'sound_champion_sword',
-      sound_file:'' // The 2×2 sword sound is synthesized by champion-motion.
+      ...design.interaction_fx,trail_effect_id:null,sound_pack_id:null,
+      sound_file:'' // Champion 2×2 synthesizes its turn sound.
     }};
   }
   return design;
