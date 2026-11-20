@@ -46,7 +46,7 @@ export function prometheusFx(scene:Object3D,reduced=matchMedia('(prefers-reduced
     };
     for(let i=0;i<=segments;i++){
       const t=i/segments,theta=startAngle-sign*(1-t)*Math.PI*.57;
-      const width=(ice?.23:.13)*config.turn.widthScale*Math.sin(Math.PI*t)*(.65+.35*t);
+      const width=(ice ? .41 : .13)*config.turn.widthScale*Math.sin(Math.PI*t)*(.65+.35*t);
       for(const side of [-1,1])vertex(point(theta,1.88+width*side,ice?width*side*.55:0),1-t,side,0);
       if(i<segments){const k=i*2;indices.push(k,k+1,k+2,k+1,k+3,k+2);}
     }
@@ -57,7 +57,7 @@ export function prometheusFx(scene:Object3D,reduced=matchMedia('(prefers-reduced
     ] as const){
       const theta=startAngle-sign*(1-along)*Math.PI*.57;
       const corner=[[-length, -width*.16],[-length*.15,width],[length,width*.24],[length*.13,-width]] as const;
-      const shardPoint=(angle:number,y:number)=>point(theta+sign*angle,1.94+y*.45,height+y);
+      const shardPoint=(angle:number,y:number)=>point(theta+sign*angle*1.25,1.97+y*.55,height*1.2+y*1.25);
       const mid=shardPoint(0,0);
       for(let i=0;i<4;i++){
         const [x,y]=corner[i]!,[nx,ny]=corner[(i+1)%4]!;
@@ -81,11 +81,16 @@ export function prometheusFx(scene:Object3D,reduced=matchMedia('(prefers-reduced
         'attribute float age,across,facet;varying float t,w,f;void main(){t=age;w=across;f=facet;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}':
         'attribute float age;varying float t;void main(){t=age;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
       fragmentShader:ice?`uniform float fade;varying float t,w,f;void main(){
-        vec3 navy=vec3(.015,.055,.18),blue=vec3(.025,.28,.93),cyan=vec3(.03,.76,1.),white=vec3(.91,.98,1.);
+        vec3 navy=vec3(.02,.10,.32),blue=vec3(.05,.41,1.),cyan=vec3(.10,.88,1.),white=vec3(.95,1.,1.);
         float edge=abs(w);
         vec3 c=f>3.5?white:f>2.5?cyan:f>1.5?blue:navy;
-        if(f<.5)c=edge>.82?navy:edge>.57?blue:edge>.15?cyan:white;
-        gl_FragColor=vec4(c,fade*(f<.5?1.-.35*smoothstep(.65,1.,t):1.));
+        float alpha=fade;
+        if(f<.5){
+          c=edge>.72?blue:edge>.64?navy:edge>.43?blue:edge>.14?cyan:white;
+          alpha*=1.-.28*smoothstep(.65,1.,t);
+          if(edge>.72)alpha*=.48*(1.-smoothstep(.72,1.,edge));
+        }
+        gl_FragColor=vec4(c,alpha);
       }`:`uniform float fade;varying float t;void main(){vec3 c;float alpha;
       if(t<.35){c=mix(vec3(1.,.953,.69),vec3(1.,.718,.012),t/.35);alpha=mix(.95,.8,t/.35);}
       else if(t<.75){c=mix(vec3(1.,.718,.012),vec3(1.,.165,.333),(t-.35)/.4);alpha=mix(.8,.45,(t-.35)/.4);}
@@ -106,7 +111,7 @@ export function prometheusFx(scene:Object3D,reduced=matchMedia('(prefers-reduced
       for(const p of [pa.clone().add(n),pa.clone().sub(n),pb.clone().add(n),pa.clone().sub(n),pb.clone().sub(n),pb.clone().add(n)])verts.push(...p.toArray());
     }
     const flashGeo=new BufferGeometry();flashGeo.setAttribute('position',new BufferAttribute(new Float32Array(verts),3));
-    const flash=new Mesh(flashGeo,new MeshBasicMaterial({color:ice?0x46baff:0xffb703,transparent:true,opacity:1,side:DoubleSide,depthWrite:false,blending:AdditiveBlending}));
+    const flash=new Mesh(flashGeo,new MeshBasicMaterial({color:ice?0x71e5ff:0xffb703,transparent:true,opacity:1,side:DoubleSide,depthWrite:false,blending:AdditiveBlending}));
     root.add(flash);flashes.push({mesh:flash,born:now});
     sparks=sparks.slice(-256);
   }
