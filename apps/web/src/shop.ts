@@ -425,7 +425,7 @@ export function mountShop(account:CloudAccount|undefined, equip:(appearance?:App
     if (!dialog.open) return;
     tabBar.replaceChildren();
     for (const tab of Object.keys(tabs) as Tab[]) {
-      const trigger = button(t(tabs[tab]),()=>switchTab(tab),busy);
+      const trigger = button(t(tabs[tab]),()=>switchTab(tab),busy&&Boolean(pending));
       trigger.setAttribute('aria-pressed',String(active===tab));
       tabBar.append(trigger);
     }

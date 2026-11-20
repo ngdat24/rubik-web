@@ -56,7 +56,20 @@ test('Champion inventory: sizes, inline naming, preview and equip', {timeout:600
     };
     const errors=[],resources=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>resources.push(r.url()));
     await page.goto(base+'/?lang=vi&diagnostics');await expect(page.locator('#player-label')).toHaveText('Fixture Player');
-    await openInventory();
+    let releaseShopRead;
+    const shopReadGate=new Promise(resolve=>{releaseShopRead=resolve;});
+    await page.route('**/api/shop',async route=>{
+      await shopReadGate;
+      await route.continue();
+    },{times:1});
+    const shopRead=page.waitForRequest(request=>new URL(request.url()).pathname==='/api/shop'&&request.method()==='GET');
+    try{
+      await openInventory();
+      await shopRead;
+      await expect(page.locator('#shop-tabs').getByRole('button',{name:'Kho skin',exact:true})).toHaveAttribute('aria-pressed','true');
+    }finally{
+      releaseShopRead();
+    }
     const card3=page.locator('[data-champion="3"]');
     await expect(card3).toHaveAttribute('data-tier','gold');
     await expect(page.locator('#shop-content a[href*="champion"]')).toHaveCount(0);

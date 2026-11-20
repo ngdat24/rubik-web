@@ -24,10 +24,19 @@ let detachDrag: (()=>void) | undefined;
 let timerUI: ReturnType<typeof attachTimer> | undefined;
 
 const keySettings = mountKeySettings();
-const viewLabelTimer=window.setInterval(()=>{
- const label=document.querySelector('#view-key-map')!;
- label.textContent=renderer && !document.querySelector<HTMLInputElement>('#view-keys')!.checked?Object.entries(renderer.getViewFaces()).map(([key,face])=>`${key} → ${face}`).join(' · '):t("Phím theo hệ trục khối");
-},150);
+const workspaceTools=document.querySelector<HTMLDetailsElement>('#workspace-tools')!;
+const viewKeyToggle=document.querySelector<HTMLInputElement>('#view-keys')!;
+const viewLabel=document.querySelector('#view-key-map')!;
+const updateViewLabel=()=>{
+  if(!workspaceTools.open||document.hidden)return;
+  const value=renderer&&!viewKeyToggle.checked
+    ? Object.entries(renderer.getViewFaces()).map(([key,face])=>`${key} → ${face}`).join(' · ')
+    : t('Phím theo hệ trục khối');
+  if(viewLabel.textContent!==value)viewLabel.textContent=value;
+};
+workspaceTools.addEventListener('toggle',updateViewLabel);
+viewKeyToggle.addEventListener('change',updateViewLabel);
+const viewLabelTimer=window.setInterval(updateViewLabel,150);
 
 let detachKeyboard: (() => void) | undefined;
 
@@ -75,7 +84,7 @@ try {
   controller = new CubeController(renderer,3);
   detachDrag = attachDrag(renderer,controller,() => {},(move,stamp,x,y)=>championMotion?championMotion.commit(move,stamp,x,y):controller!.applyMove(move,stamp));
   detachKeyboard = attachKeyboard(controller, () => {}, keySettings.getKeymap,
-    move=>!document.querySelector<HTMLInputElement>('#view-keys')!.checked?viewMove(move,renderer!.getViewFaces()):move);
+    move=>!viewKeyToggle.checked?viewMove(move,renderer!.getViewFaces()):move);
   renderer.onContextChange = available => {
     if(available) controller!.unlockInput('context'); else controller!.lockInput('context');
     contextMessage.hidden = available;
@@ -207,6 +216,8 @@ if (import.meta.hot) import.meta.hot.dispose(() => {
   lowFx.removeEventListener('change',onLowFx);
   account?.dispose();
   clearInterval(viewLabelTimer);
+  workspaceTools.removeEventListener('toggle',updateViewLabel);
+  viewKeyToggle.removeEventListener('change',updateViewLabel);
   timerUI?.dispose();
   detachDrag?.();
   detachKeyboard?.();
