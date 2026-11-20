@@ -4,7 +4,7 @@ import {prometheusFx} from './prometheus-fx.js';
 
 export function mountChampionIceTurn(renderer:CubeRenderer,enabled:()=>boolean):()=>void {
   const group=new Group();
-  const fx=prometheusFx(group);
+  const fx=prometheusFx(group,undefined,'ice');
   const cameraPosition=new Vector3();
   let active:MoveSnapshot|undefined;
   let audio:AudioContext|undefined,noise:AudioBuffer|undefined;
