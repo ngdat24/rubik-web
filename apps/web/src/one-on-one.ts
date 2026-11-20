@@ -14,6 +14,7 @@ import {attachDrag} from './drag.js';
 import {bindSkinEffects,skinLayout,skinPalette,skinSurface} from './skin-effects.js';
 import type {Appearance} from './skin-effects.js';
 import {loadEquippedChampion} from './champion-equipped.js';
+import {mountChampionIceTurn} from './champion-ice-turn.js';
 import {raceComplete} from '../../../shared/race-rules.mjs';
 
 const modes={twoByTwo:'2×2',fullSolve:'3×3',f2lRush:'F2L',oneFace:t('1 mặt')};
@@ -176,6 +177,7 @@ async function boot(){
   let accessToken='';
   let renderer:CubeRenderer|undefined, opponent:CubeRenderer|undefined, controller:CubeController|undefined;
   let effects:ReturnType<typeof bindSkinEffects>|undefined, disposed=false, frame=0, lastProgress='', opponentState='';
+  let disposeChampionIce:(()=>void)|undefined;
   let graphicsKey='', loading=false, pendingAction:()=>void=()=>{};
   const detachers:(()=>void)[]=[];
   const appearanceCache=new Map<string,Promise<Appearance>>();
@@ -249,6 +251,8 @@ async function boot(){
         renderer.setAppearance(quality(ownChampion?.options??look(appearance)),controller.cube.state);
         effects?.dispose();
         effects=appearance&&!reduced&&!ownChampion?bindSkinEffects(renderer,appearance):undefined;
+        disposeChampionIce?.();
+        disposeChampionIce=ownChampion&&s.size===2&&!reduced?mountChampionIceTurn(renderer,()=>!prefs.lowGraphics()):undefined;
       }
       if(theirs.status==='fulfilled'){
         const state=room?.opponent?.state;
@@ -448,7 +452,7 @@ async function boot(){
     if(event.persisted)return;
     disposed=true;clearInterval(timer);cancelAnimationFrame(frame);
     for(const detach of detachers)detach();
-    effects?.dispose();controller?.dispose();opponent?.dispose();wallet.dispose();account.dispose();
+    effects?.dispose();disposeChampionIce?.();controller?.dispose();opponent?.dispose();wallet.dispose();account.dispose();
   });
 }
 

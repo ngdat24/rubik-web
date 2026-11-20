@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Champion 2×2 · Xem thử hiệu ứng xoay</title>
+</head>
+<body>
+  <main style="max-width:900px">
+    <h1>Champion 2×2</h1>
+    <section id="viewport" aria-label="Rubik Champion 2×2" tabindex="0" style="height: min(57vh, 480px)"></section>
+    <p class="hint">Kéo lớp để xoay. Kéo chuột phải để đổi góc nhìn.</p>
+    <p id="ice-status" role="status">Đang tải Rubik…</p>
+    <div id="ice-moves" class="toolbar"></div>
+    <p><label>Tốc độ <select id="ice-speed">
+      <option value="40" selected>40 ms</option>
+      <option value="150">150 ms</option>
+      <option value="450">450 ms</option>
+    </select></label></p>
+  </main>
+  <script type="module" src="/src/champion-ice-preview.ts"></script>
+</body>
+</html>
