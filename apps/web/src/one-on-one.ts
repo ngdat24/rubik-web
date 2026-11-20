@@ -1,5 +1,4 @@
 import './style.css';
-import './one-on-one.css';
 import {t} from './i18n.js';
 import {browserAccount} from './account.js';
 import {accessUrl} from './auth-client.js';
