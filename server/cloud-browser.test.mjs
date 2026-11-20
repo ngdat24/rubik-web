@@ -90,9 +90,23 @@ test('name-only profile, uniqueness, persistent session, offline sync and privat
     const unchanged=second.page.waitForResponse(r=>r.url().includes('/api/solves?since=')&&r.request().method()==='GET');await second.page.evaluate(()=>{for(const tick of window.rubikPollers)tick();});
     const delta=await (await unchanged).json();assert.equal(delta.rows.length,0);assert.ok(delta.cursor>0);
 
-    const requests=[];second.page.on('request',r=>{if(r.url().startsWith(base+'/api/'))requests.push(r.url());});
-    await second.page.evaluate(async()=>{Object.defineProperty(document,'hidden',{get:()=>true,configurable:true});for(const tick of window.rubikPollers)tick();window.dispatchEvent(new Event('online'));await new Promise(r=>setTimeout(r,100));});
-    assert.equal(requests.length,0);
+    const requests=await second.page.evaluate(async()=>{
+      Object.defineProperty(document,'hidden',{get:()=>true,configurable:true});
+      const originalFetch=window.fetch;
+      const started=[];
+      window.fetch=(input,init)=>{
+        const url=new URL(input instanceof Request?input.url:input,location.href);
+        if(url.origin===location.origin&&url.pathname.startsWith('/api/'))started.push(url.pathname);
+        return originalFetch.call(window,input,init);
+      };
+      try{
+        for(const tick of window.rubikPollers)tick();
+        window.dispatchEvent(new Event('online'));
+        await new Promise(resolve=>setTimeout(resolve,100));
+        return started;
+      }finally{window.fetch=originalFetch;}
+    });
+    assert.deepEqual(requests,[]);
     const resumed=second.page.waitForResponse(r=>r.url().includes('/api/solves?since='));
     await second.page.evaluate(()=>{delete document.hidden;document.dispatchEvent(new Event('visibilitychange'));});await resumed;
     await page.bringToFront();await page.locator('#solve-history li').getByRole('button',{name:'DNF',exact:true}).click();await expect.poll(()=>[...db.solves.values()][0]?.penalty_override).toBe('DNF');
