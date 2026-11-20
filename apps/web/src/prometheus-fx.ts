@@ -38,6 +38,8 @@ export function prometheusFx(scene:Object3D,reduced=matchMedia('(prefers-reduced
     const u=new Vector3(...(parsed.axis==='x'?[0,1,0] as const:[1,0,0] as const));
     const v=new Vector3().crossVectors(normal,u),facing=camera.clone().sub(center);
     const startAngle=Math.atan2(facing.dot(v),facing.dot(u)),sign=Math.sign(angle);
+    const scale=ice ? 1.15 : 1;
+    const span=Math.PI*.57*scale;
     const positions:number[]=[],ages:number[]=[],indices:number[]=[],across:number[]=[],facets:number[]=[],segments=30;
     const point=(theta:number,radius:number,height=0)=>u.clone().multiplyScalar(Math.cos(theta)*radius)
       .addScaledVector(v,Math.sin(theta)*radius).addScaledVector(normal,height).add(center);
@@ -45,19 +47,20 @@ export function prometheusFx(scene:Object3D,reduced=matchMedia('(prefers-reduced
       positions.push(...p.toArray());ages.push(age);across.push(edge);facets.push(facet);
     };
     for(let i=0;i<=segments;i++){
-      const t=i/segments,theta=startAngle-sign*(1-t)*Math.PI*.57;
-      const width=(ice ? .41 : .13)*config.turn.widthScale*Math.sin(Math.PI*t)*(.65+.35*t);
+      const t=i/segments,theta=startAngle-sign*(1-t)*span;
+      const width=(ice ? .41 : .13)*scale*config.turn.widthScale*Math.sin(Math.PI*t)*(.65+.35*t);
       for(const side of [-1,1])vertex(point(theta,1.88+width*side,ice?width*side*.55:0),1-t,side,0);
       if(i<segments){const k=i*2;indices.push(k,k+1,k+2,k+1,k+3,k+2);}
     }
     if(ice)for(const [along,height,length,width,white] of [
       [.09,.13,.14,.085,0],[.19,-.18,.19,.09,1],[.28,.22,.17,.12,0],
       [.39,.14,.20,.105,1],[.47,-.19,.16,.105,0],[.56,.25,.13,.075,1],
-      [.65,-.13,.12,.07,1],[.74,.15,.17,.08,0],[.83,-.12,.10,.058,1],
+      [.65,-.13,.12,.07,1],[.74,.15,.17,.08,0],[.83,-.15,.16,.09,1],
+      [.87,.22,.22,.12,1],[.94,-.04,.19,.10,0],[.98,.15,.10,.064,1],
     ] as const){
-      const theta=startAngle-sign*(1-along)*Math.PI*.57;
+      const theta=startAngle-sign*(1-along)*span;
       const corner=[[-length, -width*.16],[-length*.15,width],[length,width*.24],[length*.13,-width]] as const;
-      const shardPoint=(angle:number,y:number)=>point(theta+sign*angle*1.25,1.97+y*.55,height*1.2+y*1.25);
+      const shardPoint=(angle:number,y:number)=>point(theta+sign*angle*1.25*scale,1.97+y*.55*scale,(height*1.2+y*1.25)*scale);
       const mid=shardPoint(0,0);
       for(let i=0;i<4;i++){
         const [x,y]=corner[i]!,[nx,ny]=corner[(i+1)%4]!;
