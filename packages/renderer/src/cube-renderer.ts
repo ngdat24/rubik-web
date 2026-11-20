@@ -271,6 +271,11 @@ export class CubeRenderer {
     return direction;
   }
 
+  copyCameraTo(camera: PerspectiveCamera): void {
+    this.camera.updateMatrixWorld();
+    camera.copy(this.camera);
+  }
+
   getViewFaces() {
     this.camera.updateMatrixWorld();
     const half=buildLayout(this.size,this.optionsForSize(this.size)).edgeLength/2;
@@ -421,6 +426,10 @@ export class CubeRenderer {
   }
 
   setInstant(enabled: boolean): void { this.assertActive(); this.instant = enabled; }
+
+  turnDuration(doubleTurn: boolean): number {
+    return this.instant ? 0 : this.msPerQuarterTurn * (doubleTurn ? 1.5 : 1);
+  }
 
   /** Skip unfinished visuals and paint the latest accepted snapshot; never undo controller state. */
   clearQueue(): void {

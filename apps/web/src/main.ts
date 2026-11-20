@@ -48,6 +48,8 @@ const championRevisions=new Map<number,number>();
 document.querySelector('#engine-version')!.textContent = `Engine ${ENGINE_VERSION}`;
 let equippedAppearance:Appearance|undefined;
 let equippedEffects:ReturnType<typeof bindSkinEffects>|undefined;
+let livePrometheus:ReturnType<typeof import('./prometheus-live.js').mountPrometheus>|undefined;
+let prometheusPending=false, pageDisposed=false;
 const lowFx=document.querySelector<HTMLInputElement>('#skin-low-fx')!;
 lowFx.checked=readSkinLowFx();
 const sizeSelect = document.querySelector<HTMLSelectElement>('#cube-size')!;
@@ -97,7 +99,17 @@ const updateAppearance=()=>{
   equippedEffects=undefined;
   const detailed=controller?.size===3;
   champion=championStyles.get(controller!.size);
-  container.classList.toggle('prometheus-gameplay',!champion&&detailed&&container.dataset.prometheusEquipped==='true');
+  const usePrometheus=!champion&&detailed&&container.dataset.prometheusEquipped==='true';
+  container.classList.toggle('prometheus-gameplay',usePrometheus);
+  if(!usePrometheus&&livePrometheus){livePrometheus.dispose();livePrometheus=undefined;}
+  if(usePrometheus&&!livePrometheus&&!prometheusPending){
+    prometheusPending=true;
+    void import('./prometheus-live.js').then(module=>{
+      if(pageDisposed||!renderer||controller?.size!==3||champion||container.dataset.prometheusEquipped!=='true')return;
+      livePrometheus=module.mountPrometheus(container,renderer,controller,()=>lowFx.checked);
+      equippedEffects?.dispose();equippedEffects=undefined;
+    }).catch(console.error).finally(()=>{prometheusPending=false;});
+  }
   const key=champion?`${champion.size}:${champion.name}`:`normal:${detailed?'detailed':'plain'}:${JSON.stringify(skinLayout(detailed?equippedAppearance:undefined))}`;
   if(appearanceKey!==key){
     appearanceKey=key;
@@ -114,10 +126,11 @@ const updateAppearance=()=>{
   const surface=detailed?skinSurface(equippedAppearance):undefined;
   if (surface && lowFx.checked) delete surface.pulse;
   renderer.setSurface(surface);
-  if (detailed&&equippedAppearance&&!lowFx.checked) equippedEffects=bindSkinEffects(renderer,equippedAppearance);
+  if (detailed&&equippedAppearance&&!lowFx.checked&&!livePrometheus) equippedEffects=bindSkinEffects(renderer,equippedAppearance);
 };
 const onLowFx=()=>{
   try {localStorage.setItem(skinFxKey,lowFx.checked?'1':'0');} catch {/* Preference remains applied for this page. */}
+  livePrometheus?.setQuality();
   updateAppearance();
 };
 lowFx.addEventListener('change',onLowFx);
@@ -178,11 +191,12 @@ if(controller) timerUI=attachTimer(controller,()=>onScramble(newId()),account,
     }
   });
 const onPageHide = (event: PageTransitionEvent): void => {
-  if (!event.persisted) disposeCommunityChat();
+  if (!event.persisted) {pageDisposed=true;livePrometheus?.dispose();disposeCommunityChat();}
   if (!event.persisted) { championMotion?.dispose(); championFrame?.dispose(); wallet.dispose(); disposeDailyQuests(); weekly.dispose(); shop.dispose(); equippedEffects?.dispose(); lowFx.removeEventListener('change',onLowFx); account?.dispose();clearInterval(viewLabelTimer); timerUI?.dispose(); detachDrag?.(); detachKeyboard?.(); keySettings.dispose(); controller?.dispose(); }
 };
 window.addEventListener('pagehide', onPageHide);
 if (import.meta.hot) import.meta.hot.dispose(() => {
+  pageDisposed=true;livePrometheus?.dispose();
   disposeCommunityChat();
   championMotion?.dispose();championFrame?.dispose();
   wallet.dispose();

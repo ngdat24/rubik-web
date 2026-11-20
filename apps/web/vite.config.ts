@@ -10,7 +10,7 @@ export default defineConfig({
         champion: 'champion.html',
         account: 'account-access.html',
         privacy: 'privacy.html',
-        ...(process.env.VERCEL_ENV === 'preview' ? {skinLighting: 'skin-lighting-preview.html'} : {}),
+        ...(process.env.VERCEL_ENV === 'preview' ? {skinLighting: 'skin-lighting-preview.html',prometheus: 'prometheus.html'} : {}),
       },
     },
   },
