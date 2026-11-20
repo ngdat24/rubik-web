@@ -4,10 +4,10 @@ import {BufferGeometry,Color,DoubleSide,Float32BufferAttribute,Group,Mesh,MeshBa
 function iceGeometry(): BufferGeometry {
   const positions:number[]=[];
   const colors:number[]=[];
-  const blue=new Color('#1686db'), ice=new Color('#a4e0ff'), edge=new Color('#30679d');
+  const blue=new Color('#229aff'), ice=new Color('#ccf2ff'), edge=new Color('#397cc4');
   type Point=[angle:number,height:number,radius:number];
   const vertex=([angle,height,radius]:Point,color:Color)=>{
-    const distance=radius+.11;
+    const distance=radius+.23;
     positions.push(Math.cos(angle)*distance,height,-Math.sin(angle)*distance);
     colors.push(color.r,color.g,color.b);
   };
@@ -16,22 +16,22 @@ function iceGeometry(): BufferGeometry {
   };
   for(let i=0;i<18;i++){
     const u=i/18,v=(i+1)/18;
-    const width=(t:number)=>.048*Math.sin(Math.PI*t);
-    const a=-.92*u,b=-.92*v;
-    triangle([a,-width(u),1.10],[a,0,1.11],[b,-width(v),1.10],blue,ice);
-    triangle([a,0,1.11],[b,-width(v),1.10],[b,0,1.11],ice,blue);
-    triangle([a,width(u),1.10],[a,0,1.11],[b,width(v),1.10],edge,ice);
-    triangle([a,0,1.11],[b,width(v),1.10],[b,0,1.11],ice,edge);
+    const width=(t:number)=>.15*Math.sin(Math.PI*t);
+    const a=-Math.PI*.57*u,b=-Math.PI*.57*v;
+    triangle([a,-width(u),1.16-width(u)],[a,0,1.16],[b,-width(v),1.16-width(v)],blue,ice);
+    triangle([a,0,1.16],[b,-width(v),1.16-width(v)],[b,0,1.16],ice,blue);
+    triangle([a,width(u),1.16+width(u)],[a,0,1.16],[b,width(v),1.16+width(v)],edge,ice);
+    triangle([a,0,1.16],[b,width(v),1.16+width(v)],[b,0,1.16],ice,edge);
   }
   const shards=[
-    [-.09,.097,.085],[-.18,-.084,.09],[-.30,.144,.065],[-.42,-.130,.11],
-    [-.54,.086,.13],[-.65,-.075,.07],[-.78,.116,.10],[-.93,-.093,.065],
+    [-.15,.125,.11],[-.31,-.14,.13],[-.47,.19,.09],[-.64,-.17,.14],
+    [-.82,.135,.14],[-1.07,-.13,.10],[-1.32,.15,.12],[-1.65,-.13,.08],
   ];
   for(const [angle,height,length] of shards as [number,number,number][]){
-    const a:Point=[angle+length*.5,height,1.115];
-    const b:Point=[angle,height+length*.26,1.13];
-    const c:Point=[angle-length*.5,height-length*.12,1.105];
-    const d:Point=[angle-.01,height-length*.22,1.12];
+    const a:Point=[angle+length*.5,height,1.22];
+    const b:Point=[angle,height+length*.26,1.26];
+    const c:Point=[angle-length*.5,height-length*.12,1.21];
+    const d:Point=[angle-.01,height-length*.22,1.23];
     triangle(a,b,c,blue,ice);triangle(a,d,c,edge,blue);
   }
   const geometry=new BufferGeometry();
@@ -50,6 +50,7 @@ export function mountChampionIceTurn(renderer:CubeRenderer,enabled:()=>boolean):
   const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
   let active:MoveSnapshot|undefined;
   let origin=0;
+  let started=0,duration=0,startAngle=0,sweep=0;
   let audio:AudioContext|undefined,noise:AudioBuffer|undefined;
   function play(duration:number):void {
     try {
@@ -73,25 +74,34 @@ export function mountChampionIceTurn(renderer:CubeRenderer,enabled:()=>boolean):
       source.start(start);source.stop(start+seconds);
     }catch{/* Audio may be disabled by the browser. */}
   }
-  const detach=renderer.attachTurnEffect(seam,(frame,camera)=>{
-    if(!frame||!enabled()){
-      seam.visible=false;active=undefined;return;
+  const detach=renderer.attachTurnEffect(seam,(frame,camera,time)=>{
+    if(!enabled()){
+      seam.visible=false;active=undefined;return false;
     }
-    if(active!==frame.turn){
+    if(frame&&active!==frame.turn){
       active=frame.turn;
       seam.quaternion.setFromUnitVectors(up,axis.set(...frame.axis));
       seam.scale.setScalar(frame.halfEdge);
       camera.getWorldPosition(cameraPosition);
       seam.worldToLocal(cameraPosition);
-      const direction=Math.sign(frame.targetAngle-frame.angle)||1;
-      origin=Math.atan2(-cameraPosition.z,cameraPosition.x)
-        -(frame.angle+frame.targetAngle)/2+direction*.38;
+      started=time;
+      startAngle=frame.angle;
+      sweep=frame.targetAngle-startAngle;
+      const doubleTurn=Math.abs(frame.targetAngle)>Math.PI/2;
+      const moveDuration=renderer.turnDuration(doubleTurn);
+      // Like Prometheus, the trail remains readable after a fast cube turn.
+      duration=Math.max(doubleTurn?320:260,moveDuration);
+      const direction=Math.sign(sweep)||1;
+      origin=Math.atan2(-cameraPosition.z,cameraPosition.x)-startAngle+direction*.56;
       ribbon.scale.z=direction;
-      play(renderer.turnDuration(Math.abs(frame.targetAngle)>Math.PI/2));
+      play(moveDuration);
     }
-    seam.visible=!reducedMotion.matches;
-    ribbon.rotation.y=origin+frame.angle;
-    material.opacity=.72*Math.min(1,frame.progress*5,(1-frame.progress)*6);
+    const progress=(time-started)/duration;
+    seam.visible=Boolean(active)&&!reducedMotion.matches&&progress<1;
+    if(!seam.visible)return false;
+    ribbon.rotation.y=origin+startAngle+sweep*progress;
+    material.opacity=.94*(1-progress**2);
+    return true;
   });
   return ()=>{
     detach();geometry.dispose();material.dispose();void audio?.close().catch(()=>{});

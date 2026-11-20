@@ -27,10 +27,9 @@ export interface TurnFrame {
   axis: ReturnType<typeof rotationFor>['axis'];
   angle: number;
   targetAngle: number;
-  progress: number;
   halfEdge: number;
 }
-type TurnEffect = (frame: TurnFrame | undefined, camera: PerspectiveCamera) => void;
+type TurnEffect = (frame: TurnFrame | undefined, camera: PerspectiveCamera, time: number) => boolean;
 interface PreparedMove extends MoveSnapshot {
   rotation: ReturnType<typeof rotationFor>;
   selection: ReturnType<typeof layerSlots>;
@@ -717,21 +716,22 @@ export class CubeRenderer {
     this.notifyIdle();
     if (this.disposed) return;
     if(!this.mouseCamera.active())this.controls.update();
+    let effectAnimating = false;
     if (this.turnEffect) {
       const active = this.active;
       const start = active?.startAngle ?? 0;
-      this.turnEffect(active && {
+      effectAnimating = this.turnEffect(active && {
         turn: active.item, axis: active.item.rotation.axis,
         angle: start + (active.item.rotation.angle - start) * animationProgress(active.progress, 1),
-        targetAngle: active.item.rotation.angle, progress: active.progress,
+        targetAngle: active.item.rotation.angle,
         halfEdge: (this.layoutOptions.edgeLength ?? 3) / 2,
-      }, this.camera);
+      }, this.camera,time);
     }
     this.surfaceMaterials?.animate(time);
     const renderStart = this.measurePerformance ? performance.now() : 0;
     this.webgl.render(this.scene, this.camera);this.renderedFrames++;
     if (this.measurePerformance) this.lastRenderMs = performance.now() - renderStart;
-    if(!this.layoutOptions.optimize||this.pendingMoveCount||this.surfaceMaterials?.isAnimated||this.dirty){
+    if(!this.layoutOptions.optimize||this.pendingMoveCount||effectAnimating||this.surfaceMaterials?.isAnimated||this.dirty){
       if(!this.frame)this.frame = requestAnimationFrame(this.draw);
     }
   };
