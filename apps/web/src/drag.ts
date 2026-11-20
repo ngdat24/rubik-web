@@ -59,7 +59,7 @@ export function attachDrag(renderer: CubeRenderer, controller: CubeController, c
     const opposite=controller.size===2 && layer===2;
     const face=(opposite?['L','D','B']:['R','U','F'])[g.axis]!;
     const token=`${layer===1 || opposite?'':layer}${face}${turns===2?'2':(angle>0)!==opposite?"'":''}`;
-    if(commit(token,timestamp,e.clientX-g.x,e.clientY-g.y)){renderer.resumeDrag(angle);changed();}
+    if(commit(token,timestamp,e.clientX-g.x,e.clientY-g.y)){renderer.resumeDrag(angle,g.hit.slot.index);changed();}
   };
   const interrupted=():void=>cancel();
   const menu=(e:Event):void=>{e.preventDefault();};

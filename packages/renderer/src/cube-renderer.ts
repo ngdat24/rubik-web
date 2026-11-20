@@ -25,9 +25,10 @@ export interface MoveSnapshot { move: Move; stateAfter: Uint8Array }
 export interface TurnFrame {
   turn: MoveSnapshot;
   axis: ReturnType<typeof rotationFor>['axis'];
-  angle: number;
   targetAngle: number;
   halfEdge: number;
+  stickerIndices: readonly number[];
+  dragSticker?: number;
 }
 type TurnEffect = (frame: TurnFrame | undefined, camera: PerspectiveCamera, time: number) => boolean;
 interface PreparedMove extends MoveSnapshot {
@@ -102,7 +103,7 @@ export class CubeRenderer {
   private readonly pivot = new Group();
   private readonly rotationAxis = new Vector3();
   private queue: PreparedMove[] = [];
-  private active: { item: PreparedMove; progress: number; lastFrameTime: number | undefined; startAngle?: number } | undefined;
+  private active: { item: PreparedMove; progress: number; lastFrameTime: number | undefined; startAngle?: number; dragSticker?: number } | undefined;
   private turnEffect: TurnEffect | undefined;
   private dragAngle: number | undefined;
   private msPerQuarterTurn = 150;
@@ -244,7 +245,7 @@ export class CubeRenderer {
     this.dragAngle=angle;this.pivot.quaternion.setFromAxisAngle(this.rotationAxis,angle);this.instances?.rotate(this.pivot.quaternion);this.decorations?.rotate(this.pivot.quaternion);this.requestDraw();
   }
   endDrag(): number { const angle=this.dragAngle??0;this.dragAngle=undefined;this.cancelAnimation();return angle; }
-  resumeDrag(angle: number): void {if(this.active){this.active.startAngle=angle;if(this.active.item.doubleTurn && angle<0)this.active.item.rotation.angle=-Math.PI;}}
+  resumeDrag(angle: number, sticker?: number): void {if(this.active){this.active.startAngle=angle;if(sticker!==undefined)this.active.dragSticker=sticker;if(this.active.item.doubleTurn && angle<0)this.active.item.rotation.angle=-Math.PI;}}
   zoomBy(factor: number): void {
     const distance=this.camera.position.distanceTo(this.controls.target);
     const next=Math.min(18,Math.max(5,distance*factor));
@@ -719,12 +720,12 @@ export class CubeRenderer {
     let effectAnimating = false;
     if (this.turnEffect) {
       const active = this.active;
-      const start = active?.startAngle ?? 0;
       effectAnimating = this.turnEffect(active && {
         turn: active.item, axis: active.item.rotation.axis,
-        angle: start + (active.item.rotation.angle - start) * animationProgress(active.progress, 1),
         targetAngle: active.item.rotation.angle,
         halfEdge: (this.layoutOptions.edgeLength ?? 3) / 2,
+        stickerIndices: active.item.selection.stickerIndices,
+        ...(active.dragSticker===undefined?{}:{dragSticker:active.dragSticker}),
       }, this.camera,time);
     }
     this.surfaceMaterials?.animate(time);
