@@ -1,6 +1,13 @@
 <!doctype html>
-<html lang="vi"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Rubik Lab — Phòng mời 1v1</title></head>
-<body class="race-page"><main>
+<html lang="vi"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Rubik Lab — Phòng mời 1v1</title>
+<style>
+  html { background: #191a18; color-scheme: dark; }
+  .race-page[data-race-loading] > main { visibility: hidden; }
+  #race-loading { position: fixed; inset: 0; display: grid; place-content: center; margin: 0; color: #e8e6de; font: 1rem system-ui, sans-serif; }
+</style></head>
+<body class="race-page" data-race-loading>
+<p id="race-loading" role="status">Rubik Lab · 1v1…</p>
+<main>
 <header><a class="brand" href="/">▦ rubiklab.</a><span>Phòng mời 1v1 · 3×3</span><nav class="mode-links" aria-label="Chế độ chơi"><a href="/time-limit.html">Time Limit</a><a href="/">Luyện tập</a></nav></header>
 <section class="race-lobby"><h1>Đua cùng bạn</h1><p>Cùng chuỗi Rubik, cùng giờ bắt đầu, mỗi trận 3 phút. Server xác minh từng khối; chưa tính Elo.</p>
 <details id="race-lobby-controls" open><summary>Phòng / chế độ</summary><div class="toolbar"><button id="race-create">Tạo phòng</button><label>Chế độ trong phòng <select id="race-mode" disabled><option value="fullSolve">Giải cả khối · 3 phút</option><option value="f2lRush">F2L Rush · 3 phút</option><option value="oneFace">Một mặt bất kỳ · 3 phút</option></select></label></div>

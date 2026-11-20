@@ -61,26 +61,16 @@ test('Champion inventory: sizes, inline naming, preview and equip', {timeout:600
       await questGate;
       await route.fulfill({json:{completed:0,counts:[1,2,0,0],onlineSeconds:30}});
     });
-    await page.goto(base+'/?lang=vi&diagnostics');await expect(page.locator('#player-label')).toHaveText('Fixture Player');
-    try{
-      await page.locator('#quest-panel summary').click();
-      await expect(page.locator('#quest-bar-2')).toBeVisible();
-      await expect(page.locator('#quest-status')).toBeVisible();
-    }finally{
-      releaseQuests();
-    }
-    await expect(page.locator('#quest-count-2')).toHaveText('(1/8)');
-    await page.locator('#quest-panel summary').click();
     let releaseShopRead;
     const shopReadGate=new Promise(resolve=>{releaseShopRead=resolve;});
     await page.route('**/api/shop',async route=>{
       await shopReadGate;
       await route.continue();
     },{times:1});
-    const shopRead=page.waitForRequest(request=>new URL(request.url()).pathname==='/api/shop'&&request.method()==='GET');
     try{
+      await page.goto(base+'/?lang=vi&diagnostics');await expect(page.locator('#player-label')).toHaveText('Fixture Player');
       await openInventory();
-      await shopRead;
+      await expect(page.locator('#shop-status')).toHaveText('Đang kết nối cửa hàng…');
       await expect(page.locator('#shop-tabs').getByRole('button',{name:'Kho skin',exact:true})).toHaveAttribute('aria-pressed','true');
     }finally{
       releaseShopRead();
@@ -103,6 +93,17 @@ test('Champion inventory: sizes, inline naming, preview and equip', {timeout:600
     }
     await expect(normalSkin.getByText('Đang trang bị',{exact:true})).toBeVisible();
     await page.unroute('**/api/shop');
+    await page.locator('#shop-close').click();
+    try{
+      await page.locator('#quest-panel summary').click();
+      await expect(page.locator('#quest-bar-2')).toBeVisible();
+      await expect(page.locator('#quest-status')).toBeVisible();
+    }finally{
+      releaseQuests();
+    }
+    await expect(page.locator('#quest-count-2')).toHaveText('(1/8)');
+    await page.locator('#quest-panel summary').click();
+    await openInventory();
     await expect(page.locator('#shop-content a[href*="champion"]')).toHaveCount(0);
     await page.evaluate(()=>window.originalCanvas=document.querySelector('#viewport canvas'));
     await card3.getByRole('button',{name:'Trang bị',exact:true}).click();
