@@ -55,10 +55,54 @@ test('Champion inventory: sizes, inline naming, preview and equip', {timeout:600
       await page.locator('#shop-tabs').getByRole('button',{name:'Kho skin',exact:true}).click();
     };
     const errors=[],resources=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>resources.push(r.url()));
+    let releaseQuests;
+    const questGate=new Promise(resolve=>{releaseQuests=resolve;});
+    await page.route('**/api/quests',async route=>{
+      await questGate;
+      await route.fulfill({json:{completed:0,counts:[1,2,0,0],onlineSeconds:30}});
+    });
     await page.goto(base+'/?lang=vi&diagnostics');await expect(page.locator('#player-label')).toHaveText('Fixture Player');
-    await openInventory();
+    try{
+      await page.locator('#quest-panel summary').click();
+      await expect(page.locator('#quest-bar-2')).toBeVisible();
+      await expect(page.locator('#quest-status')).toBeVisible();
+    }finally{
+      releaseQuests();
+    }
+    await expect(page.locator('#quest-count-2')).toHaveText('(1/8)');
+    await page.locator('#quest-panel summary').click();
+    let releaseShopRead;
+    const shopReadGate=new Promise(resolve=>{releaseShopRead=resolve;});
+    await page.route('**/api/shop',async route=>{
+      await shopReadGate;
+      await route.continue();
+    },{times:1});
+    const shopRead=page.waitForRequest(request=>new URL(request.url()).pathname==='/api/shop'&&request.method()==='GET');
+    try{
+      await openInventory();
+      await shopRead;
+      await expect(page.locator('#shop-tabs').getByRole('button',{name:'Kho skin',exact:true})).toHaveAttribute('aria-pressed','true');
+    }finally{
+      releaseShopRead();
+    }
     const card3=page.locator('[data-champion="3"]');
     await expect(card3).toHaveAttribute('data-tier','gold');
+    const normalSkin=page.locator('#shop-content .shop-card').filter({hasText:state.inventory[0].skin.name}).first();
+    let releaseEquip;
+    const equipGate=new Promise(resolve=>{releaseEquip=resolve;});
+    await page.route('**/api/shop',async route=>{
+      if(route.request().method()!=='POST')return route.fallback();
+      await equipGate;
+      await route.fulfill({json:{...state,inventory:state.inventory.map((item,index)=>({...item,equipped:index===0}))}});
+    });
+    try{
+      await normalSkin.getByRole('button',{name:'Trang bị',exact:true}).click();
+      await expect(normalSkin.getByRole('button',{name:'Đang lưu trang bị…'})).toBeDisabled();
+    }finally{
+      releaseEquip();
+    }
+    await expect(normalSkin.getByText('Đang trang bị',{exact:true})).toBeVisible();
+    await page.unroute('**/api/shop');
     await expect(page.locator('#shop-content a[href*="champion"]')).toHaveCount(0);
     await page.evaluate(()=>window.originalCanvas=document.querySelector('#viewport canvas'));
     await card3.getByRole('button',{name:'Trang bị',exact:true}).click();

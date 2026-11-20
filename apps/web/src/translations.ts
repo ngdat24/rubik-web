@@ -105,6 +105,7 @@ export const english: Record<string, string> = {
   "Quay · 1 ZN": "Spin · 1 ZN",
   "Dùng màu Rubik mặc định": "Use default cube colors",
   "Đang trang bị": "Equipped",
+  "Đang lưu trang bị…": "Saving equipped skin…",
   "Trang bị": "Equip",
   "Âm thanh mùa giải": "Season sounds",
   "Kho của bạn chưa có vật phẩm.": "Your inventory is empty.",

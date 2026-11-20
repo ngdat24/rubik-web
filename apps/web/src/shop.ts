@@ -363,8 +363,8 @@ export function mountShop(account:CloudAccount|undefined, equip:(appearance?:App
     const equipped = inventorySize===3&&state.inventory.some(item=>item.kind === 'skin' && item.equipped);
     if (equipped||champions.isEquipped(inventorySize)) content.append(button(t('Dùng màu Rubik mặc định'),() => {
       if(!canPreview()){status.textContent=t('Chờ lượt giải kết thúc để đổi skin.');return;}
-      void champions.clear(inventorySize);
       if(inventorySize===3)void load({action:'equip_skin',id:null,requestId:newId()});
+      else void champions.clear(inventorySize);
     },busy || champions.busy || Boolean(pending)));
     const championCard=champions.card(inventorySize,()=>void showPreview({id:'champion',name:`Champion ${inventorySize}×${inventorySize}`,tier:'gold',appearance:{}},inventorySize));
     if(championCard)grid.append(championCard);
@@ -377,15 +377,13 @@ export function mountShop(account:CloudAccount|undefined, equip:(appearance?:App
             const image=node('img');image.src='/assets/skins/s1_red_prometheus_flame/preview-current.png';image.alt='Lửa thiêng Prometheus';image.width=image.height=240;image.className='prometheus-inventory-image';card.prepend(image);
             if(item.nameRequired)card.append(node('p',t('Đang chờ đặt tên để nhận skin.')));
             else if(item.equipped&&!champions.isEquipped(3))card.append(node('p',t('Đang trang bị')));
-            else card.append(button(t('Trang bị'),()=>{if(!canPreview())return;void champions.clear(3).then(()=>load({action:'equip_skin',id:item.id,requestId:newId()}));},busy||Boolean(pending)));
+            else card.append(equipSkinButton(item.id));
             card.append(prometheusNameForm(item));
           },true);grid.append(card);continue;
         }
         grid.append(skinCard(item.skin,card=>{
           if (item.equipped&&!champions.isEquipped(3)) card.append(node('p',t('Đang trang bị')));
-          else card.append(button(t('Trang bị'),() =>
-            {if(!canPreview()){status.textContent=t('Chờ lượt giải kết thúc để đổi skin.');return;}
-              void champions.clear(3).then(()=>load({action:'equip_skin',id:item.id,requestId:newId()}));},busy || champions.busy || Boolean(pending)));
+          else card.append(equipSkinButton(item.id));
         }));
       } else {
         const card = node('article');
@@ -425,11 +423,11 @@ export function mountShop(account:CloudAccount|undefined, equip:(appearance?:App
     if (!dialog.open) return;
     tabBar.replaceChildren();
     for (const tab of Object.keys(tabs) as Tab[]) {
-      const trigger = button(t(tabs[tab]),()=>switchTab(tab),busy);
+      const trigger = button(t(tabs[tab]),()=>switchTab(tab),busy&&Boolean(pending));
       trigger.setAttribute('aria-pressed',String(active===tab));
       tabBar.append(trigger);
     }
-    status.textContent = busy ? t('Đang kết nối cửa hàng…') : error;
+    status.textContent = busy ? t(pending?.action==='equip_skin'?'Đang lưu trang bị…':'Đang kết nối cửa hàng…') : error;
     content.replaceChildren();
     if (pending && !busy) content.append(button(t('Thử lại giao dịch'),()=>void load(pending)));
     if (!snapshot) {
@@ -489,6 +487,7 @@ export function mountShop(account:CloudAccount|undefined, equip:(appearance?:App
       }
       const state:Snapshot = await response.json();
       if (abort.signal.aborted) return;
+      if(action?.action==='equip_skin'&&champions.isEquipped(3))await champions.clear(3);
       const firstPrometheusName=action?.action==='name_prometheus'&&snapshot?.inventory.some(item=>item.id==='s1_red_crimson_core'&&item.nameRequired);
       snapshot = state;
       if(action?.action==='name_prometheus'&&(firstPrometheusName||prometheusReceipt))prometheusReceipt=state.inventory.find(item=>item.id==='s1_red_crimson_core')?.customName??undefined;
@@ -506,6 +505,13 @@ export function mountShop(account:CloudAccount|undefined, equip:(appearance?:App
       busy = false;
       if (!abort.signal.aborted) render();
     }
+  }
+  function equipSkinButton(id:string) {
+    const saving=busy&&pending?.action==='equip_skin'&&pending.id===id;
+    return button(t(saving?'Đang lưu trang bị…':'Trang bị'),()=>{
+      if(!canPreview()){status.textContent=t('Chờ lượt giải kết thúc để đổi skin.');return;}
+      void load({action:'equip_skin',id,requestId:newId()});
+    },busy||champions.busy||Boolean(pending));
   }
   const open = (tab:Tab) => {
     if (document.querySelector('dialog[open]')) return;

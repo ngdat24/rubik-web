@@ -13,7 +13,6 @@ export function mountDailyQuests(account: CloudAccount | undefined): () => void 
   const panel = document.querySelector<HTMLDetailsElement>('#quest-panel')!;
   const summary = panel.querySelector('summary')!;
   const status = document.querySelector<HTMLElement>('#quest-status')!;
-  const content = document.querySelector<HTMLElement>('#quest-progress')!;
   const timeLimit = document.querySelector<HTMLElement>('#quest-time-limit')!;
   const onlineStatus = document.querySelector<HTMLElement>('#quest-online-status')!;
   const onlineTime = document.querySelector<HTMLElement>('#quest-online-time')!;
@@ -23,9 +22,11 @@ export function mountDailyQuests(account: CloudAccount | undefined): () => void 
   }));
   const abort = new AbortController();
   let version = 0;
+  let lastProgressAt = -Infinity;
 
   function show(progress: QuestProgress): void {
     version++;
+    lastProgressAt = performance.now();
     const [two, three, four, large] = progress.counts;
     const counts = [two, three, four + large];
     for (const [index, {count, bar}] of targets.entries()) {
@@ -40,7 +41,6 @@ export function mountDailyQuests(account: CloudAccount | undefined): () => void 
     onlineStatus.textContent = (progress.completed & 4) ? t('Đã xong') : `(${seconds}/600)`;
     onlineTime.textContent = `${formatTime(seconds * 1000)} / 10:00`;
     status.hidden = true;
-    content.hidden = false;
   }
 
   async function refresh(): Promise<void> {
@@ -73,19 +73,22 @@ export function mountDailyQuests(account: CloudAccount | undefined): () => void 
 
   const stopHeartbeat = startQuestHeartbeat<QuestProgress>(account, show);
   const update = () => void refresh();
+  const onToggle = () => {
+    if (performance.now() - lastProgressAt >= 15000) update();
+  };
   const closeOnEscape = (event: KeyboardEvent) => {
     if (event.key !== 'Escape' || !panel.open) return;
     panel.open = false;
     summary.focus();
   };
-  panel.addEventListener('toggle', update);
+  panel.addEventListener('toggle', onToggle);
   panel.addEventListener('keydown', closeOnEscape);
   window.addEventListener('rubik-quest-solve-synced', update);
   window.addEventListener('rubik-profile-updated', update);
   return () => {
     stopHeartbeat();
     abort.abort();
-    panel.removeEventListener('toggle', update);
+    panel.removeEventListener('toggle', onToggle);
     panel.removeEventListener('keydown', closeOnEscape);
     window.removeEventListener('rubik-quest-solve-synced', update);
     window.removeEventListener('rubik-profile-updated', update);
