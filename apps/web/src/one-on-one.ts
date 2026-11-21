@@ -174,6 +174,7 @@ async function boot(){
   };
 
   let room:Snapshot|undefined, code='', origin:number|undefined, rendered='', busy=false, draft:Draft={preEvents:[],events:[]};
+  let waitingForRematch=false;
   let accessToken='';
   let renderer:CubeRenderer|undefined, opponent:CubeRenderer|undefined, controller:CubeController|undefined;
   let effects:ReturnType<typeof bindSkinEffects>|undefined, disposed=false, frame=0, lastProgress='', opponentState='';
@@ -298,6 +299,7 @@ async function boot(){
     }
     void refreshGraphics(s);
     const own=s.players.find(p=>p.id===account.id),other=s.players.find(p=>p.id!==account.id);
+    waitingForRematch=Boolean(s.matchFinal&&own?.rematch&&other&&!other.departed);
     el('duel-room-code').textContent=t('Mã: ')+s.id;
     el('duel-score').textContent=`${t('Bạn')} ${own?.score.score??0} : ${other?.score.score??0} ${t('Đối thủ')}`;
     el('duel-own-name').textContent=own?.name??t('Bạn');
@@ -339,6 +341,7 @@ async function boot(){
     const next=data as Snapshot;
     if(next.gone||next.left){
       room=undefined;code='';origin=undefined;
+      waitingForRematch=false;
       el('duel-lobby').hidden=false;el('duel-room').hidden=true;el('duel-opponent-panel').hidden=true;
       history.replaceState(null,'',location.pathname);
       status.textContent=t(next.left?'Đã rời phòng.':'Phòng đã đóng.');
@@ -348,12 +351,14 @@ async function boot(){
     paint(next);
   }
   async function poll(action='get',extra:Record<string,unknown>={}){
-    if(!code||disposed)return;
+    if(!code||disposed||(action==='get'&&room?.matchFinal&&!waitingForRematch))return;
     if(busy){
       if(action!=='get')pendingAction=()=>{void poll(action,extra);};
       return;
     }
     busy=true;
+    // Keep checking if the rematch response is lost after the server accepts it.
+    if(action==='rematch')waitingForRematch=true;
     try{
       if(action==='get'&&draft.pending&&room&&!room.final)await call('cube_done',{run:draft.pending});
       else if(action==='get'&&room&&rendered===room.round&&canMove(room,elapsed())){
