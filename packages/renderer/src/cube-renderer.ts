@@ -180,7 +180,7 @@ export class CubeRenderer {
 
   private readonly requestDraw=():void=>{
     this.dirty=true;
-    if(this.layoutOptions.optimize&&!this.disposed&&!this.contextLost&&!this.frame)this.frame=requestAnimationFrame(this.draw);
+    if(!this.disposed&&!this.contextLost&&!this.frame)this.frame=requestAnimationFrame(this.draw);
   };
 
   enableOrbit(enabled: boolean): void {
