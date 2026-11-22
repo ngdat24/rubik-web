@@ -9,6 +9,9 @@ const stage=el('stage'),status=el('status');
 stage.classList.add('prometheus-gameplay');
 const previewName=document.createElement('div');previewName.className='prometheus-personal-name';previewName.textContent=design.names.vi;stage.append(previewName);
 const display=new PrometheusStudy(stage,el('performance'),undefined,el('quality-note')),controller=new CubeController(display,3);
+display.keepOriginalAppearance=true;
+display.setSolvedAppearance(true,true);
+display.turnDuration=doubleTurn=>doubleTurn?60:40;
 display.onBloomChange=active=>{
   if(active)controller.lockInput('solve-bloom');else controller.unlockInput('solve-bloom');
   for(const button of document.querySelectorAll<HTMLButtonElement>('#core,#mix,#solve-fx,#moves button'))button.disabled=active;

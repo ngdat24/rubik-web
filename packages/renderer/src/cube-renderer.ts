@@ -105,6 +105,7 @@ export class CubeRenderer {
   private dragAngle: number | undefined;
   private msPerQuarterTurn = 150;
   private instant = false;
+  private renderingEnabled = true;
   private idleNotified = true;
   onMoveAnimated: (move: Move) => void = () => {};
   onIdle: () => void = () => {};
@@ -446,6 +447,12 @@ export class CubeRenderer {
 
   setInstant(enabled: boolean): void { this.assertActive(); this.instant = enabled; }
 
+  setRenderingEnabled(enabled: boolean): void {
+    this.assertActive();
+    this.renderingEnabled=enabled;
+    this.requestDraw();
+  }
+
   turnDuration(doubleTurn: boolean): number {
     return this.instant ? 0 : this.msPerQuarterTurn * (doubleTurn ? 1.5 : 1);
   }
@@ -723,11 +730,14 @@ export class CubeRenderer {
         halfEdge: (this.layoutOptions.edgeLength ?? 3) / 2,
       }, this.camera,time);
     }
-    this.surfaceMaterials?.animate(time);
-    const renderStart = this.measurePerformance ? performance.now() : 0;
-    this.webgl.render(this.scene, this.camera);this.renderedFrames++;
-    if (this.measurePerformance) this.lastRenderMs = performance.now() - renderStart;
-    if(!this.layoutOptions.optimize||this.pendingMoveCount||effectAnimating||this.surfaceMaterials?.isAnimated||this.dirty){
+    if(this.renderingEnabled){
+      this.surfaceMaterials?.animate(time);
+      const renderStart = this.measurePerformance ? performance.now() : 0;
+      this.webgl.render(this.scene, this.camera);this.renderedFrames++;
+      if (this.measurePerformance) this.lastRenderMs = performance.now() - renderStart;
+    }
+    const animatedSurface=this.renderingEnabled&&(!this.layoutOptions.optimize||this.surfaceMaterials?.isAnimated);
+    if(animatedSurface||this.pendingMoveCount||effectAnimating||this.dirty){
       if(!this.frame)this.frame = requestAnimationFrame(this.draw);
     }
   };

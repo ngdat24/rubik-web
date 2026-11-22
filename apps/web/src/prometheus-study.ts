@@ -114,6 +114,8 @@ export class PrometheusStudy {
   private solar=solarHeart();
   onBloomChange:((active:boolean)=>void)=()=>{};
   turnDuration:(doubleTurn:boolean)=>number=doubleTurn=>doubleTurn?240:170;
+  shouldDraw=()=>true;
+  keepOriginalAppearance=false;
   private frame=0;
   private observer:ResizeObserver;
   constructor(private readonly host:HTMLElement, private readonly stats?:HTMLElement, private readonly syncCamera?:(camera:PerspectiveCamera)=>void,private readonly qualityNote?:HTMLElement){
@@ -339,7 +341,7 @@ export class PrometheusStudy {
     if(this.optimize)this.batches=new PrometheusBatches(this.scene,this.root,this.camera);
   }
   feedback(move:string){this.audio.turn(move);this.lastTurn=performance.now();this.turnTimes.push(this.lastTurn);}
-  setSolvedAppearance(solved:boolean,immediate=false){this.unification.setSolved(solved,performance.now(),immediate);}
+  setSolvedAppearance(solved:boolean,immediate=false){this.unification.setSolved(this.keepOriginalAppearance||solved,performance.now(),immediate);}
   celebrate(){
     if(this.manualOpen||this.bloom||this.bloomPending||this.disposed)return false;
     this.bloomPending=true;this.onBloomChange(true);return true;
@@ -411,7 +413,19 @@ export class PrometheusStudy {
     this.pivot.rotation.y=Math.PI/4;this.pivot.position.y=.48;this.manualOpen=true;return true;
   }
   closeCore(){if(!this.manualOpen)return;this.pivot.rotation.set(0,0,0);this.pivot.position.set(0,0,0);this.cancel();}
+  private startNextTurn(now:number){
+    if(this.bloom||this.active||!this.queue.length)return;
+    const item=this.queue.shift()!,parsed=parseMove(item.move,3),rotation=rotationFor(parsed),selected=layerSlots(parsed,3);
+    this.fx.turn(item.move,now,this.camera.position);
+    for(const index of selected.stickerIndices)this.pivot.attach(this.caps[index]!);
+    for(const index of selected.cubieIndices)this.pivot.attach(this.bodies[index]!);
+    this.active={...item,start:now,axis:new Vector3(...rotation.axis),angle:rotation.angle};
+  }
   private draw=(now:number)=>{
+    if(!this.shouldDraw()){
+      this.frame=requestAnimationFrame(this.draw);
+      return;
+    }
     this.fire.uniforms.time!.value=now/1000;
     this.turnTimes=this.turnTimes.filter(t=>now-t<1000);
     const tps=this.turnTimes.length,heatScale=1+Math.min(.45,tps*.075),pulse=Math.sin(now/1000*Math.PI*2*.85)*.055;
@@ -420,15 +434,10 @@ export class PrometheusStudy {
     if(this.heart)this.heart.scale.set(2.2*heatScale,1.45*heatScale,2.2*heatScale);
     this.coreLight.intensity=1.8+Math.max(0,1-(now-this.lastTurn)/180)*1.4+ignition;
     this.audio.update(this.camera,now);
-    if(!this.bloom&&!this.active&&this.queue.length){
-      const item=this.queue.shift()!,parsed=parseMove(item.move,3),rotation=rotationFor(parsed),selected=layerSlots(parsed,3);
-      this.fx.turn(item.move,now,this.camera.position);
-      for(const index of selected.stickerIndices)this.pivot.attach(this.caps[index]!);
-      for(const index of selected.cubieIndices)this.pivot.attach(this.bodies[index]!);
-      this.active={...item,start:now,axis:new Vector3(...rotation.axis),angle:rotation.angle};
-    }
-    if(this.active){
-      const a=this.active,duration=this.turnDuration(Math.abs(parseMove(a.move,3).quarterTurns)===2);
+    this.startNextTurn(now);
+    const budget=this.queue.length+1;
+    for(let index=0;index<budget&&this.active;index++){
+      const a=this.active,duration=this.turnDuration(Math.abs(parseMove(a.move,3).quarterTurns)===2)/(1+this.queue.length*.6);
       const t=duration===0?1:Math.min(1,(now-a.start)/duration);
       this.pivot.setRotationFromAxisAngle(a.axis,a.angle*t*t*(3-2*t));
       if(t===1){
@@ -439,7 +448,9 @@ export class PrometheusStudy {
         // Re-identify cubies by their engine-defined positions after the physical turn.
         this.bodies=layout.cubies.map(slot=>this.bodies.find(mesh=>mesh.position.distanceTo(new Vector3(...slot.position))<.01)!);
         this.active=undefined;
+        this.startNextTurn(now);
       }
+      if(t<1||duration>0)break;
     }
     if(this.bloomPending&&!this.active&&!this.queue.length)this.beginBloom(now);
     this.animateBloom(now);
