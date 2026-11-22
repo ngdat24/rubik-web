@@ -116,6 +116,7 @@ const updateAppearance=()=>{
     void import('./prometheus-live.js').then(module=>{
       if(pageDisposed||!renderer||controller?.size!==3||champion||container.dataset.prometheusEquipped!=='true')return;
       livePrometheus=module.mountPrometheus(container,renderer,controller,()=>lowFx.checked);
+      renderer.setSurface();
       equippedEffects?.dispose();equippedEffects=undefined;
     }).catch(console.error).finally(()=>{prometheusPending=false;});
   }
@@ -130,7 +131,7 @@ const updateAppearance=()=>{
       championMotion=mountChampionMotion(container,renderer,controller!,champion.sound,()=>!lowFx.checked,champion.size);
     }
   }
-  if(champion)return;
+  if(champion||livePrometheus)return;
   renderer.setTheme(skinPalette(equippedAppearance));
   const surface=detailed?skinSurface(equippedAppearance):undefined;
   if (surface && lowFx.checked) delete surface.pulse;
@@ -197,6 +198,7 @@ if(controller) timerUI=attachTimer(controller,()=>onScramble(newId()),account,
     if(solve.penalty!=='DNF'){
       if(solve.size===championSize&&!lowFx.checked)championFrame?.celebrate();
       equippedEffects?.play(true);
+      return livePrometheus?.finishSolve();
     }
   });
 const onPageHide = (event: PageTransitionEvent): void => {

@@ -114,6 +114,8 @@ export class PrometheusStudy {
   private solar=solarHeart();
   onBloomChange:((active:boolean)=>void)=()=>{};
   turnDuration:(doubleTurn:boolean)=>number=doubleTurn=>doubleTurn?240:170;
+  shouldDraw=()=>true;
+  keepOriginalAppearance=false;
   private frame=0;
   private observer:ResizeObserver;
   constructor(private readonly host:HTMLElement, private readonly stats?:HTMLElement, private readonly syncCamera?:(camera:PerspectiveCamera)=>void,private readonly qualityNote?:HTMLElement){
@@ -339,7 +341,7 @@ export class PrometheusStudy {
     if(this.optimize)this.batches=new PrometheusBatches(this.scene,this.root,this.camera);
   }
   feedback(move:string){this.audio.turn(move);this.lastTurn=performance.now();this.turnTimes.push(this.lastTurn);}
-  setSolvedAppearance(solved:boolean,immediate=false){this.unification.setSolved(solved,performance.now(),immediate);}
+  setSolvedAppearance(solved:boolean,immediate=false){this.unification.setSolved(this.keepOriginalAppearance||solved,performance.now(),immediate);}
   celebrate(){
     if(this.manualOpen||this.bloom||this.bloomPending||this.disposed)return false;
     this.bloomPending=true;this.onBloomChange(true);return true;
@@ -412,6 +414,10 @@ export class PrometheusStudy {
   }
   closeCore(){if(!this.manualOpen)return;this.pivot.rotation.set(0,0,0);this.pivot.position.set(0,0,0);this.cancel();}
   private draw=(now:number)=>{
+    if(!this.shouldDraw()){
+      this.frame=requestAnimationFrame(this.draw);
+      return;
+    }
     this.fire.uniforms.time!.value=now/1000;
     this.turnTimes=this.turnTimes.filter(t=>now-t<1000);
     const tps=this.turnTimes.length,heatScale=1+Math.min(.45,tps*.075),pulse=Math.sin(now/1000*Math.PI*2*.85)*.055;

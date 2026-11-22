@@ -10,7 +10,7 @@ import {scopeHistory} from './history-storage.js';
 import {attachCloudHistory} from './cloud-controls.js';
 import type {CloudAccount} from './account.js';
 
-export function attachTimer(controller: CubeController, newScramble: () => void,account?:CloudAccount,onCompleted:(solve:Solve)=>void=()=>{}) {
+export function attachTimer(controller: CubeController, newScramble: () => void,account?:CloudAccount,onCompleted:(solve:Solve)=>void|Promise<void>=()=>{}) {
   scopeHistory(account?.id);
   const history=new SolveHistory();
   let cloud:ReturnType<typeof attachCloudHistory>|undefined;
@@ -22,6 +22,7 @@ export function attachTimer(controller: CubeController, newScramble: () => void,
   const start=element<HTMLButtonElement>('timer-start'), cancel=element<HTMLButtonElement>('timer-cancel');
   const dialog=element<HTMLDialogElement>('timer-cancel-dialog');
   let lastResult:Solve|undefined,preparingNext=false;
+  let celebrating=false;
   let frame=0, wake=0, disposed=false;
   const listeners: (()=>void)[]=[];
   const on=(target:EventTarget,type:string,listener:EventListener,capture=false):void=>{
@@ -30,8 +31,8 @@ export function attachTimer(controller: CubeController, newScramble: () => void,
   const running=()=>timer.phase==='inspecting'||timer.phase==='solving';
   const sync=():void=>{
     if(running())controller.unlockInput('timer');else controller.lockInput('timer');
-    for(const node of document.querySelectorAll<HTMLButtonElement|HTMLSelectElement>('#cube-size,#reset,#key-settings-open')) node.disabled=running();
-    start.disabled=running();cancel.disabled=!running();
+    for(const node of document.querySelectorAll<HTMLButtonElement|HTMLSelectElement>('#cube-size,#reset,#key-settings-open')) node.disabled=running()||celebrating;
+    start.disabled=running()||celebrating;cancel.disabled=!running();
     start.textContent=timer.phase==='finished'||!timer.armed?t("Chuẩn bị scramble"):t("Bắt đầu inspection");
     phaseLabel.textContent={idle:timer.armed?t("Sẵn sàng · Space để inspection"):t("Chờ scramble"),inspecting:t("Inspection · nước xoay lớp đầu tiên bắt đầu giải"),solving:t("Đang giải"),finished:t("Đã kết thúc")}[timer.phase];
   };
@@ -56,12 +57,23 @@ export function attachTimer(controller: CubeController, newScramble: () => void,
     clearTimeout(wake);
     if(timer.phase==='finished'){
       const result=timer.result!;
+      let completion:void|Promise<void>=undefined;
       if(history.add(result)){
         leaderboard.completed(result);
-        onCompleted(result);
+        completion=onCompleted(result);
       }
       historyUI.changed();
-      if(result.penalty!=='DNF'){prepareNext(result);return;}
+      if(result.penalty!=='DNF'){
+        if(completion){
+          celebrating=true;sync();show();
+          const finished=()=>{
+            celebrating=false;
+            if(!disposed&&timer.phase==='finished'&&timer.result?.id===result.id)prepareNext(result);
+          };
+          void completion.then(finished,finished);
+        }else prepareNext(result);
+        return;
+      }
     }
     sync();show();
   });
@@ -69,6 +81,7 @@ export function attachTimer(controller: CubeController, newScramble: () => void,
   const unmove=controller.onMoveApplied(e=>timer.recordMove(e.move,e.stateAfter,e.t));
   controller.setMoveGate((move,stamp)=>timer.canApply(move,stamp));
   const begin=(stamp:number):void=>{
+    if(celebrating)return;
     if(controller.lockedBy.has('context')){message.textContent=t("Đang chờ khôi phục đồ họa.");return;}
     message.textContent='';
     if(timer.phase==='finished'){newScramble();return;}

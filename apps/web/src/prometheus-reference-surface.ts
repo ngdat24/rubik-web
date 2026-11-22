@@ -154,6 +154,7 @@ export function referenceSurface(atlas:Texture,face:number,tile:number,unificati
       // Solved appearance is the original atlas in full, including its gemstone
       // depth and detailed raised bronze. The new stone applies only while solving.
       vec3 raised=sampledDiffuseColor.rgb;
+      ${face===4?'raised*=mix(vec3(1.08,1.8,.50),vec3(1.),motif);quartz*=vec3(1.08,1.8,.50);engraved=quartz*(1.-motif*engravingInset*.16);':''}
       diffuseColor*=vec4(mix(engraved,raised,ornamentVisibility),sampledDiffuseColor.a);
       float referenceBronze=motif*ornamentVisibility;
       float referenceRelief=anchoredCenter>.5?0.:mix(-.0055*engravingInset,.012,ornamentVisibility)*referenceHeight(map,referenceUv);
@@ -174,5 +175,5 @@ export function referenceSurface(atlas:Texture,face:number,tile:number,unificati
       }
     `);
   };
-  material.customProgramCacheKey=()=> 'prometheus-solving-reference-cells-v7';return material;
+  material.customProgramCacheKey=()=> 'prometheus-solving-reference-cells-v8-'+face;return material;
 }
