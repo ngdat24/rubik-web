@@ -26,6 +26,27 @@ function setup() {
 }
 afterEach(() => {vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.clearAllMocks();});
 
+it('wakes a hidden unoptimized renderer for consecutive moves without drawing it', () => {
+  const {renderer,draw,colors}=setup();
+  const cube=new Cube(),animated=vi.fn();renderer.onMoveAnimated=animated;
+  renderer.setRenderingEnabled(false);
+  // Drain the last scheduled frame, so a new move must wake the renderer itself.
+  draw(1);draw(2);mocks.render.mockClear();mocks.request.mockClear();
+  for(const [index,move] of ['R','U','F'].entries()){
+    cube.applyMove(move);
+    renderer.enqueueMove(move,cube.state);
+    expect(mocks.request).toHaveBeenCalledOnce();
+    draw(index*1000+10);draw(index*1000+210);draw(index*1000+211);
+    expect(renderer.pendingMoveCount).toBe(0);
+    expect(colors()).toEqual([...cube.state].map(c=>WESTERN_COLORS[c]));
+    mocks.request.mockClear();
+  }
+  expect(animated.mock.calls.map(call=>call[0])).toEqual(['R','U','F']);
+  expect(mocks.render).not.toHaveBeenCalled();
+  renderer.setRenderingEnabled(true);draw(4000);
+  expect(mocks.render).toHaveBeenCalledOnce();renderer.dispose();
+});
+
 it('keeps rapid inputs and snapshots in order, speeds up and reports idle once', () => {
   const {renderer, draw, group, colors} = setup();
   const moves = Array.from({length: 60}, (_, i) => ['R','R','U',"R'",'U2','x'][i % 6]!);

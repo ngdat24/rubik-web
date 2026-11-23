@@ -138,19 +138,26 @@ export function referenceSurface(atlas:Texture,face:number,tile:number,unificati
       float motif=anchoredCenter>.5?0.:bronzeMask(sampledDiffuseColor.rgb);
       float capEdge=min(min(capUv.x,capUv.y),min(1.-capUv.x,1.-capUv.y));
       float engravingInset=smoothstep(.035,.105,capEdge);
+      vec3 baseStone=vec3(0.),quartz=vec3(0.),engraved=vec3(0.);
+      vec2 stonePoint=vec2(0.);
+      float vein=0.;
+      // The live game keeps the original artwork. Skip the unused alternate
+      // gemstone sampling and procedural noise while that artwork is fully visible.
+      if(ornamentVisibility<1.){
       vec2 quartzCenter=referenceFace+vec2(1.5,2.30)*cell;
-      vec3 baseStone=(texture2D(map,quartzCenter+vec2(.012,.006)).rgb+texture2D(map,quartzCenter-vec2(.012,.006)).rgb
+      baseStone=(texture2D(map,quartzCenter+vec2(.012,.006)).rgb+texture2D(map,quartzCenter-vec2(.012,.006)).rgb
         +texture2D(map,quartzCenter+vec2(-.009,.008)).rgb+texture2D(map,quartzCenter+vec2(.009,-.008)).rgb)*.25;
-      vec2 stonePoint=stoneCoordinates(capUv);
+      stonePoint=stoneCoordinates(capUv);
       // Reuse the actual deep gemstone art, with a stable window and orientation
       // per sticker. Never replace it with flat averaged colors or polygon cracks.
       vec2 gemUv=referenceFace+stoneTextureUv(capUv)*cell;
-      vec3 quartz=texture2D(map,gemUv).rgb;
+      quartz=texture2D(map,gemUv).rgb;
       if(hasSolvingAtlas>.5)quartz=texture2D(solvingAtlas,solvingRect.xy+clamp(capUv,0.,1.)*solvingRect.zw).rgb;
       quartz*=solvingGemGain;
       float baseLuma=max(.015,dot(baseStone,vec3(.2126,.7152,.0722)));
-      float vein=smoothstep(1.25,2.8,dot(quartz,vec3(.2126,.7152,.0722))/baseLuma);
-      vec3 engraved=quartz*(1.-motif*engravingInset*.16);
+      vein=smoothstep(1.25,2.8,dot(quartz,vec3(.2126,.7152,.0722))/baseLuma);
+      engraved=quartz*(1.-motif*engravingInset*.16);
+      }
       // Solved appearance is the original atlas in full, including its gemstone
       // depth and detailed raised bronze. The new stone applies only while solving.
       vec3 raised=sampledDiffuseColor.rgb;
@@ -175,5 +182,5 @@ export function referenceSurface(atlas:Texture,face:number,tile:number,unificati
       }
     `);
   };
-  material.customProgramCacheKey=()=> 'prometheus-solving-reference-cells-v8-'+face;return material;
+  material.customProgramCacheKey=()=> 'prometheus-solving-reference-cells-v9-'+face;return material;
 }
