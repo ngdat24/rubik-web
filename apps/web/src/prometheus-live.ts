@@ -18,6 +18,7 @@ export function mountPrometheus(host:HTMLElement,renderer:CubeRenderer,controlle
     display.turnDuration=doubleTurn=>renderer.turnDuration(doubleTurn);
     display.setState(controller.cube.state);
     display.setLightweight(!controller.isSolved(),lowFx()||!controller.isSolved()?'lite':'ultra');
+    display.setInteractionEffects(!lowFx());
     display.soundEnabled(!lowFx());
   }catch(error){layer.remove();throw error;}
   renderer.canvas.classList.add('prometheus-input-canvas');
@@ -57,6 +58,10 @@ export function mountPrometheus(host:HTMLElement,renderer:CubeRenderer,controlle
     solved=nextSolved;
   });
   return {
+    beginDrag:(move:string)=>display.beginLayerDrag(move),
+    updateDrag:(angle:number)=>display.updateLayerDrag(angle),
+    endDrag:()=>display.endLayerDrag(),
+    resumeDrag:(angle:number)=>display.resumeLayerDrag(angle),
     async prepareScramble(seed:string){
       if(preparing||disposed)return;
       preparing=true;controller.lockInput('prometheus-scramble');
@@ -91,6 +96,7 @@ export function mountPrometheus(host:HTMLElement,renderer:CubeRenderer,controlle
     },
     setQuality(){
       display.setQuality(lowFx()||!solved?'lite':'ultra');
+      display.setInteractionEffects(!lowFx());
       display.soundEnabled(!lowFx());
     },
     dispose(){
