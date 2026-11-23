@@ -34,11 +34,50 @@ test('lightweight Prometheus follows a held drag, resumes the turn and keeps tur
       });
       window.qa={renderer,controller,live,off,moves:[],turns:[],effects:[]};controller.onMoveApplied(event=>window.qa.moves.push(event.move));
       await window.study.ready;await live.prepareScramble('prometheus-drag-feedback');
+      // Drive both renderers with identical frame timestamps, without GPU timing noise.
+      const study=window.study,render=study.webgl.render;
+      cancelAnimationFrame(study.frame);cancelAnimationFrame(renderer.frame);
+      study.webgl.render=()=>{};study.soundEnabled(false);study.setInteractionEffects(false);
+      const cases=[30,40,70,100].flatMap(ms=>['R','R2'].map(move=>({ms,moves:[move]})));
+      cases.push({ms:40,moves:['R','U','F']},{ms:40,moves:['R','U'],change:'speed'},
+        {ms:100,moves:['R'],change:'queue'},{ms:100,moves:['R','U'],change:'instant'});
+      try{
+        for(const scenario of cases){
+          renderer.clearQueue();study.cancel();study.setState(controller.cube.state);
+          renderer.setInstant(false);renderer.setSpeed(scenario.ms);
+          for(const move of scenario.moves)controller.applyMove(move,performance.now());
+          let previous=0,previousActive;
+          for(let frame=0;frame<100;frame++){
+            if(frame===3){
+              if(scenario.change==='speed')renderer.setSpeed(100);
+              if(scenario.change==='queue')controller.applyMove('B',performance.now());
+              if(scenario.change==='instant')renderer.setInstant(true);
+            }
+            cancelAnimationFrame(renderer.frame);cancelAnimationFrame(study.frame);
+            renderer.draw(10000+frame*5);study.draw(10000+frame*5);
+            const normal=renderer.active?.progress??1,prometheus=study.active?.progress??1;
+            if(Math.abs(normal-prometheus)>1e-8||renderer.pendingMoveCount!==study.queue.length+Number(Boolean(study.active)))
+              throw Error('Prometheus timing differs from normal: '+JSON.stringify({scenario,frame,normal,prometheus}));
+            if(scenario.change==='speed'&&study.active===previousActive&&prometheus<previous)throw Error('Changing speed rewound the turn');
+            previous=prometheus;previousActive=study.active;
+            if(!renderer.pendingMoveCount&&!study.isAnimating)break;
+            if(frame===99)throw Error('Turn queue failed to complete');
+          }
+        }
+        window.qa.timingCases=cases.length;
+      }finally{
+        cancelAnimationFrame(renderer.frame);cancelAnimationFrame(study.frame);
+        study.webgl.render=render;renderer.frame=0;
+        renderer.setInstant(false);renderer.setSpeed(200);
+        controller.scramble('prometheus-drag-feedback');live.setQuality();
+        study.frame=requestAnimationFrame(study.draw);window.qa.moves=[];
+      }
       window.study.fx.clear();
       const start=window.study.startNextTurn.bind(window.study),turn=window.study.fx.turn;
       window.study.startNextTurn=now=>{const previous=window.study.active;start(now);if(window.study.active&&window.study.active!==previous)window.qa.turns.push({angle:window.study.active.angle,startAngle:window.study.active.startAngle});};
       window.study.fx.turn=(...args)=>{turn(...args);window.qa.effects.push(window.study.fx.turnActive);};
     });
+    assert.equal(await page.evaluate(()=>window.qa.timingCases),12);
     assert.equal(await page.evaluate(()=>window.study.lightweight),true);
     const pick=()=>page.evaluate(()=>window.qa.renderer.getPickTargets().find(p=>p.index>=18&&p.index<27));
     const target=await pick();assert.ok(target);
