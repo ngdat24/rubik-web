@@ -67,8 +67,10 @@ export class PrometheusStudy {
   private heightReady=false;
   private turnTimes:number[]=[];
   private coreLight=new PointLight(0xff4d2a,1.8,2.4,2);
-  private queue:{move:Move;stateAfter:Uint8Array}[]=[];
-  private active:{move:Move;stateAfter:Uint8Array;start:number;axis:Vector3;angle:number}|undefined;
+  private queue:{move:Move;stateAfter:Uint8Array;startAngle?:number}[]=[];
+  private active:{move:Move;stateAfter:Uint8Array;startAngle?:number;start:number;axis:Vector3;angle:number}|undefined;
+  private dragMove:Move|undefined;
+  private interactionEffects:boolean|undefined;
   private geometry:BufferGeometry[]=[];
   private gemMotion={time:{value:0},heat:{value:0}};
   private pyramidMaterials=design.colors.map(color=>new MeshPhysicalMaterial({
@@ -241,9 +243,10 @@ export class PrometheusStudy {
     this.setQuality(this.quality);
   }
   private resize(){this.camera.aspect=this.host.clientWidth/this.host.clientHeight;this.camera.updateProjectionMatrix();this.webgl.setSize(this.host.clientWidth,this.host.clientHeight,false);}
-  get isAnimating(){return Boolean(this.manualOpen||this.active||this.queue.length||this.bloom||this.bloomPending);}
+  get isAnimating(){return Boolean(this.dragMove||this.manualOpen||this.active||this.queue.length||this.bloom||this.bloomPending);}
   setSize(size:number){if(size!==3)throw Error('Demo này chỉ dùng 3×3.');}
   private cancel(){
+    this.endLayerDrag();
     this.preparingSurface=false;
     const scramble=this.scrambleAnimation;this.scrambleAnimation=undefined;scramble?.complete(false);
     this.cancelBloom();
@@ -304,6 +307,27 @@ export class PrometheusStudy {
   }
   enqueueMove(move:Move,stateAfter:Uint8Array){parseMove(move,3);this.queue.push({move,stateAfter:stateAfter.slice()});}
   enqueueMoves(moves:readonly {move:Move;stateAfter:Uint8Array}[]){for(const item of moves)this.enqueueMove(item.move,item.stateAfter);}
+  beginLayerDrag(move:Move){
+    if(this.disposed||this.isAnimating)return false;
+    const selected=layerSlots(parseMove(move,3),3);
+    for(const i of selected.stickerIndices)this.pivot.attach(this.caps[i]!);
+    for(const i of selected.cubieIndices)this.pivot.attach(this.bodies[i]!);
+    this.dragMove=move;return true;
+  }
+  updateLayerDrag(angle:number){
+    if(!this.dragMove||!Number.isFinite(angle))return;
+    this.pivot.setRotationFromAxisAngle(new Vector3(...rotationFor(parseMove(this.dragMove,3)).axis),angle);
+  }
+  endLayerDrag(){
+    if(!this.dragMove)return;
+    this.pivot.quaternion.identity();
+    while(this.pivot.children.length)this.root.attach(this.pivot.children[0]!);
+    this.dragMove=undefined;
+  }
+  resumeLayerDrag(angle:number){
+    const turn=this.queue.at(-1);if(turn&&Number.isFinite(angle))turn.startAngle=angle;
+  }
+  setInteractionEffects(enabled:boolean){this.interactionEffects=enabled;this.fx.setEnabled(enabled);}
   animateScramble(initial:Uint8Array,moves:readonly {move:Move;stateAfter:Uint8Array}[],started=performance.now(),quality:Quality='balanced'):Promise<boolean>{
     // Reuse the existing geometry/GPU buffers instead of rebuilding the whole skin each round.
     this.batches?.dispose();this.batches=undefined;this.cancel();
@@ -379,7 +403,7 @@ export class PrometheusStudy {
       }
       cap.children.forEach(child=>{child.visible=child.userData.kind==='medallion'||child.userData.kind==='medallion-ring'||(!(this.lightweight||this.preparingSurface)&&(child.userData.kind==='channel'||child.userData.kind==='gem-rim'||!atlas||(!this.referenceMaterials.length&&value==='ultra')));});
     }
-    this.fx.setEnabled(value!=='lite');
+    this.fx.setEnabled(this.interactionEffects??value!=='lite');
     this.webgl.setPixelRatio(Math.min(devicePixelRatio,value==='ultra'?2:value==='balanced'?1.5:1));
     this.resize();
     if(this.qualityNote)this.qualityNote.textContent=(value==='ultra'?'Ultra · Parallax 12 bước, lõi plasma 3D, 24 nam châm, đèn động':value==='balanced'?'Balanced · PBR, lõi sprite, giữ vệt xoay 3D':'Lite · Phát sáng tĩnh, tắt đèn động và hiệu ứng hạt');
@@ -459,12 +483,13 @@ export class PrometheusStudy {
   }
   closeCore(){if(!this.manualOpen)return;this.pivot.rotation.set(0,0,0);this.pivot.position.set(0,0,0);this.cancel();}
   private startNextTurn(now:number){
-    if(this.bloom||this.active||!this.queue.length)return;
+    if(this.dragMove||this.bloom||this.active||!this.queue.length)return;
     const item=this.queue.shift()!,parsed=parseMove(item.move,3),rotation=rotationFor(parsed),selected=layerSlots(parsed,3);
     this.fx.turn(item.move,now,this.camera.position);
     for(const index of selected.stickerIndices)this.pivot.attach(this.caps[index]!);
     for(const index of selected.cubieIndices)this.pivot.attach(this.bodies[index]!);
-    this.active={...item,start:now,axis:new Vector3(...rotation.axis),angle:rotation.angle};
+    const angle=Math.abs(parsed.quarterTurns)===2&&(item.startAngle??0)<0?-Math.PI:rotation.angle;
+    this.active={...item,start:now,axis:new Vector3(...rotation.axis),angle};
   }
   private draw=(now:number)=>{
     if(!this.shouldDraw()){
@@ -484,7 +509,8 @@ export class PrometheusStudy {
     for(let index=0;index<budget&&this.active;index++){
       const a=this.active,duration=this.scrambleAnimation?.turnMs??this.turnDuration(Math.abs(parseMove(a.move,3).quarterTurns)===2)/(1+this.queue.length*.6);
       const t=duration===0?1:Math.min(1,(now-a.start)/duration);
-      this.pivot.setRotationFromAxisAngle(a.axis,a.angle*t*t*(3-2*t));
+      const startAngle=a.startAngle??0;
+      this.pivot.setRotationFromAxisAngle(a.axis,startAngle+(a.angle-startAngle)*t*t*(3-2*t));
       if(t===1){
         while(this.pivot.children.length)this.root.attach(this.pivot.children[0]!);
         this.pivot.rotation.set(0,0,0);

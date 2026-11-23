@@ -2,9 +2,16 @@ import { dragTurn } from '@rubik/renderer';
 import type { CubeRenderer } from '@rubik/renderer';
 import type { CubeController } from '@rubik/controller';
 
+export interface DragPreview {
+  begin(move:string):boolean|void;
+  update(angle:number):void;
+  end():void;
+  resume(angle:number):void;
+}
+
 /** Pointer gestures choose a move; only the controller commits engine state. */
 export function attachDrag(renderer: CubeRenderer, controller: CubeController, changed: () => void,
-  commit = (move: string, stamp: number, _dx: number, _dy: number) => controller.applyMove(move,stamp)): () => void {
+  commit = (move: string, stamp: number, _dx: number, _dy: number) => controller.applyMove(move,stamp),preview?:DragPreview): () => void {
   const canvas=renderer.canvas;
   const points=new Map<number,{x:number;y:number}>();
   let gesture: {id:number;x:number;y:number;hit:NonNullable<ReturnType<CubeRenderer['pick']>>;axis?:number;layer?:number;angle:number} | undefined;
@@ -12,7 +19,7 @@ export function attachDrag(renderer: CubeRenderer, controller: CubeController, c
   const inside=(e:PointerEvent)=>{const r=canvas.getBoundingClientRect();return e.clientX>=r.left&&e.clientX<r.right&&e.clientY>=r.top&&e.clientY<r.bottom;};
   const pinchDistance=()=>{const p=[...points.values()];return p.length>=2?Math.hypot(p[0]!.x-p[1]!.x,p[0]!.y-p[1]!.y):0;};
   const cancel=():void=>{
-    if(gesture || pinching) {renderer.endDrag();renderer.enableOrbit(true);controller.unlockInput('drag');}
+    if(gesture || pinching) {renderer.endDrag();preview?.end();renderer.enableOrbit(true);controller.unlockInput('drag');}
     for(const id of points.keys()) if(canvas.hasPointerCapture(id))canvas.releasePointerCapture(id);
     points.clear();gesture=undefined;pinching=false;
   };
@@ -20,7 +27,7 @@ export function attachDrag(renderer: CubeRenderer, controller: CubeController, c
     if(e.button!==0 || !inside(e) || [...controller.lockedBy].some(reason=>reason!=='drag'))return;
     if(gesture || pinching){
       e.stopImmediatePropagation();e.preventDefault();points.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.setPointerCapture(e.pointerId);
-      renderer.endDrag();gesture=undefined;pinching=true;distance=pinchDistance();return;
+      renderer.endDrag();preview?.end();gesture=undefined;pinching=true;distance=pinchDistance();return;
     }
     const hit=renderer.pick(e.clientX,e.clientY);
     if(!hit)return;
@@ -38,11 +45,14 @@ export function attachDrag(renderer: CubeRenderer, controller: CubeController, c
     const point=renderer.facePoint(e.clientX,e.clientY,g.hit.slot.normal,g.hit.point);if(!point)return;
     const delta=point.sub(g.hit.point).toArray();
     const turn=dragTurn(controller.size,g.hit.slot.index,delta);if(!turn)return;
-    if(g.axis===undefined){g.axis=turn.axis;g.layer=turn.layer;renderer.beginDrag(turn.move);}
+    if(g.axis===undefined){
+      if(preview?.begin(turn.move)===false)return;
+      g.axis=turn.axis;g.layer=turn.layer;renderer.beginDrag(turn.move);
+    }
     const n=g.hit.slot.normal,d=delta;
     const cross=[n[1]*d[2]!-n[2]*d[1]!,n[2]*d[0]!-n[0]*d[2]!,n[0]*d[1]!-n[1]*d[0]!];
     const sensitivity=e.pointerType==='mouse'?0.675*0.8:0.7;
-    g.angle=Math.max(-Math.PI,Math.min(Math.PI,cross[g.axis]!*Math.PI/1.5*sensitivity));renderer.updateDrag(g.angle);
+    g.angle=Math.max(-Math.PI,Math.min(Math.PI,cross[g.axis]!*Math.PI/1.5*sensitivity));renderer.updateDrag(g.angle);preview?.update(g.angle);
   };
   const up=(e:PointerEvent):void=>{
     if(!points.has(e.pointerId))return;
@@ -50,7 +60,7 @@ export function attachDrag(renderer: CubeRenderer, controller: CubeController, c
     const timestamp=e.timeStamp;e.stopImmediatePropagation();e.preventDefault();
     const g=gesture;
     if(pinching){points.delete(e.pointerId);if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId);if(!points.size)cancel();return;}
-    const angle=renderer.endDrag();gesture=undefined;points.delete(e.pointerId);
+    const angle=renderer.endDrag();preview?.end();gesture=undefined;points.delete(e.pointerId);
     if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId);
     renderer.enableOrbit(true);controller.unlockInput('drag');
     if(!g || g.axis===undefined)return;
@@ -59,7 +69,7 @@ export function attachDrag(renderer: CubeRenderer, controller: CubeController, c
     const opposite=controller.size===2 && layer===2;
     const face=(opposite?['L','D','B']:['R','U','F'])[g.axis]!;
     const token=`${layer===1 || opposite?'':layer}${face}${turns===2?'2':(angle>0)!==opposite?"'":''}`;
-    if(commit(token,timestamp,e.clientX-g.x,e.clientY-g.y)){renderer.resumeDrag(angle);changed();}
+    if(commit(token,timestamp,e.clientX-g.x,e.clientY-g.y)){renderer.resumeDrag(angle);preview?.resume(angle);changed();}
   };
   const interrupted=():void=>cancel();
   const menu=(e:Event):void=>{e.preventDefault();};

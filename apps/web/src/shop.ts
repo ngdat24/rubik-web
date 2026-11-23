@@ -170,7 +170,10 @@ export function mountShop(account:CloudAccount|undefined, equip:(appearance?:App
         core!.setAttribute('aria-pressed',String(open));
       }):undefined;
       if(core){core.setAttribute('aria-pressed','false');previewClose.before(core);}
-      const detach = attachDrag(renderer,controller,()=>{},championMotion?.commit);
+      const detach = attachDrag(renderer,controller,()=>{},championMotion?.commit,livePrometheus?{
+        begin:move=>livePrometheus.beginDrag(move),update:angle=>livePrometheus.updateDrag(angle),
+        end:()=>livePrometheus.endDrag(),resume:angle=>livePrometheus.resumeDrag(angle),
+      }:undefined);
       const detachKeys = attachKeyboard(controller,()=>{},undefined,undefined,previewCube);
       const effects = livePrometheus?undefined:bindSkinEffects(renderer,lowFx()?undefined:skin.appearance);
       renderer.onMoveAnimated = () => effects?.play();

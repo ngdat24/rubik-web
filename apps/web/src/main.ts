@@ -82,7 +82,10 @@ try {
   if (diagnosticsEnabled) Object.defineProperty(window, 'rubikDiagnostics', {value: (picking=false) => ({...renderer?.getDiagnostics(),...(picking?{pickTargets:renderer?.getPickTargets()}:{})}), configurable: true});
   renderer.setSpeed(Number(speed.value));
   controller = new CubeController(renderer,3);
-  detachDrag = attachDrag(renderer,controller,() => {},(move,stamp,x,y)=>championMotion?championMotion.commit(move,stamp,x,y):controller!.applyMove(move,stamp));
+  detachDrag = attachDrag(renderer,controller,() => {},(move,stamp,x,y)=>championMotion?championMotion.commit(move,stamp,x,y):controller!.applyMove(move,stamp),{
+    begin:move=>livePrometheus?.beginDrag(move),update:angle=>livePrometheus?.updateDrag(angle),
+    end:()=>livePrometheus?.endDrag(),resume:angle=>livePrometheus?.resumeDrag(angle),
+  });
   detachKeyboard = attachKeyboard(controller, () => {}, keySettings.getKeymap,
     move=>!viewKeyToggle.checked?viewMove(move,renderer!.getViewFaces()):move);
   renderer.onContextChange = available => {
