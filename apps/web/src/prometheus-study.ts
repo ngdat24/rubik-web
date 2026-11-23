@@ -1,7 +1,7 @@
 import type {CubeController} from '@rubik/controller';
 import {compileMove,parseMove} from '@rubik/engine';
 import type {Move} from '@rubik/engine';
-import {buildLayout,dragTurn,layerSlots,rotationFor} from '@rubik/renderer';
+import {advanceProgress,animationProgress,buildLayout,dragTurn,layerSlots,rotationFor} from '@rubik/renderer';
 import {ACESFilmicToneMapping,AdditiveBlending,AmbientLight,CanvasTexture,CircleGeometry,Color,CylinderGeometry,DirectionalLight,ExtrudeGeometry,Group,LinearFilter,LinearMipmapLinearFilter,Mesh,MeshPhysicalMaterial,NoColorSpace,Path,PerspectiveCamera,Plane,PMREMGenerator,PointLight,Raycaster,Scene,ShaderMaterial,Shape,SphereGeometry,Sprite,SpriteMaterial,SRGBColorSpace,TextureLoader,TorusGeometry,Vector2,Vector3,WebGLRenderer} from 'three';
 import type {BufferGeometry,Object3D,Texture,WebGLRenderTarget} from 'three';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
@@ -68,7 +68,7 @@ export class PrometheusStudy {
   private turnTimes:number[]=[];
   private coreLight=new PointLight(0xff4d2a,1.8,2.4,2);
   private queue:{move:Move;stateAfter:Uint8Array;startAngle?:number}[]=[];
-  private active:{move:Move;stateAfter:Uint8Array;startAngle?:number;start:number;axis:Vector3;angle:number}|undefined;
+  private active:{move:Move;stateAfter:Uint8Array;startAngle?:number;start:number;progress:number;lastFrameTime:number;axis:Vector3;angle:number}|undefined;
   private dragMove:Move|undefined;
   private interactionEffects:boolean|undefined;
   private geometry:BufferGeometry[]=[];
@@ -489,7 +489,7 @@ export class PrometheusStudy {
     for(const index of selected.stickerIndices)this.pivot.attach(this.caps[index]!);
     for(const index of selected.cubieIndices)this.pivot.attach(this.bodies[index]!);
     const angle=Math.abs(parsed.quarterTurns)===2&&(item.startAngle??0)<0?-Math.PI:rotation.angle;
-    this.active={...item,start:now,axis:new Vector3(...rotation.axis),angle};
+    this.active={...item,start:now,progress:0,lastFrameTime:now,axis:new Vector3(...rotation.axis),angle};
   }
   private draw=(now:number)=>{
     if(!this.shouldDraw()){
@@ -507,10 +507,17 @@ export class PrometheusStudy {
     this.startNextTurn(this.scrambleAnimation?.start??now);
     const budget=this.queue.length+1;
     for(let index=0;index<budget&&this.active;index++){
-      const a=this.active,duration=this.scrambleAnimation?.turnMs??this.turnDuration(Math.abs(parseMove(a.move,3).quarterTurns)===2)/(1+this.queue.length*.6);
-      const t=duration===0?1:Math.min(1,(now-a.start)/duration);
+      const a=this.active,duration=this.scrambleAnimation?.turnMs??this.turnDuration(Math.abs(parseMove(a.move,3).quarterTurns)===2);
+      if(this.scrambleAnimation)a.progress=Math.max(0,Math.min(1,(now-a.start)/duration));
+      else {
+        // turnDuration already includes the double-turn factor; integrate the same
+        // elapsed-frame progress as CubeRenderer so speed/queue changes never rewind.
+        a.progress=duration===0?1:advanceProgress(a.progress,now-a.lastFrameTime,duration,false,this.queue.length);
+        a.lastFrameTime=Math.max(a.lastFrameTime,now);
+      }
+      const t=a.progress;
       const startAngle=a.startAngle??0;
-      this.pivot.setRotationFromAxisAngle(a.axis,startAngle+(a.angle-startAngle)*t*t*(3-2*t));
+      this.pivot.setRotationFromAxisAngle(a.axis,startAngle+(a.angle-startAngle)*animationProgress(t,1));
       if(t===1){
         while(this.pivot.children.length)this.root.attach(this.pivot.children[0]!);
         this.pivot.rotation.set(0,0,0);

@@ -1,4 +1,5 @@
 export { CubeRenderer } from './cube-renderer.js';
+export { advanceProgress, animationProgress } from './animator.js';
 export type { RendererOptions } from './cube-renderer.js';
 export type { MoveSnapshot } from './cube-renderer.js';
 export { buildLayout, layerSlots, rotationFor } from './layout.js';
