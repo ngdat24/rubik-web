@@ -163,7 +163,16 @@ const onReset = (): void => {
   description.textContent = `Rubik ${sizeSelect.value}×${sizeSelect.value}${t(" · Trạng thái đã giải")}`;
   scrambleText.textContent = '';
 };
-const onScramble = (seed: string): void => {
+const onScramble = (seed: string): void|Promise<void> => {
+  if(livePrometheus){
+    const display=livePrometheus;
+    return display.prepareScramble(seed).then(moves=>{
+      if(!moves||pageDisposed||livePrometheus!==display)return;
+      timerUI?.scrambled(seed);
+      scrambleText.textContent=moves.join(' ');
+      description.textContent=`Rubik 3×3${t(' · Đã trộn')}`;
+    });
+  }
   const moves = controller?.scramble(seed);
   if (!moves) return;
   timerUI?.scrambled(seed);
@@ -200,7 +209,7 @@ if(controller) timerUI=attachTimer(controller,()=>onScramble(newId()),account,
       equippedEffects?.play(true);
       return livePrometheus?.finishSolve();
     }
-  });
+  },()=>!livePrometheus);
 const onPageHide = (event: PageTransitionEvent): void => {
   if (!event.persisted) {pageDisposed=true;livePrometheus?.dispose();disposeCommunityChat();}
   if (!event.persisted) { championMotion?.dispose(); championFrame?.dispose(); wallet.dispose(); disposeDailyQuests(); weekly.dispose(); shop.dispose(); equippedEffects?.dispose(); lowFx.removeEventListener('change',onLowFx); account?.dispose();clearInterval(viewLabelTimer); timerUI?.dispose(); detachDrag?.(); detachKeyboard?.(); keySettings.dispose(); controller?.dispose(); }

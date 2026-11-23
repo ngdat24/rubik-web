@@ -2,6 +2,13 @@ import {describe,expect,it} from 'vitest';
 import {SolvedUnification} from '../src/prometheus-unification.js';
 
 describe('solved ornament display',()=>{
+  it('can match the 3.5 second scramble transition without restarting on later inputs',()=>{
+    const display=new SolvedUnification();
+    display.setSolved(false,100,false,3500);
+    display.update(1850);expect(display.amount.value).toBeCloseTo(.5);
+    display.setSolved(false,1900);display.update(3600);
+    expect(display.amount.value).toBe(0);
+  });
   it('fades over two seconds without restarting on further unsolved inputs',()=>{
     const display=new SolvedUnification();
     display.setSolved(false,100);display.update(1100);expect(display.amount.value).toBeCloseTo(.5);

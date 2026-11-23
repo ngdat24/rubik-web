@@ -8,14 +8,14 @@ export class SolvedUnification {
   private solved=true;
   private transition:{start:number;from:number;to:number;duration:number}|undefined;
   constructor(private readonly reducedMotion=false){}
-  setSolved(solved:boolean,now:number,immediate=false){
+  setSolved(solved:boolean,now:number,immediate=false,duration=2000){
     this.update(now);
     if(immediate){this.solved=solved;this.transition=undefined;this.amount.value=solved?1:0;this.wave.value=-1;return;}
     if(solved===this.solved)return;
     this.solved=solved;
     if(!solved){
       this.wave.value=-1;
-      this.transition={start:now,from:this.amount.value,to:0,duration:this.reducedMotion?0:2000};
+      this.transition={start:now,from:this.amount.value,to:0,duration:this.reducedMotion?0:duration};
     }
   }
   /** Called only once the final move has finished displaying and the bloom begins. */
