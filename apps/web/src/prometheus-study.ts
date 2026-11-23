@@ -20,7 +20,7 @@ import {matchInnerGem} from './prometheus-inner-gem.js';
 import {bloomAmount,bloomTiming} from './prometheus-bloom.js';
 import {SolvedUnification} from './prometheus-unification.js';
 import {centerRing,centerGoldMaterial} from './prometheus-center-ring.js';
-import {solvingGemRim} from './prometheus-solving-atlas.js';
+import {lightweightSolvingSurface,solvingGemRim} from './prometheus-solving-atlas.js';
 import {solarHeart} from './prometheus-solar-heart.js';
 import {WebGLRenderTarget as CardRenderTarget} from 'three';
 import './prometheus-gameplay.css';
@@ -57,6 +57,10 @@ export class PrometheusStudy {
   private disposed=false;
   private referenceMaterials:MeshPhysicalMaterial[]=[];
   private solvingRims:MeshPhysicalMaterial[]=[];
+  private solvingMaterials:ReturnType<typeof lightweightSolvingSurface>[]=[];
+  private lightweight=false;
+  private preparingSurface=false;
+  private scrambleAnimation:{start:number;turnMs:number;complete:(finished:boolean)=>void}|undefined;
   private medallionMaterials:MeshPhysicalMaterial[]=[];
   private pom={value:0};
   private depth={value:.018};
@@ -118,6 +122,7 @@ export class PrometheusStudy {
   keepOriginalAppearance=false;
   private frame=0;
   private observer:ResizeObserver;
+  readonly ready:Promise<void>;
   constructor(private readonly host:HTMLElement, private readonly stats?:HTMLElement, private readonly syncCamera?:(camera:PerspectiveCamera)=>void,private readonly qualityNote?:HTMLElement){
     this.centerFire.forEach((material,face)=>{
       material.color.setHex(0xffffff);material.emissive.setHex(0xffffff);
@@ -148,7 +153,7 @@ export class PrometheusStudy {
     for(const [x,y,z,intensity] of [[4,7,5,1.6],[-5,2,-3,.8]]){
       const light=new DirectionalLight(0xffffff,intensity);light.position.set(x!,y!,z!);this.scene.add(light);
     }
-    this.observer=new ResizeObserver(()=>this.resize());this.observer.observe(this.host);this.resize();this.draw(0);void this.loadReference();
+    this.observer=new ResizeObserver(()=>this.resize());this.observer.observe(this.host);this.resize();this.draw(0);this.ready=this.loadReference();
   }
   private async loadReference(){
     try{
@@ -158,10 +163,18 @@ export class PrometheusStudy {
       const solvingAtlas=await new TextureLoader().loadAsync('/assets/skins/s1_red_prometheus_flame/solving-gemstone-reference.png').catch(()=>undefined);
       if(this.disposed){solvingAtlas?.dispose();return;}
       if(solvingAtlas){solvingAtlas.colorSpace=SRGBColorSpace;solvingAtlas.anisotropy=Math.min(16,this.webgl.capabilities.getMaxAnisotropy());solvingAtlas.minFilter=LinearMipmapLinearFilter;solvingAtlas.magFilter=LinearFilter;this.maps.push(solvingAtlas);
-        this.solvingRims=Array.from({length:54},(_,i)=>solvingGemRim(solvingAtlas,Math.floor(i/9),i%9,this.unification.amount));}
+        this.solvingRims=Array.from({length:54},(_,i)=>solvingGemRim(solvingAtlas,Math.floor(i/9),i%9,this.unification.amount));
+        this.solvingMaterials=Array.from({length:54},(_,i)=>lightweightSolvingSurface(solvingAtlas,Math.floor(i/9),i%9,atlas,this.unification.amount));}
       this.pyramidMaterials.forEach((material,face)=>matchInnerGem(material,atlas,face,this.gemMotion));
       this.referenceMaterials=Array.from({length:54},(_,i)=>referenceSurface(atlas,Math.floor(i/9),i%9,this.unification,this.gemMotion.time,solvingAtlas));
       this.medallionMaterials=Array.from({length:6},(_,face)=>referenceMedallion(atlas,face,this.gemMotion.time,this.centerAppearance,this.unification.wave));this.setQuality(this.quality);this.fx.prewarm(this.webgl,this.camera);
+      // Compile the second form while loading, rather than on the last scramble frame.
+      const materials=this.caps.map(cap=>cap.material),light=this.coreLight.visible;
+      try{
+        this.coreLight.visible=false;
+        this.caps.forEach(cap=>{const key=Number(cap.userData.face)*9+Number(cap.userData.tile);cap.material=this.solvingMaterials[key]??cap.material;});
+        this.webgl.compile(this.scene,this.camera);
+      }finally{this.caps.forEach((cap,index)=>{cap.material=materials[index]!;});this.coreLight.visible=light;}
     }catch{await this.loadMaps();}
   }
   private async loadMaps(){
@@ -231,6 +244,8 @@ export class PrometheusStudy {
   get isAnimating(){return Boolean(this.manualOpen||this.active||this.queue.length||this.bloom||this.bloomPending);}
   setSize(size:number){if(size!==3)throw Error('Demo này chỉ dùng 3×3.');}
   private cancel(){
+    this.preparingSurface=false;
+    const scramble=this.scrambleAnimation;this.scrambleAnimation=undefined;scramble?.complete(false);
     this.cancelBloom();
     while(this.pivot.children.length)this.root.attach(this.pivot.children[0]!);
     this.pivot.rotation.set(0,0,0);this.pivot.position.set(0,0,0);this.active=undefined;this.queue=[];this.manualOpen=false;this.fx.clear();
@@ -243,16 +258,16 @@ export class PrometheusStudy {
       const geometry=domedCap(index%9,round);
       this.geometry.push(geometry);
       const mesh=new Mesh(geometry,this.materials[state[index]!]!);
-      mesh.userData.face=state[index];mesh.userData.tile=index%9;
+      mesh.userData.face=state[index];mesh.userData.tile=index%9;mesh.userData.resetIndex=index;
       const ornament=bronzeRelief(index%9,capShape(index%9,round));this.geometry.push(ornament);
       const bend=(g:BufferGeometry)=>{const p=g.getAttribute('position');for(let i=0;i<p.count;i++)p.setZ(i,p.getZ(i)+capElevation(p.getX(i),p.getY(i),index%9,round));g.computeVertexNormals();};
       bend(ornament);
       const relief=new Mesh(ornament,this.bronze);relief.position.z=.065;mesh.add(relief);
       if(index%9===4){
         const disk=new CircleGeometry(.325,64);bend(disk);this.geometry.push(disk);
-        const glass=new Mesh(disk,this.centerGlass[state[index]!]!);glass.position.z=.064;mesh.add(glass);
+        const glass=new Mesh(disk,this.centerGlass[state[index]!]!);glass.userData.kind='center-glass';glass.position.z=.064;mesh.add(glass);
         const star=new ExtrudeGeometry(sacredFlame(.275),{depth:.006,bevelSize:.002,bevelThickness:.002,bevelSegments:2});bend(star);this.geometry.push(star);
-        const flame=new Mesh(star,this.centerFire[state[index]!]!);flame.position.z=.070;mesh.add(flame);
+        const flame=new Mesh(star,this.centerFire[state[index]!]!);flame.userData.kind='center-fire';flame.position.z=.070;mesh.add(flame);
       }
       const outline=capShape(index%9,round),channelShape=new Shape(outline.getPoints(16).map(p=>p.multiplyScalar(1.015)));
       channelShape.holes.push(new Path(outline.getPoints(16).map(p=>p.multiplyScalar(.94)).reverse()));
@@ -266,8 +281,8 @@ export class PrometheusStudy {
       mesh.position.set(...slot.position);mesh.quaternion.setFromUnitVectors(new Vector3(0,0,1),new Vector3(...slot.normal));
       this.root.add(mesh);return mesh;
     });
-    this.bodies=layout.cubies.map(slot=>{
-      const mesh=new Group();mesh.position.set(...slot.position);
+    this.bodies=layout.cubies.map((slot,index)=>{
+      const mesh=new Group();mesh.userData.resetIndex=index;mesh.position.set(...slot.position);
       for(const face of layout.slots.filter(face=>face.position.every((value,axis)=>Math.abs(value-face.normal[axis]!*.5-slot.position[axis]!)<1e-7))){
         const geometry=facePyramidWedge(face.position,face.normal,slot.position,capShape(face.index%9,round).getPoints(16));this.geometry.push(geometry);
         const pyramid=new Mesh(geometry,this.pyramidMaterials[face.face]!);pyramid.userData.kind='pyramid';pyramid.userData.face=face.face;mesh.add(pyramid);
@@ -289,6 +304,29 @@ export class PrometheusStudy {
   }
   enqueueMove(move:Move,stateAfter:Uint8Array){parseMove(move,3);this.queue.push({move,stateAfter:stateAfter.slice()});}
   enqueueMoves(moves:readonly {move:Move;stateAfter:Uint8Array}[]){for(const item of moves)this.enqueueMove(item.move,item.stateAfter);}
+  animateScramble(initial:Uint8Array,moves:readonly {move:Move;stateAfter:Uint8Array}[],started=performance.now(),quality:Quality='balanced'):Promise<boolean>{
+    // Reuse the existing geometry/GPU buffers instead of rebuilding the whole skin each round.
+    this.batches?.dispose();this.batches=undefined;this.cancel();
+    this.caps.sort((a,b)=>Number(a.userData.resetIndex)-Number(b.userData.resetIndex));
+    this.caps.forEach((cap,index)=>{
+      const slot=layout.slots[index]!;cap.userData.face=initial[index];
+      cap.position.set(...slot.position);cap.quaternion.setFromUnitVectors(new Vector3(0,0,1),new Vector3(...slot.normal));
+    });
+    this.bodies.sort((a,b)=>Number(a.userData.resetIndex)-Number(b.userData.resetIndex));
+    this.bodies.forEach((body,index)=>{body.position.set(...layout.cubies[index]!.position);body.quaternion.identity();});
+    this.lightweight=false;this.preparingSurface=true;this.setQuality(quality);
+    this.setSolvedAppearance(true,true);
+    this.unification.setSolved(false,started,false,3500);
+    if(!moves.length)return Promise.resolve(true);
+    return new Promise(complete=>{
+      this.scrambleAnimation={start:started,turnMs:3500/moves.length,complete};
+      this.enqueueMoves(moves);
+    });
+  }
+  setLightweight(enabled:boolean,quality:Quality=this.quality){
+    if(this.lightweight===enabled&&this.quality===quality)return;
+    this.lightweight=enabled;this.setQuality(quality);
+  }
   view(which:string){
     if(which==='white'){this.camera.position.set(0,9,.001);this.camera.up.set(0,0,-1);}
     else{this.camera.up.set(0,1,0);if(which==='back')this.camera.position.set(-6,-5,-7);else this.camera.position.set(6,5,7);}
@@ -321,9 +359,16 @@ export class PrometheusStudy {
     this.coreDecor.forEach(mesh=>{mesh.visible=value!=='lite';});
     for(const body of this.bodies)for(const part of body.children)part.visible=value==='ultra';
     for(const cap of this.caps){
-      const key=Number(cap.userData.face)*9+Number(cap.userData.tile),atlas=this.referenceMaterials[key]??(value==='lite'?this.liteAtlases:this.atlases)[key];
+      const key=Number(cap.userData.face)*9+Number(cap.userData.tile),atlas=(this.lightweight||this.preparingSurface?this.solvingMaterials[key]:undefined)??this.referenceMaterials[key]??(value==='lite'?this.liteAtlases:this.atlases)[key];
       cap.material=atlas??this.materials[Number(cap.userData.face)]!;
       for(const child of cap.children)if(child.userData.kind==='gem-rim')(child as Mesh).material=this.solvingRims[key]??this.antiBleed;
+      for(const child of cap.children){
+        const face=Number(cap.userData.face),kind=child.userData.kind;
+        if(kind==='medallion')(child as Mesh).material=this.medallionMaterials[face]!;
+        if(kind==='channel')(child as Mesh).material=this.pyramidMaterials[face]!;
+        if(kind==='center-glass')(child as Mesh).material=this.centerGlass[face]!;
+        if(kind==='center-fire')(child as Mesh).material=this.centerFire[face]!;
+      }
       if(Number(cap.userData.tile)===4&&this.medallionMaterials.length&&!cap.children.some(child=>child.userData.kind==='medallion')){
         const geometry=new CircleGeometry(.418,96),p=geometry.getAttribute('position');
         for(let i=0;i<p.count;i++)p.setZ(i,capElevation(p.getX(i),p.getY(i),4,design.fixedAppearance.edgeRound));
@@ -332,7 +377,7 @@ export class PrometheusStudy {
         medallion.position.set(0,0,.082);medallion.userData.kind='medallion';cap.add(medallion);
         cap.add(centerRing(this.centerGold,this.ringEngraving,this.geometry));
       }
-      cap.children.forEach(child=>{child.visible=child.userData.kind==='medallion'||child.userData.kind==='medallion-ring'||child.userData.kind==='channel'||child.userData.kind==='gem-rim'||!atlas||(!this.referenceMaterials.length&&value==='ultra');});
+      cap.children.forEach(child=>{child.visible=child.userData.kind==='medallion'||child.userData.kind==='medallion-ring'||(!(this.lightweight||this.preparingSurface)&&(child.userData.kind==='channel'||child.userData.kind==='gem-rim'||!atlas||(!this.referenceMaterials.length&&value==='ultra')));});
     }
     this.fx.setEnabled(value!=='lite');
     this.webgl.setPixelRatio(Math.min(devicePixelRatio,value==='ultra'?2:value==='balanced'?1.5:1));
@@ -341,7 +386,7 @@ export class PrometheusStudy {
     if(this.optimize)this.batches=new PrometheusBatches(this.scene,this.root,this.camera);
   }
   feedback(move:string){this.audio.turn(move);this.lastTurn=performance.now();this.turnTimes.push(this.lastTurn);}
-  setSolvedAppearance(solved:boolean,immediate=false){this.unification.setSolved(this.keepOriginalAppearance||solved,performance.now(),immediate);}
+  setSolvedAppearance(solved:boolean,immediate=false,duration=2000){this.unification.setSolved(this.keepOriginalAppearance||solved,performance.now(),immediate,duration);}
   celebrate(){
     if(this.manualOpen||this.bloom||this.bloomPending||this.disposed)return false;
     this.bloomPending=true;this.onBloomChange(true);return true;
@@ -434,10 +479,10 @@ export class PrometheusStudy {
     if(this.heart)this.heart.scale.set(2.2*heatScale,1.45*heatScale,2.2*heatScale);
     this.coreLight.intensity=1.8+Math.max(0,1-(now-this.lastTurn)/180)*1.4+ignition;
     this.audio.update(this.camera,now);
-    this.startNextTurn(now);
+    this.startNextTurn(this.scrambleAnimation?.start??now);
     const budget=this.queue.length+1;
     for(let index=0;index<budget&&this.active;index++){
-      const a=this.active,duration=this.turnDuration(Math.abs(parseMove(a.move,3).quarterTurns)===2)/(1+this.queue.length*.6);
+      const a=this.active,duration=this.scrambleAnimation?.turnMs??this.turnDuration(Math.abs(parseMove(a.move,3).quarterTurns)===2)/(1+this.queue.length*.6);
       const t=duration===0?1:Math.min(1,(now-a.start)/duration);
       this.pivot.setRotationFromAxisAngle(a.axis,a.angle*t*t*(3-2*t));
       if(t===1){
@@ -448,9 +493,14 @@ export class PrometheusStudy {
         // Re-identify cubies by their engine-defined positions after the physical turn.
         this.bodies=layout.cubies.map(slot=>this.bodies.find(mesh=>mesh.position.distanceTo(new Vector3(...slot.position))<.01)!);
         this.active=undefined;
-        this.startNextTurn(now);
+        this.startNextTurn(this.scrambleAnimation?a.start+duration:now);
       }
-      if(t<1||duration>0)break;
+      if(t<1||(duration>0&&!this.scrambleAnimation))break;
+    }
+    if(this.scrambleAnimation&&!this.active&&!this.queue.length){
+      const scramble=this.scrambleAnimation;this.scrambleAnimation=undefined;
+      this.preparingSurface=false;
+      this.setSolvedAppearance(false,true);this.setLightweight(true,'lite');scramble.complete(true);
     }
     if(this.bloomPending&&!this.active&&!this.queue.length)this.beginBloom(now);
     this.animateBloom(now);
@@ -462,5 +512,5 @@ export class PrometheusStudy {
     if(this.stats&&now-this.lastStats>500){this.stats.textContent=`${this.webgl.info.render.calls} draw calls · ${this.webgl.info.render.triangles.toLocaleString('vi')} tam giác`;this.lastStats=now;}
     this.frame=requestAnimationFrame(this.draw);
   };
-  dispose(){this.batches?.dispose();this.batches=undefined;this.channels.dispose();this.antiBleed.dispose();this.centerGlass.forEach(m=>m.dispose());this.centerFire.forEach(m=>m.dispose());this.solar.dispose();this.centerGold.dispose();this.solvingRims.forEach(material=>material.dispose());this.ringEngraving.dispose();this.cancelBloom();this.disposed=true;cancelAnimationFrame(this.frame);this.observer.disconnect();this.controls.dispose();this.fx.dispose();this.audio.dispose();this.geometry.forEach(g=>g.dispose());this.pyramidMaterials.forEach(m=>m.dispose());this.bronze.dispose();this.spindle.dispose();this.axle.dispose();this.cage.dispose();this.pod.dispose();this.lens.dispose();this.podMaterial.dispose();this.magnetMaterial.dispose();this.flameGeometry.dispose();this.fire.dispose();this.glowTexture.dispose();this.glowSprite.material.dispose();this.materials.forEach(m=>m.dispose());this.maps.forEach(t=>t.dispose());this.referenceMaterials.forEach(m=>m.dispose());this.medallionMaterials.forEach(m=>m.dispose());this.atlases.forEach(m=>m.dispose());this.liteAtlases.forEach(m=>m.dispose());this.environment.dispose();this.webgl.dispose();this.webgl.domElement.remove();}
+  dispose(){const scramble=this.scrambleAnimation;this.scrambleAnimation=undefined;scramble?.complete(false);this.batches?.dispose();this.batches=undefined;this.channels.dispose();this.antiBleed.dispose();this.centerGlass.forEach(m=>m.dispose());this.centerFire.forEach(m=>m.dispose());this.solar.dispose();this.centerGold.dispose();this.solvingRims.forEach(material=>material.dispose());this.solvingMaterials.forEach(material=>material.dispose());this.ringEngraving.dispose();this.cancelBloom();this.disposed=true;cancelAnimationFrame(this.frame);this.observer.disconnect();this.controls.dispose();this.fx.dispose();this.audio.dispose();this.geometry.forEach(g=>g.dispose());this.pyramidMaterials.forEach(m=>m.dispose());this.bronze.dispose();this.spindle.dispose();this.axle.dispose();this.cage.dispose();this.pod.dispose();this.lens.dispose();this.podMaterial.dispose();this.magnetMaterial.dispose();this.flameGeometry.dispose();this.fire.dispose();this.glowTexture.dispose();this.glowSprite.material.dispose();this.materials.forEach(m=>m.dispose());this.maps.forEach(t=>t.dispose());this.referenceMaterials.forEach(m=>m.dispose());this.medallionMaterials.forEach(m=>m.dispose());this.atlases.forEach(m=>m.dispose());this.liteAtlases.forEach(m=>m.dispose());this.environment.dispose();this.webgl.dispose();this.webgl.domElement.remove();}
 }
