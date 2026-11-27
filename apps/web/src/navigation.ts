@@ -16,14 +16,9 @@ export function mountNavigation(en:boolean){
  more.setAttribute('aria-label',en?'Open profile menu':'Mở menu hồ sơ');more.setAttribute('aria-expanded','false');
  more.setAttribute('aria-controls','nav-profile-panel');more.innerHTML='<span aria-hidden="true">▾</span>';
  profile.id='nav-profile-panel';profile.before(more);
- const wallet=header.querySelector<HTMLOutputElement>('#economy-wallet')!;
  const mobile=matchMedia('(max-width:850px)');
  const closeProfile=()=>{more.setAttribute('aria-expanded','false');profile.classList.remove('profile-open');};
- const syncLayout=()=>{
-  closeProfile();
-  if(mobile.matches)profile.append(wallet);else header.insertBefore(wallet,header.querySelector('.language-menu'));
- };
- mobile.addEventListener('change',syncLayout);syncLayout();
+ mobile.addEventListener('change',closeProfile);
  more.addEventListener('click',()=>{
   const open=more.getAttribute('aria-expanded')!=='true';
   more.setAttribute('aria-expanded',String(open));profile.classList.toggle('profile-open',open);
@@ -51,5 +46,5 @@ export function mountNavigation(en:boolean){
   season.textContent=Number.isFinite(remaining)&&remaining>0?(en?`${Math.ceil(remaining/86400000)} days left`:`Còn ${Math.ceil(remaining/86400000)} ngày`):(en?'Season ended':'Đã hết mùa');
  }catch{if(!abort.signal.aborted)season.textContent=en?'Season unavailable':'Chưa tải được mùa';}}
  void refreshSeason();const timer=setInterval(()=>{if(!document.hidden)void refreshSeason();},60000);
- window.addEventListener('pagehide',event=>{abort.abort();clearInterval(timer);observer.disconnect();if(!event.persisted)mobile.removeEventListener('change',syncLayout);},{once:true});
+ window.addEventListener('pagehide',event=>{abort.abort();clearInterval(timer);observer.disconnect();if(!event.persisted)mobile.removeEventListener('change',closeProfile);},{once:true});
 }

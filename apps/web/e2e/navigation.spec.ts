@@ -28,7 +28,7 @@ test('shared navigation, mode toggle, season and responsive layout',async({page}
  await page.setViewportSize({width:1440,height:900});await page.goto('/');await page.screenshot({path:'test-results/navigation-desktop.png',fullPage:true});
 });
 
-test('mobile navigation stays in two rows and opens profile and wallet from the triangle',async({page})=>{
+test('mobile navigation stays in two rows with wallet between logo and language and profile in the triangle',async({page})=>{
  await page.route(/^https:\/\//,r=>r.abort());
  await page.route('**/api/navigation-season',r=>r.fulfill({json:{endsAt:new Date(Date.now()+12*86400000).toISOString()}}));
  for(const lang of ['vi','en']){
@@ -43,6 +43,11 @@ test('mobile navigation stays in two rows and opens profile and wallet from the 
    await page.setViewportSize({width,height:844});
    const brand=(await nav.locator('.brand').boundingBox())!,language=(await nav.locator('.language-menu').boundingBox())!;
    expect(Math.abs(brand.y-language.y)).toBeLessThanOrEqual(1);
+   const money=(await wallet.boundingBox())!;
+   expect(money.x).toBeGreaterThanOrEqual(brand.x+brand.width-1);
+   expect(money.x+money.width).toBeLessThanOrEqual(language.x+1);
+   expect(money.y).toBeGreaterThanOrEqual(brand.y);
+   expect(money.y+money.height).toBeLessThanOrEqual(brand.y+brand.height+1);
    const rows=await nav.locator('[data-nav=home],.nav-modes,.fashion-nav,[data-nav=board],.nav-more-toggle').evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect().top));
    expect(Math.max(...rows)-Math.min(...rows)).toBeLessThanOrEqual(1);
    expect(rows[0]).toBeGreaterThanOrEqual(brand.y+brand.height-1);
@@ -52,7 +57,7 @@ test('mobile navigation stays in two rows and opens profile and wallet from the 
    expect(await nav.locator('[data-nav=home],[data-nav=board],.fashion-nav>.nav-item,.nav-modes>summary').evaluateAll(nodes=>nodes.every(n=>n.scrollWidth<=n.clientWidth))).toBe(true);
   }
   await page.setViewportSize({width:390,height:844});
-  await expect(profile).not.toBeVisible();await more.click();await expect(profile).toBeVisible();await expect(wallet).toBeVisible();
+  await expect(profile).not.toBeVisible();await expect(wallet).toBeVisible();await more.click();await expect(profile).toBeVisible();await expect(wallet).toBeVisible();
   expect((await profile.boundingBox())!.x).toBeGreaterThanOrEqual(0);
   await page.keyboard.press('Escape');await expect(profile).not.toBeVisible();await expect(more).toBeFocused();
   await more.click();await page.locator('body').dispatchEvent('click');await expect(profile).not.toBeVisible();
