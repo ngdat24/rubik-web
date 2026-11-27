@@ -40,6 +40,6 @@
 .champion-name-form p{margin-top:8px}
 .champion-skin-name{overflow-wrap:anywhere;color:#ead58d!important}
 @media(max-width:780px){
-  main>header:has(#shop-open){height:auto;min-height:76px;padding-block:8px;flex-wrap:wrap;gap:6px 12px}
+  main>header:not(.site-navigation):has(#shop-open){height:auto;min-height:76px;padding-block:8px;flex-wrap:wrap;gap:6px 12px}
 }
 @media(max-width:480px){#shop-dialog{padding:12px}}
